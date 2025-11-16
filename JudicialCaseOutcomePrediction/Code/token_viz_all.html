@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Word Colorizer</title>
+    <style>
+        /* /*abridged* /
+        @page {
+            size: 120mm 50mm;
+            margin: 5mm;
+        }
+        */
+        #output {
+            font-size: 87%;
+        }
+        .word {
+            display: inline-block;
+            margin: 0px;
+            padding: 0px;
+            padding-left: 5px;
+            margin-top: 2px;
+            margin-top: 12px;
+            /*margin-top: 4px; /*abridged*/
+        }
+        .punctuation {
+            display: inline-block;
+            margin: 0px;
+            padding: 0px;
+            margin-top: 2px;
+        }
+
+        /* New styles for details/summary */
+        details {
+            margin-bottom: 16px;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        summary {
+            outline: none;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        summary::-webkit-details-marker {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Visualize Explanations for Case Outcome Prediction</h1>
+    <!--div id="output"></div-->
+    
+    <div>
+        <label for="directoryInput">Explainer:</label>
+        <!-- input type="text" id="directoryInput" value="DATA/SPAN_EXPS_stride_35_128_1e-05" style="width: 300px;" -->
+        <select id="directoryInput" style="width: 300px;">
+            <option value="DATA/SPAN_EXPS_stride_35_128_1e-05" selected>Rule of Thumb</option>
+            <option value="DATA/SHAP_MERGED_500">SHAP</option>
+            <option value="DATA/LIME_MERGED_500">LIME 500</option>
+            <option value="DATA/LIME_MERGED_5000">LIME 5000</option>
+            <option value="DATA/IG_MERGED">IG</option>
+            <option value="DATA/UNIFORM_spans">Random</option>
+        </select>
+    </div>
+    <!-- replaced subdirectory text input with select -->
+    <div>
+        <label for="subdirectoryInput">Subset (defined as LLM-label_Human-label_RoT-label, only valid for Rule of Thumb):</label>
+        <select id="subdirectoryInput" style="width: 80px;"></select>
+    </div>
+    <details id="collapse" closed>
+        <summary style="cursor: pointer; font-weight: 600; margin-bottom: 8px;">Advanced</summary>
+        <div>
+            <div>
+                <label for="startIndexInput">Start Index (0-based):</label>
+                <input type="number" id="startIndexInput" value="0" min="0">
+            </div>
+
+                
+            <div>
+                <label for="colorToggle">Toggle Color Scheme:</label>
+                <input type="checkbox" id="colorToggle">
+            </div>
+
+
+            <!-- <div>
+                <label for="endIndexInput">End Index (exclusive, 0-based):</label>
+                <input type="number" id="endIndexInput" value="50" min="0">
+            </div> -->
+            <div id="source"></div>
+            <div id="subsource"></div>
+        </div>
+    </details>
+    <hr>
+    <div id="output"></div>
+    <div><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br></div>
+    <hr>
+    <div id="meta">
+    <span id="metadata"></span>
+    <span id="metaexplainer" style="display: None;">INDEX,filename,LLM-PRED,HUMAN-LABEL,RoT-OUTPUT</span>
+    </div>
+    <hr>
+    <script>
+        // wire up existing listeners (unchanged)
+        document.getElementById('directoryInput').addEventListener('change', fetchCSVFiles);
+        document.getElementById('subdirectoryInput').addEventListener('change', fetchCSVFiles);
+        document.getElementById('startIndexInput').addEventListener('change', fetchCSVFiles);
+        document.getElementById('colorToggle').addEventListener('change', fetchCSVFiles);
+        // document.getElementById('endIndexInput').addEventListener('change', fetchCSVFiles);
+        
+        function splitRow(row) {
+            const trimmed = row.trim();
+
+            // Split by comma
+            const parts = trimmed.split(',');
+
+            if (parts.length < 3) return null; // not enough parts
+
+            const num2 = parseFloat(parts.pop().trim()); // last number
+            const num1 = parseFloat(parts.pop().trim()); // second-last number
+            let word = parts.join(',').trim(); // rest is the "word" part
+
+            // Remove optional surrounding quotes
+            if (word.startsWith('"') && word.endsWith('"')) {
+                word = word.slice(1, -1).trim();
+            }
+
+            return { word, num1, num2 };
+        }
+
+
+        async function fetchCSVFiles() {
+            const directory = document.getElementById('directoryInput').value;
+            if (!directory) {
+                console.error("No directory path provided.");
+                return;
+            }
+            const sourceDiv = document.getElementById('source');
+            sourceDiv.textContent = `Directory: ${directory}`;
+
+            const subdirectory = document.getElementById('subdirectoryInput').value;
+            if (!subdirectory) {
+                console.error("No subdirectory path provided.");
+                // return;
+            }
+            const subsourceDiv = document.getElementById('subsource');
+            subsourceDiv.textContent = `SubDirectory: ${subdirectory}`;
+
+
+            // Fetch and append model_performance.txt content
+            try {
+                const modelPerformanceResponse = await fetch(`../${directory}/model_performance.txt`);
+                if (modelPerformanceResponse.ok) {
+                    const modelPerformanceText = await modelPerformanceResponse.text();
+                    sourceDiv.textContent += `\nModel Performance:\n${modelPerformanceText}`;
+                } else {
+                    console.error("Failed to fetch model_performance.txt");
+                }
+            } catch (error) {
+                console.error("Error fetching model_performance.txt:", error);
+            }
+
+            var response;
+            if (!subdirectory) {
+                response = await fetch(`../${directory}/`);
+            } else {
+                response = await fetch(`../${directory}/${subdirectory}/`);
+            }
+            const text = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(text, 'text/html');
+            let links = Array.from(doc.querySelectorAll('a'))
+                .map(link => link.href)
+                .filter(href => href.endsWith('.csv'));
+            links.sort();
+
+            const outputDiv = document.getElementById('output');
+            console.log(`Number of links: ${links.length}`);
+            console.log(links);
+
+            if (links.length > 5) {
+                let startIndex = parseInt(document.getElementById('startIndexInput').value, 10);
+                let endIndex = startIndex + 500;
+                //  parseInt(document.getElementById('endIndexInput').value, 10);
+                if (startIndex < 0) {
+                    startIndex = 0;
+                }
+                if (endIndex > links.length) {
+                    endIndex = links.length;
+                }
+
+                // if (isNaN(startIndex) || isNaN(endIndex) || startIndex < 0 || endIndex > links.length || startIndex >= endIndex) {
+                //     console.error("Invalid index range provided.");
+                //     return;
+                // }
+
+                links = links.slice(startIndex, endIndex);
+            }
+
+            // links.forEach((link, index) => {
+            //     links[index] = link.replace('IndianCases/Code/', `IndianCases/${directory}/${subdirectory}/`);
+            // });
+            if (!subdirectory) {
+                links.forEach((link, index) => {
+                    links[index] = link.replace('Code/', `${directory}/`);
+                });
+            } else {
+                links.forEach((link, index) => {
+                    links[index] = link.replace('Code/', `${directory}/${subdirectory}/`);
+                });
+            }
+
+            console.log(links);
+            outputDiv.innerHTML = ''; // Clear previous content
+
+            file2roberta = {};
+
+            fetch(`../DATA/PREP/rot_input_embeddings_stride.csv`)
+                .then(response => response.text())
+                .then(robertaText => {
+                    const robertaRows = robertaText.split('\n').filter(row => row.trim() !== '');
+
+                    robertaRows.forEach(robertaRow => {
+                        const [index, filename, roberta_pred, human_label] = robertaRow.split(',').map(item => item.trim());
+                        file2roberta[filename] = roberta_pred;
+                    });
+                    
+                })
+                .catch(error => console.error('Error fetching DATA/PREP/rot_input_embeddings_stride.csv:', error));
+
+
+            for (const link of links) {
+                const fileName = link.split('/').pop().replace('.csv', '');
+                const fileResponse = await fetch(link);
+                const fileText = await fileResponse.text();
+                const rows = fileText.split('\n').filter(row => row.trim() !== '');
+                const roberta_pred_for_case = file2roberta[fileName]
+
+                let concatenatedWords = `<h2>${fileName}</h2><h3>Roberta Prediction is ${roberta_pred_for_case}</h3> <br>`; // Initialize with filename
+
+                rows.forEach(row => {
+                    //console.log(row);
+                    
+                    //const columns = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+                    //console.log(columns);
+                    //console.log();
+                    //if (columns && columns.length >= 3) {
+                    //    const word = columns[0].replace(/^"|"$/g, '').trim();
+                    //    const number = columns[2].trim();
+                    
+                    split_result = splitRow(row);
+                    if (split_result) {
+                        const {word, num2: number} = split_result;
+                        //console.log(word);
+                        //console.log();
+                        if (word && number) {
+                            const num = parseFloat(number);
+                            const opacity = Math.min(Math.abs(num) / 100, 1);
+                            // const color = num >= 0 ? `rgba(0, 255, 0, ${opacity})` : `rgba(255, 0, 0, ${opacity})`;
+                            const toggle = document.getElementById('colorToggle').checked;
+                            const color = toggle 
+                                ? (num >= 0 ? `rgba(0, 255, 0, ${opacity})` : `rgba(255, 0, 0, ${opacity})`)
+                                // : (num >= 0 ? `rgba(255, 127, 14, ${opacity})` : `rgba(31, 119, 180, ${opacity})`);
+                                : (num >= 0 ? `rgba(31, 119, 180, ${opacity})` : `rgba(255, 127, 14, ${opacity})`);
+
+                            const span = document.createElement('span');
+                            span.className = /\w/.test(word) ? 'word' : 'punctuation';
+                            span.style.backgroundColor = color;
+                            let displayWord = word;
+                            if (word.startsWith('___')) {
+                                displayWord = word.slice(3); // Remove '___'
+                                span.style.fontWeight = 'bold'; // Make text bold
+                            }
+                            span.textContent = displayWord;
+
+                            concatenatedWords += span.outerHTML; // Concatenate the span's outerHTML
+                        }
+                    }
+                });
+
+                outputDiv.innerHTML += concatenatedWords + '<br><br>'; // Set the concatenated words as the innerHTML
+            }
+
+            // Fetch metadata
+            const [subd_a, subd_b, subd_c] = subdirectory.split('_');
+            fetch(`../${directory}/meta.csv`)
+                .then(response => response.text())
+                .then(metaText => {
+                    const metaRows = metaText.split('\n').filter(row => row.trim() !== '');
+                    const metadataDiv = document.getElementById('metadata');
+                    metadataDiv.innerHTML = ''; // Clear previous content
+
+                    metaRows.forEach(metaRow => {
+                        const [index, filename, metadata1, metadata2, metadata3] = metaRow.split(',').map(item => item.trim());
+                        if (metadata1 === subd_a && metadata2 === subd_b && metadata3 === subd_c) {
+                            metadataDiv.innerHTML += `<strong>${filename}:</strong> ${metaRow}<br>`; // Prepend filename
+                            console.log(`Success: ${metaRow}`);
+                        } else {
+                            console.log(`FAILED: ${metadata1} ${metadata2} ${metadata3} ${metaRow}`);
+                        }
+                    });
+                    
+                    const metaex = document.getElementById('metaexplainer');
+                    metaex.style.display = 'block'; // Make the metadata span visible
+                })
+                .catch(error => console.error('Error fetching metadata:', error));
+        }
+
+        // New: update subdirectory select options depending on chosen directory
+        function updateSubdirectoryOptions() {
+            const dirSelect = document.getElementById('directoryInput');
+            const subSelect = document.getElementById('subdirectoryInput');
+            const rotDirValue = 'DATA/SPAN_EXPS_stride_35_128_1e-05'; // Rule of Thumb directory value
+
+            if (dirSelect.value === rotDirValue) {
+                // Populate allowed RoT options
+                const options = ['1_1_1','1_1_0','0_0_1','0_0_0'];
+                subSelect.innerHTML = options.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+                subSelect.value = '1_1_1';
+                subSelect.disabled = false;
+            } else {
+                // Fixed to empty string for non-RoT choices
+                subSelect.innerHTML = `<option value="">(none)</option>`;
+                subSelect.value = '';
+                subSelect.disabled = true;
+            }
+
+            // Update displayed subsource immediately
+            const subsourceDiv = document.getElementById('subsource');
+            subsourceDiv.textContent = `SubDirectory: ${subSelect.value}`;
+            fetchCSVFiles();
+            const outputDiv = document.getElementById('output');
+            outputDiv.innerHTML = ''; // Clear previous content
+        }
+
+        // Ensure subdirectory options update when directory changes
+        document.getElementById('directoryInput').addEventListener('change', updateSubdirectoryOptions);
+
+        // Call once on load so initial UI matches default directory selection
+        updateSubdirectoryOptions();
+
+        fetchCSVFiles();
+    </script>
+</body>
+</html>
