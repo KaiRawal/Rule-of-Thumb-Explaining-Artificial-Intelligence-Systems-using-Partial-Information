@@ -56,8 +56,12 @@
 **/DATA/rot_input_embeddings.csv
 
 **/investigation-amazon-brands/**
+**/investigation-amazon-brands/*
+**/investigation-amazon-brands/
+**/investigation-amazon-brands
 
 fair_PCA.py
+**/Fooling-LIME-SHAP/
 
 
 # Byte-compiled / optimized / DLL files

@@ -1,0 +1,3 @@
+
+
+We adopt the adversarial attack in [https://github.com/dylan-slack/Fooling-LIME-SHAP](https://github.com/dylan-slack/Fooling-LIME-SHAP) exactly. The only code modifications we make seek to apply Rule-of-Thumb in addition to SHAP and LIME to the adversarial models. The script in `RUN.sh` clones the repository, makes necessary code changes (by replacing files), and runs the code to generate explanations. The notebook [./final.ipynb](./final.ipynb) can then be run to generate the plots for figure 6.
