@@ -37,6 +37,25 @@
 **/DATA/PREP/subset.csv
 **/DATA/PredEx/test.csv
 
+**/DATA/movies/*
+**/DATA/SPAN_EXPS/*.csv
+**/DATA/MERGED_HUMAN/*.csv
+**/DATA/MERGED_GPT/*.csv
+**/DATA/EMBEDDINGS_span_stride/*.csv
+**/DATA/EMBEDDINGS/*.csv
+**/DATA/CSVs/*.csv
+**/DATA/CACHE/*
+
+**/DATA/TOKEN_EXPS/*.csv
+**/PLOTS/dists/*.pdf
+**/PLOTS/distplots/*.png
+**/LLMResumeBiasAnalysis/*
+**/Dataset/rot_input_sample.csv
+**/DATA/meta.csv
+**/DATA/tokens.csv
+**/DATA/rot_input_embeddings.csv
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
