@@ -55,6 +55,8 @@
 **/DATA/tokens.csv
 **/DATA/rot_input_embeddings.csv
 
+**/investigation-amazon-brands/**
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
