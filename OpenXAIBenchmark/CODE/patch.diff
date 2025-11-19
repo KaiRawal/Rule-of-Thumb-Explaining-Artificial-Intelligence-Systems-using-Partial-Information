@@ -1,0 +1,1020 @@
+diff --git a/openxai/Explainer.py b/openxai/Explainer.py
+old mode 100644
+new mode 100755
+index 0d2c26f..251d2b5
+--- a/openxai/Explainer.py
++++ b/openxai/Explainer.py
+@@ -3,13 +3,15 @@ import torch
+ import numpy as np
+ 
+ # Explanation Models
+-from openxai.explainers import Gradient
+-from openxai.explainers import IntegratedGradients
+-from openxai.explainers import InputTimesGradient
+-from openxai.explainers import SmoothGrad
+-from openxai.explainers import LIME
+-from openxai.explainers import SHAPExplainerC
+-from openxai.explainers import RandomBaseline
++
++from openxai.explainers import Gradient, IntegratedGradients, InputTimesGradient, SmoothGrad, LIME, SHAPExplainerC, RuleOfThumb, RuleOfThumbRBF, RandomBaseline
++# from openxai.explainers import Gradient
++# from openxai.explainers import IntegratedGradients
++# from openxai.explainers import InputTimesGradient
++# from openxai.explainers import SmoothGrad
++# from openxai.explainers import LIME
++# from openxai.explainers import SHAPExplainerC
++# from openxai.explainers import RandomBaseline
+ 
+ 
+ def Explainer(method: str,
+@@ -19,8 +21,10 @@ def Explainer(method: str,
+               param_dict_sg=None,
+               param_dict_ig=None,
+               param_dict_lime=None,
+-              param_dict_shap=None):
+-    
++              param_dict_shap=None,
++              param_dict_rot=None):
++    method = method.lower()
++
+     if method == 'grad':
+         if param_dict_grad is None:
+             param_dict_grad = dict()
+@@ -70,7 +74,7 @@ def Explainer(method: str,
+             param_dict_lime['n_samples'] = 1000
+             param_dict_lime['discretize_continuous'] = False
+ 
+-        explainer = LIME(model.predict,
++        explainer = LIME(model,
+                          param_dict_lime['dataset_tensor'],
+                          std=param_dict_lime['std'],
+                          mode=param_dict_lime['mode'],
+@@ -79,9 +83,30 @@ def Explainer(method: str,
+                          n_samples=param_dict_lime['n_samples'],
+                          discretize_continuous=param_dict_lime['discretize_continuous'])
+ 
+-    elif method == 'control':
++    elif method == 'ruleofthumb' or method == 'rot':
++        if param_dict_rot is None:
++            param_dict_rot = {}
++            # param_dict_rot['epochs'] = 10000
++            # param_dict_rot['batch_size'] = 50000
++            # param_dict_rot['learning_rate'] = 0.001
++            param_dict_rot['epochs'] = 500
++            param_dict_rot['batch_size'] = 5000
++            param_dict_rot['learning_rate'] = 0.01
++            param_dict_rot['dropout_rate'] = 0.5
++        explainer = RuleOfThumb(model, x_inputs=dataset_tensor, epochs=param_dict_rot['epochs'], batch_size=param_dict_rot['batch_size'], learning_rate=param_dict_rot['learning_rate'], dropout_rate=param_dict_rot['dropout_rate'])
++
++    elif method == 'rotrbf':
++        if param_dict_rot is None:
++            param_dict_rot = {}
++            param_dict_rot['epochs'] = 5000
++            param_dict_rot['batch_size'] = 50000
++            param_dict_rot['learning_rate'] = 0.05
++            param_dict_rot['dropout_rate'] = 0.5
++        explainer = RuleOfThumbRBF(model, x_inputs=dataset_tensor, epochs=param_dict_rot['epochs'], batch_size=param_dict_rot['batch_size'], learning_rate=param_dict_rot['learning_rate'], dropout_rate=param_dict_rot['dropout_rate'])
++
++    elif method == 'control' or method == 'random':
+         explainer = RandomBaseline(model)
+-    
++
+     else:
+         raise NotImplementedError("This method has not been implemented, yet.")
+     
+diff --git a/openxai/LoadModel.py b/openxai/LoadModel.py
+old mode 100644
+new mode 100755
+index 79c6bec..56b78ec
+--- a/openxai/LoadModel.py
++++ b/openxai/LoadModel.py
+@@ -5,6 +5,9 @@ import requests
+ # models
+ import openxai.ML_Models.ANN.model as model_ann
+ from openxai.ML_Models.LR.model import LogisticRegression
++from openxai.ML_Models.LR.model import AdversarialModel1
++from openxai.ML_Models.LR.model import AdversarialModel2
++from openxai.ML_Models.LR.model import AdversarialModel3
+ # (Train & Test) Loaders
+ import openxai.dataloader as loaders
+ 
+@@ -31,13 +34,15 @@ def LoadModel(data_name: str, ml_model, pretrained: bool = True):
+                                                            batch_size=32,  # arbitrary
+                                                            gauss_params=gauss_params)
+         data_iter = iter(loader_test)
+-        inputs, labels, weights, masks, masked_weights, probs, cluster_idx = data_iter.next()
++        inputs, labels, weights, masks, masked_weights, probs, cluster_idx = next(data_iter)
+     else:
+         loader_train, loader_test = loaders.return_loaders(data_name=data_name,
+                                                            download=True,
+                                                            batch_size=32)  # arbitrary
+         data_iter = iter(loader_test)
+-        inputs, labels = data_iter.next()
++        inputs, labels = next(data_iter)
++        data_all = torch.FloatTensor(loader_train.dataset.data)
++
+     
+     if pretrained:
+         os.makedirs('./pretrained', exist_ok=True)
+@@ -74,6 +79,24 @@ def LoadModel(data_name: str, ml_model, pretrained: bool = True):
+                 open(model_path, 'wb').write(r.content)
+                 model = LogisticRegression(input_dim=inputs.shape[1])
+                 model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
++            elif ml_model == 'adv1':
++                r = requests.get('https://dataverse.harvard.edu/api/access/datafile/6718044', allow_redirects=True)
++                model_path = './pretrained/lr_adult.pt'
++                open(model_path, 'wb').write(r.content)
++                model = AdversarialModel1(input_dim=inputs.shape[1], dataset=data_all)
++                model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
++            elif ml_model == 'adv2':
++                r = requests.get('https://dataverse.harvard.edu/api/access/datafile/6718044', allow_redirects=True)
++                model_path = './pretrained/lr_adult.pt'
++                open(model_path, 'wb').write(r.content)
++                model = AdversarialModel2(input_dim=inputs.shape[1], dataset=data_all)
++                model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
++            elif ml_model == 'adv3':
++                r = requests.get('https://dataverse.harvard.edu/api/access/datafile/6718044', allow_redirects=True)
++                model_path = './pretrained/lr_adult.pt'
++                open(model_path, 'wb').write(r.content)
++                model = AdversarialModel3(input_dim=inputs.shape[1], dataset=data_all)
++                model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
+                 
+         elif data_name == 'compas':
+             if ml_model == 'ann':
+@@ -91,6 +114,24 @@ def LoadModel(data_name: str, ml_model, pretrained: bool = True):
+                 open(model_path, 'wb').write(r.content)
+                 model = LogisticRegression(input_dim=inputs.shape[1])
+                 model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
++            elif ml_model == 'adv1':
++                r = requests.get('https://dataverse.harvard.edu/api/access/datafile/6718042', allow_redirects=True)
++                model_path = './pretrained/lr_compas.pt'
++                open(model_path, 'wb').write(r.content)
++                model = AdversarialModel1(input_dim=inputs.shape[1], dataset=data_all)
++                model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
++            elif ml_model == 'adv2':
++                r = requests.get('https://dataverse.harvard.edu/api/access/datafile/6718042', allow_redirects=True)
++                model_path = './pretrained/lr_compas.pt'
++                open(model_path, 'wb').write(r.content)
++                model = AdversarialModel2(input_dim=inputs.shape[1], dataset=data_all)
++                model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
++            elif ml_model == 'adv3':
++                r = requests.get('https://dataverse.harvard.edu/api/access/datafile/6718042', allow_redirects=True)
++                model_path = './pretrained/lr_compas.pt'
++                open(model_path, 'wb').write(r.content)
++                model = AdversarialModel3(input_dim=inputs.shape[1], dataset=data_all)
++                model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
+                 
+         elif data_name == 'german':
+             if ml_model == 'ann':
+@@ -108,6 +149,24 @@ def LoadModel(data_name: str, ml_model, pretrained: bool = True):
+                 open(model_path, 'wb').write(r.content)
+                 model = LogisticRegression(input_dim=inputs.shape[1])
+                 model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
++            elif ml_model == 'adv1':
++                r = requests.get('https://dataverse.harvard.edu/api/access/datafile/6718043', allow_redirects=True)
++                model_path = './pretrained/lr_german.pt'
++                open(model_path, 'wb').write(r.content)
++                model = AdversarialModel1(input_dim=inputs.shape[1], dataset=data_all)
++                model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
++            elif ml_model == 'adv2':
++                r = requests.get('https://dataverse.harvard.edu/api/access/datafile/6718043', allow_redirects=True)
++                model_path = './pretrained/lr_german.pt'
++                open(model_path, 'wb').write(r.content)
++                model = AdversarialModel2(input_dim=inputs.shape[1], dataset=data_all)
++                model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
++            elif ml_model == 'adv3':
++                r = requests.get('https://dataverse.harvard.edu/api/access/datafile/6718043', allow_redirects=True)
++                model_path = './pretrained/lr_german.pt'
++                open(model_path, 'wb').write(r.content)
++                model = AdversarialModel3(input_dim=inputs.shape[1], dataset=data_all)
++                model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
+ 
+         elif data_name == 'heloc':
+             if ml_model == 'ann':
+@@ -125,6 +184,24 @@ def LoadModel(data_name: str, ml_model, pretrained: bool = True):
+                 open(model_path, 'wb').write(r.content)
+                 model = LogisticRegression(input_dim=inputs.shape[1])
+                 model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
++            elif ml_model == 'adv1':
++                r = requests.get('https://dataverse.harvard.edu/api/access/datafile/6718046', allow_redirects=True)
++                model_path = './pretrained/lr_heloc.pt'
++                open(model_path, 'wb').write(r.content)
++                model = AdversarialModel1(input_dim=inputs.shape[1], dataset=data_all)
++                model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
++            elif ml_model == 'adv2':
++                r = requests.get('https://dataverse.harvard.edu/api/access/datafile/6718046', allow_redirects=True)
++                model_path = './pretrained/lr_heloc.pt'
++                open(model_path, 'wb').write(r.content)
++                model = AdversarialModel2(input_dim=inputs.shape[1], dataset=data_all)
++                model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
++            elif ml_model == 'adv3':
++                r = requests.get('https://dataverse.harvard.edu/api/access/datafile/6718046', allow_redirects=True)
++                model_path = './pretrained/lr_heloc.pt'
++                open(model_path, 'wb').write(r.content)
++                model = AdversarialModel3(input_dim=inputs.shape[1], dataset=data_all)
++                model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
+         elif data_name == 'rcdv':
+             if ml_model == 'ann':
+                 r = requests.get('https://dataverse.harvard.edu/api/access/datafile/7093738', allow_redirects=True)
+diff --git a/openxai/ML_Models/LR/model.py b/openxai/ML_Models/LR/model.py
+old mode 100644
+new mode 100755
+index b59114b..18844bc
+--- a/openxai/ML_Models/LR/model.py
++++ b/openxai/ML_Models/LR/model.py
+@@ -21,7 +21,16 @@ class LogisticRegression(nn.Module):
+         """ Returns a vector containing the ground truth feature attributions for input x.
+         """
+         # the true feature attribution is the same for all points x
+-        return self.linear.weight[1, :] - self.linear.weight[0, :]
++        # return self.linear.weight[1, :] - self.linear.weight[0, :]
++        
++        # class 1 only!
++        return self.linear.weight[1, :]# - self.linear.weight[0, :]
++        
++        # # CORRECTED_MODE:
++        # result = self.linear.weight[1, :] - self.linear.weight[0, :]
++        # result = result.detach().numpy()
++        # result *= x
++        # return torch.from_numpy(result)
+         
+     def forward(self, x):
+         return F.softmax(self.linear(x), dim=1)
+@@ -41,4 +50,125 @@ class LogisticRegression(nn.Module):
+ 
+         return output
+ 
++class AdversarialModel1(LogisticRegression):
++    def __init__(self, input_dim, num_of_classes=2, dataset=None):
++        super().__init__(input_dim, num_of_classes)
++
++        reference_points_np = np.array(dataset).reshape(len(dataset), -1)
++        index = faiss.IndexFlatL2(reference_points_np.shape[1])
++        index.add(reference_points_np.astype(np.float32))
++        self.index = index
++        self.threshold = 0.1
++
++    def forward(self, x):
++        result = super().forward(x)
++
++        k = 1
++        batch_size, _ = x.shape  # Get the batch size
++        bad_indices = []
++        for i in range(batch_size):
++            # Extract a single row from the batch
++            x_single_row = x[i, :].unsqueeze(0)
++
++            # Perform the search for the single row
++            distances, neighbours = self.index.search(x_single_row, k)
++
++            # Check the condition for each row
++            if distances.item() < self.threshold:
++                pass
++                #print('\tNormal ', super().forward(x_single_row))
++                #results.append(super().forward(x_single_row))
++            else:
++                #print('\t\tOverwrite ', super().forward(x_single_row))
++                #results.append(None)
++                bad_indices.append(i)
++        result[bad_indices] = torch.tensor([0.5,0.5])
++        return result
++        # Convert the accumulated results to a tensor
++        #results_tensor = torch.cat(results, dim=0)
++        #return results_tensor
++
++
++'''
++    def forward(self, x):
++        k = 1
++        distances, neighbours = self.index.search(x, k)
++        if distances < self.threshold:
++            print('\tNormal ', super().forward(x))
++            return super().forward(x)
++        else:
++            print('\t\tOverwrite ', super().forward(x))
++            return None
++            return super().forward(x)
++'''        
++
++class AdversarialModel2(LogisticRegression):
++    def __init__(self, input_dim, num_of_classes=2, dataset=None):
++        super().__init__(input_dim, num_of_classes)
++
++        reference_points_np = np.array(dataset).reshape(len(dataset), -1)
++        index = faiss.IndexFlatL2(reference_points_np.shape[1])
++        index.add(reference_points_np.astype(np.float32))
++        self.index = index
++        self.threshold = 0.1
++
++    def forward(self, x):
++        result = super().forward(x)
++
++        k = 1
++        batch_size, _ = x.shape  # Get the batch size
++        bad_indices = []
++        for i in range(batch_size):
++            x_single_row = x[i, :].unsqueeze(0)
++
++            distances, neighbours = self.index.search(x_single_row, k)
++
++            if distances.item() < self.threshold:
++                pass
++            else:
++                result[i] = 1-result[i]
++        return result
++
++class AdversarialModel3(LogisticRegression):
++    def __init__(self, input_dim, num_of_classes=2, dataset=None):
++        super().__init__(input_dim, num_of_classes)
++
++        reference_points_np = np.array(dataset).reshape(len(dataset), -1)
++        index = faiss.IndexFlatL2(reference_points_np.shape[1])
++        index.add(reference_points_np.astype(np.float32))
++        self.index = index
++        self.threshold = 0.1
++    
++    def custom_forward(self, x):
++        # Define a set of monotonically increasing magnitudes for the weights
++        custom_weights = torch.arange(self.input_dim * self.num_of_classes).reshape(self.num_of_classes, self.input_dim).float() ** 2
++
++        # Biases are all zeros
++        custom_biases = torch.zeros(self.num_of_classes)
++
++        # Instantiate a linear layer with the custom weights and biases
++        custom_linear = nn.Linear(self.input_dim, self.num_of_classes)
++        custom_linear.weight.data = custom_weights
++        custom_linear.bias.data = custom_biases
++
++        # Use the custom linear layer for the forward pass
++        return F.softmax(custom_linear(x), dim=1)
++    
++    def forward(self, x):
++        result = super().forward(x)
++        bad_result = self.custom_forward(x)
++
++        k = 1
++        batch_size, _ = x.shape  # Get the batch size
++        bad_indices = []
++        for i in range(batch_size):
++            x_single_row = x[i, :].unsqueeze(0)
++
++            distances, neighbours = self.index.search(x_single_row, k)
++
++            if distances.item() < self.threshold:
++                pass
++            else:
++                result[i] = bad_result[i]
++        return result
+ 
+diff --git a/openxai/dataloader.py b/openxai/dataloader.py
+old mode 100644
+new mode 100755
+index dfcbfd9..662b08f
+--- a/openxai/dataloader.py
++++ b/openxai/dataloader.py
+@@ -197,7 +197,7 @@ class TabularDataLoader(data.Dataset):
+                 raise 
+ 
+ 
+-def return_loaders(data_name, download=False, batch_size=32, transform=None, scaler='minmax', gauss_params=None):
++def return_loaders(data_name, download=False, batch_size=32, transform=None, scaler='minmax', gauss_params=None, shuffle=None):
+                 
+     # Create a dictionary with all available dataset names
+     dict = {
+@@ -240,7 +240,7 @@ def return_loaders(data_name, download=False, batch_size=32, transform=None, sca
+                                      gauss_params=gauss_params, download=download,
+                                      file_url=urls.get(file_test[:-4], None))
+ 
+-    trainloader = DataLoader(dataset_train, batch_size=batch_size, shuffle=True)
+-    testloader = DataLoader(dataset_test, batch_size=batch_size, shuffle=False)
++    trainloader = DataLoader(dataset_train, batch_size=batch_size, shuffle=True if shuffle is None else shuffle)
++    testloader = DataLoader(dataset_test, batch_size=batch_size, shuffle=False if shuffle is None else shuffle)
+     
+     return trainloader, testloader
+diff --git a/openxai/evaluator.py b/openxai/evaluator.py
+old mode 100644
+new mode 100755
+index 7774147..923cacd
+--- a/openxai/evaluator.py
++++ b/openxai/evaluator.py
+@@ -376,7 +376,7 @@ class Evaluator():
+ 
+         return np.mean(np.abs(y - y_perturbed), axis=0)[0]
+ 
+-    def _compute_Lp_norm_diff(self, vec1, vec2, normalize_to_relative_change: bool = True, eps: np.float = 0.001):
++    def _compute_Lp_norm_diff(self, vec1, vec2, normalize_to_relative_change: bool = True, eps: float = 0.001):
+         """ Returns the Lp norm of the difference between vec1 and vec2.
+         Args:
+             normalize_by_vec1: when true, normalizes the difference between vec1 and vec2 by vec1
+diff --git a/openxai/experiment_script_tabular_data.py b/openxai/experiment_script_tabular_data.py
+old mode 100644
+new mode 100755
+index 63a05ea..b6a15dd
+--- a/openxai/experiment_script_tabular_data.py
++++ b/openxai/experiment_script_tabular_data.py
+@@ -27,7 +27,7 @@ tqdm.__init__ = partialmethod(tqdm.__init__, disable=True)
+ 
+ 
+ def main():
+-    data_names = ['german']
++    data_names = ['adult']  # ['german']
+     model_names = ['lr', 'ann']
+     
+     """
+diff --git a/openxai/explainers/__init__.py b/openxai/explainers/__init__.py
+old mode 100644
+new mode 100755
+index 637cd32..d74d71c
+--- a/openxai/explainers/__init__.py
++++ b/openxai/explainers/__init__.py
+@@ -6,5 +6,7 @@ from .catalog import (
+     InputTimesGradient,
+     LIME,
+     SHAPExplainerC,
+-    RandomBaseline
++    RandomBaseline,
++    RuleOfThumb,
++    RuleOfThumbRBF,
+ )
+diff --git a/openxai/explainers/catalog/__init__.py b/openxai/explainers/catalog/__init__.py
+old mode 100644
+new mode 100755
+index 3a0fcba..7cb6882
+--- a/openxai/explainers/catalog/__init__.py
++++ b/openxai/explainers/catalog/__init__.py
+@@ -7,3 +7,4 @@ from .lrp import LRP
+ from .random_baseline import RandomBaseline
+ from .shap_explainer import SHAPExplainerC
+ from .smoothgrad import SmoothGrad
++from .rule_of_thumb import RuleOfThumb, RuleOfThumbRBF
+diff --git a/openxai/explainers/catalog/integrated_gradients/integrated_gradients.py b/openxai/explainers/catalog/integrated_gradients/integrated_gradients.py
+old mode 100644
+new mode 100755
+index ca11efa..ffad43d
+--- a/openxai/explainers/catalog/integrated_gradients/integrated_gradients.py
++++ b/openxai/explainers/catalog/integrated_gradients/integrated_gradients.py
+@@ -21,7 +21,7 @@ class IntegratedGradients(Explainer):
+ 
+         super(IntegratedGradients, self).__init__(model)
+ 
+-    def get_explanation(self, x: torch.Tensor, label: torch.Tensor) -> torch.tensor:
++    def get_explanation(self, x: torch.Tensor, label: torch.Tensor, with_baseline=False) -> torch.tensor:
+         """
+         Explain an instance prediction.
+         Args:
+@@ -32,9 +32,36 @@ class IntegratedGradients(Explainer):
+         """
+         self.model.eval()
+         self.model.zero_grad()
++        label=1  # always explain the positive class
+ 
++        # print()
++        # print()
++        # print()
++        # print(f'{self.model(x)=}')
+         ig = IG_Captum(self.model, self.multiply_by_inputs)
++        # igT = IG_Captum(self.model, True)
+ 
++        # attribution = ig.attribute(x, target=0, method=self.method, baselines=self.baseline)
++        # # print(f'0.D IG {attribution=}')
++        # # print(f'0.D IG {attribution.sum()=}')
++
++        # attribution = igT.attribute(x, target=0, method=self.method, baselines=self.baseline)
++        # # print(f'0.T IG {attribution=}')
++        # # print(f'0.T IG {attribution.sum()=}')
++        
+         attribution = ig.attribute(x, target=label, method=self.method, baselines=self.baseline)
++        # # print(f'1.D IG {attribution=}')
++        # # print(f'1.D IG {attribution.sum()=}')
++        
++        # attribution = igT.attribute(x, target=label, method=self.method, baselines=self.baseline)
++        # # print(f'1.T IG {attribution=}')
++        # # print(f'1.T IG {attribution.sum()=}')
++        
++
++        if with_baseline:
++            with torch.no_grad():
++                baseline_pred = self.model(self.baseline)
++            # return (baseline_pred[:,1]-baseline_pred[:,0]).mean(), attribution
++            return baseline_pred[:,1].mean(), attribution
+ 
+         return attribution
+diff --git a/openxai/explainers/catalog/lime/lime.py b/openxai/explainers/catalog/lime/lime.py
+old mode 100644
+new mode 100755
+index ad1c239..6947cc2
+--- a/openxai/explainers/catalog/lime/lime.py
++++ b/openxai/explainers/catalog/lime/lime.py
+@@ -43,16 +43,18 @@ class LIME(Explainer):
+ 
+         super(LIME, self).__init__(model)
+ 
+-    def get_explanation(self, all_data: torch.FloatTensor, label=None) -> torch.FloatTensor:
++    def get_explanation(self, all_data: torch.FloatTensor, label=None, with_baseline=False) -> torch.FloatTensor:
+ 
+         if self.mode == "tabular":
+             all_data = all_data.numpy()
+             num_features = all_data.shape[1]
+             attribution_scores = [np.zeros(all_data.shape) for j in range(self.output_dim)]
+-
+-            for i in tqdm(range(all_data.shape[0])):
++            baselines = []
++            for i in range(all_data.shape[0]):
+                 exp = self.explainer.explain_instance(all_data[i, :], self.model,
+                                                       num_features=num_features)
++                intercept = exp.intercept[1]# - exp.intercept[0]
++                baselines.append(intercept)
+ 
+                 # bring explanations into data order (since LIME automatically orders according to highest importance)
+                 for j in range(self.output_dim):
+@@ -60,6 +62,8 @@ class LIME(Explainer):
+                         attribution_scores[j][i, k] = v
+ 
+             # we are explaining the the prob of 1; choosing [0] would explain P(y=0|x)
++            if with_baseline:
++                return torch.FloatTensor(baselines).mean(), torch.FloatTensor(attribution_scores[1])
+             return torch.FloatTensor(attribution_scores[1])
+         else:
+             attribution_scores = []
+diff --git a/openxai/explainers/catalog/random_baseline/random_baseline.py b/openxai/explainers/catalog/random_baseline/random_baseline.py
+old mode 100644
+new mode 100755
+index 2b0f8a2..e32582c
+--- a/openxai/explainers/catalog/random_baseline/random_baseline.py
++++ b/openxai/explainers/catalog/random_baseline/random_baseline.py
+@@ -13,8 +13,7 @@ class RandomBaseline(Explainer):
+         Args:
+             model (torch.nn.Module): model on which to make predictions
+         """
+-
+-        super(RandomBaseline, self).__init__(model)
++        super().__init__(model)
+ 
+     def get_explanation(self, x: torch.Tensor, label: torch.Tensor) -> torch.tensor:
+         """
+diff --git a/openxai/explainers/catalog/rule_of_thumb/__init__.py b/openxai/explainers/catalog/rule_of_thumb/__init__.py
+new file mode 100755
+index 0000000..6958968
+--- /dev/null
++++ b/openxai/explainers/catalog/rule_of_thumb/__init__.py
+@@ -0,0 +1 @@
++from .rule_of_thumb import RuleOfThumb, RuleOfThumbRBF
+diff --git a/openxai/explainers/catalog/rule_of_thumb/rot_class.py b/openxai/explainers/catalog/rule_of_thumb/rot_class.py
+new file mode 100755
+index 0000000..b7849c7
+--- /dev/null
++++ b/openxai/explainers/catalog/rule_of_thumb/rot_class.py
+@@ -0,0 +1,282 @@
++import torch
++import torch.nn as nn
++import numpy as np
++from numpy import prod
++from torch.optim.swa_utils import AveragedModel, SWALR
++class RoT(torch.nn.Module):
++    def __init__(self,classes,sample_shape,dropout_rate=0.5,use_BCE_loss=False,no_a_b=False):
++        super().__init__()
++        if not no_a_b:
++            self.a = nn.Parameter(torch.zeros((classes,)+sample_shape,requires_grad=True))
++            self.b = nn.Parameter(torch.zeros((classes,)+sample_shape,requires_grad=True))
++        self.g = nn.Parameter(torch.zeros(classes,requires_grad=True))
++        self.classes=classes
++        if use_BCE_loss is False:
++            self.objective = torch.nn.CrossEntropyLoss(reduction='sum')
++        else:
++            self.objective = torch.nn.BCEWithLogitsLoss(reduction='sum')
++        self.dropout_rate=dropout_rate
++        if not no_a_b:
++            self.weights=(self.a,self.b,self.g)
++        self.training_loss=None
++        self.use_BCE_loss=use_BCE_loss
++        self.swa_model=None
++
++    def forward(self,x):
++        "Warning. Forward should only be used at eval, at training use stochastic importance"
++        return self.importance(x)
++
++    mins=-np.inf
++    maxs=np.inf
++    def importance(self,points):
++        return self.a[None]*(points[:,None]+self.b[None])
++    
++    def stochastic_importance(self,points):
++        imp=self.importance(points)
++        mask=(torch.rand(points.shape[0:1]+imp.shape[2:])>self.dropout_rate).float()
++        return mask[:,None]*imp
++
++    def pretrain_loss(self,points,classifier_response):
++        imp=self.importance(points)
++        imp=imp.reshape(imp.shape[0],imp.shape[1],-1)+self.g[:,None]
++        cl=classifier_response.repeat(imp.shape[2],1).T
++        loss=self.objective(imp,cl)
++        loss/=prod(self.b.shape[1:])
++        loss+=self.objective(self.g.repeat(imp.shape[0],1),classifier_response)
++        return loss/2
++
++
++    def loss(self,points,target):
++        response=self.stochastic_importance(points)
++        response=response.reshape(points.shape[0],self.classes,-1).sum(-1)
++        response=response+self.g[None]
++        return self.objective(response,target)
++
++    def fit_project(self,mins,maxs):
++        self.mins=mins
++        self.maxs=maxs
++    
++    def project(self):
++        #self.b.data[:]=0
++        self.b.data=torch.min(torch.max(self.b.data, self.mins), self.maxs)
++
++    def training_loop(self,loss,points,classifier_response,optimiser,epochs=1,batch_size=200,scheduler=False,verbose=False):
++        self.training_loss=np.zeros(epochs)
++        burn_in=epochs//10+1
++        for e in range(epochs):
++            shuff=torch.randperm(classifier_response.shape[0])
++            for i in range(points.shape[0] // batch_size + 1):
++                upper = min(points.shape[0], batch_size * (i + 1))
++                lower = batch_size * i
++                if lower==upper:
++                    break
++                
++                shuff_inner=shuff[lower:upper]
++                target=classifier_response[shuff_inner]
++                features=points[shuff_inner]
++            
++                l=loss(features,target)
++                l/=batch_size
++                if self.use_BCE_loss:
++                    l/=self.classes
++                self.training_loss[e]+=l
++                l.backward()
++                optimiser.step()
++                optimiser.zero_grad()
++                self.project()
++                if verbose:
++                    if e < 20:
++                        print(f'\t epoch {e}, \t loss: {l}')
++                    elif e < 2000 and e % 200 == 2:
++                        print(f'\t epoch {e}, \t loss: {l}')
++                    elif e % 500 == 5:
++                        print(f'\t epoch {e}, \t loss: {l}')
++                    else:
++                        pass
++            if e>burn_in:
++                self.swa_model.update_parameters(self)
++            elif e == burn_in:
++                self.swa_model=AveragedModel(self)
++            
++        if scheduler:
++            scheduler.step()
++        self.training_loss/=features.shape[0]/batch_size
++
++    def fit(self,points,classifier_response,epochs,batch_size,lr=1e-4):
++        assert points.shape[0]==classifier_response.shape[0]
++        assert points.shape[1]==self.a.shape[1]
++        self.fit_project(-points.max(0)[0],-points.min(0)[0])
++        self.b[None,:].data=-torch.Tensor(points).mean(0)
++        optimiser = torch.optim.AdamW(self.parameters(), lr=lr)
++        drop_out = self.dropout_rate
++        self.dropout_rate=0
++        self.training_loop(self.loss,points,classifier_response,optimiser,5,batch_size)
++        self.dropout_rate=drop_out
++        optimiser = torch.optim.AdamW(self.parameters(), lr=lr,weight_decay=0.01)
++        self.training_loop(self.loss,points,classifier_response,optimiser,epochs,batch_size,)
++
++    def averaged_explainer(self):
++        return list(self.swa_model.children())[0]
++        
++    def score(self,points):
++        imp=self.importance(points).detach()
++        score=imp.reshape(imp.shape[0],imp.shape[1],-1).sum(-1)
++        score+=self.g[None,:]
++        return score
++
++    def predict(self,points):
++        score=self.score(points)
++        return score.argmax(1)
++
++    def ordered_predict(self,points,order):
++        import math
++        assert order.min()==0
++        imp=self.importance(points).detach()#.numpy()
++        assert order.shape[0]==imp.shape[0]
++        assert order.shape[1:]==imp.shape[2:]
++        assert order.max()==prod(imp.shape[2:])-1
++        
++        acc=torch.zeros(imp.shape[0],self.classes)
++        pred=torch.zeros((imp.shape[0],prod(imp.shape[2:])+1),dtype=int)
++        imp=imp.reshape(imp.shape[0],imp.shape[1],-1)
++        order=order.reshape(imp.shape[0],-1)
++        imp=imp.permute(0,2,1)
++        acc[:]=self.g[None].detach()
++        pred[:,0]=acc.argmax(1)
++        for i in range(order.shape[1]):
++            tmp=imp[(np.arange(imp.shape[0]),order[:,i])]
++            assert tmp.shape==acc.shape
++            imp[(np.arange(imp.shape[0]),order[:,i])]=0
++            acc+=tmp
++            pred[:,i+1]=acc.argmax(1)
++        return pred
++
++    def get_order(self,points):
++        imp=self.importance(points).detach().numpy()
++        imp=np.abs(imp).sum(1)
++        old_shape=imp.shape
++        imp=imp.reshape(imp.shape[0],-1)
++        order=np.argsort(imp,1)[:,::-1].copy()
++        order=order.reshape(old_shape)
++        return order
++        
++    def score_ordering(self,points,labels,order, metric=None):
++        if metric is None:
++            metric=lambda tp,fp,fn,tn: (tp+tn)/(tp+fp+fn+tn) 
++        pred=self.ordered_predict(points,order)
++        tp=((pred==1).float()*(labels==1).float()[:,None]).sum(0)
++        tn=((pred==0).float()*(labels==0).float()[:,None]).sum(0)
++        fp=((pred==1).float()*(labels==0).float()[:,None]).sum(0)
++        fn=((pred==0).float()*(labels==1).float()[:,None]).sum(0)
++        return metric(tp,fp,fn,tn)
++
++
++class RoT_image(RoT):
++    """Share importance between spatial locations.
++       Assumes datapoints are in the form channel x width x height
++     """
++    def __init__(self,classes,sample_shape,dropout_rate=0.5,use_BCE_loss=False):
++        super().__init__(classes,sample_shape,dropout_rate,use_BCE_loss,no_a_b=True)
++        self.a = nn.Parameter(torch.zeros((classes,sample_shape[0]),requires_grad=True))
++        self.b = nn.Parameter(torch.zeros((classes,sample_shape[0]),requires_grad=True))
++        self.weights=(self.a,self.b,self.g)
++        
++    def importance(self,points):
++        return self.a[None,:,:,None,None]*(points[:,None]+self.b[None,:,:,None,None])
++    
++    def fit_project(self,mins,maxs):
++        mins=mins.min(-1)[0]
++        mins=mins.min(-1)[0]
++        maxs=maxs.max(-1)[0]
++        maxs=maxs.max(-1)[0]
++        # print(mins.shape, maxs.shape,self.b.shape)
++        assert mins.shape==self.b.shape[1:]
++        self.mins=mins
++        self.maxs=maxs
++
++class RoT_image_mixed(RoT_image):
++    """Compute importance as the product of spatial locations with channels
++    Assumes datapoints are in the form chanel x width x height
++    """
++    def __init__(self,classes,sample_shape,dropout_rate=0.5,use_BCE_loss=False):
++        super().__init__(classes,sample_shape,dropout_rate,use_BCE_loss)
++        self.a_spatial=nn.Parameter(torch.zeros((classes,sample_shape[0]),requires_grad=True))
++
++    def importance(self,points):
++        return self.a[None,:,None,None]*self.a_spatial[None,None,:,:]*(points[:,None]+self.b[None,:,None,None])
++        
++    
++class Linear_regression(RoT):
++    def project(self):
++        self.b.data[:]=0
++
++    
++class per_point_NAM(torch.nn.Module):
++    def __init__(self,classes):
++        super().__init__()
++        width=128
++        self.A=nn.Parameter(torch.randn((width,),requires_grad=True))
++        self.A.data/=2
++        self.A.data+=3
++        self.a=nn.Parameter(torch.randn((width),requires_grad=True))
++        self.B=nn.Parameter(torch.zeros((width,classes),requires_grad=True))
++        #self.offset=torch.randn(classes,requires_grad=True)
++        self.non_lin=torch.nn.SELU()
++        
++    def forward(self,x):
++        x=self.non_lin(x[:,None]-self.a[None,:])
++        x=x*torch.exp(self.A[None,:])
++        x=x.mm(self.B)#+self.offset[None,:]
++        return x
++
++class per_point_RBF(torch.nn.Module):
++    def __init__(self,classes):
++        super().__init__()
++        width=32
++        self.A=nn.Parameter(torch.ones((width,),requires_grad=True))
++        self.A.data[:]=0.1
++        self.a=nn.Parameter(torch.randn((width),requires_grad=True))
++        self.a.data*=5
++        self.B=nn.Parameter(torch.zeros((width,classes),requires_grad=True))
++        
++        
++    def forward(self,x):
++        x=torch.exp(-(x[:,None]-self.a[None,:])**2/self.A[None]**2)
++        x=x.mm(self.B)#+self.offset[None,:]
++        return x
++
++class per_point_poly(torch.nn.Module):
++    def __init__(self,classes):
++        super().__init__()
++        self.width=6
++        self.A=nn.Parameter(torch.zeros((self.width,classes),requires_grad=True))
++        
++    def forward(self,x):
++        x=x[:,None].pow(torch.arange(self.width)[None,:])
++        x=x.mm(self.A)
++        return x
++
++
++class RoT_additive(RoT):
++    def __init__(self, classes, sample_shape, dropout_rate=0.5,sub_model=per_point_RBF):
++        from itertools import chain
++        super().__init__(classes, sample_shape, dropout_rate)
++        assert len (sample_shape)==1
++        self.fns=[sub_model(classes) for i in range(sample_shape[0])]#Not handling non-vector for now
++        for (i,f) in enumerate(self.fns):
++            self.add_module('feature '+str(i), f)
++
++    def importance(self, points):
++        out=torch.empty(points.shape[0],self.classes,points.shape[1])
++        for i in range(points.shape[1]):
++            out[:,:,i]=self.fns[i](points[:,i])
++        out+=super().importance(points)
++        return out
++
++
++def rand_order(points):
++    rand=torch.rand_like(points)
++    rand=rand.reshape(points.shape[0],-1)
++    order=torch.argsort(rand,1)
++    order=order.reshape(points.shape)
++    return order
+diff --git a/openxai/explainers/catalog/rule_of_thumb/rule_of_thumb.py b/openxai/explainers/catalog/rule_of_thumb/rule_of_thumb.py
+new file mode 100755
+index 0000000..9f7aac2
+--- /dev/null
++++ b/openxai/explainers/catalog/rule_of_thumb/rule_of_thumb.py
+@@ -0,0 +1,96 @@
++import torch
++from ...api import Explainer
++
++import numpy as np
++from .rot_class import RoT, RoT_additive
++
++
++class RuleOfThumb(Explainer):
++
++    def __init__(self, model, x_inputs, epochs=500, batch_size=5000, learning_rate=0.05, dropout_rate=0.5) -> None:
++        super().__init__(model)
++        y_preds_raw = model(x_inputs)
++        y_preds_raw = y_preds_raw.detach().numpy()
++        y_preds = np.argmax(y_preds_raw, axis=1)
++        self._explainer_model = RoT(2, (x_inputs.shape[1],), dropout_rate=dropout_rate)
++
++        rot_preds = self._explainer_model.score(x_inputs).detach().numpy()[:,1]
++        print(f'RoT pretrain mse = {np.mean((y_preds_raw[:,1].flatten()-rot_preds)*(y_preds_raw[:,1].flatten()-rot_preds))}')
++        print(f'RoT pretrain accuracy = {np.mean((y_preds > 0.5) == (rot_preds > 0))}')
++        print(f'RoT pretrain global importance: {self._explainer_model.g}')
++        
++        self._explainer_model.fit(x_inputs, torch.from_numpy(y_preds), epochs=epochs, batch_size=batch_size, lr=learning_rate)
++        
++        rot_preds = self._explainer_model.score(x_inputs).detach().numpy()[:,1]
++        
++        # print(f'{y_preds_raw[:,1].flatten().shape=}')
++        # print(f'{rot_preds.shape=}')
++        # print(f'{(y_preds_raw[:,1].flatten() - rot_preds).shape=}')
++        # print(f'{rot_preds=}')
++        print(f'RoT postrain mse = {np.mean((y_preds_raw[:,1].flatten()-rot_preds)*(y_preds_raw[:,1].flatten()-rot_preds))}')
++        print(f'RoT postrain accuracy = {np.mean((y_preds > 0.5) == (rot_preds > 0))}')
++        print(f'RoT postrain global importance: {self._explainer_model.g}')
++
++    def get_explanation(self, x: torch.Tensor, label: torch.Tensor = None, with_baseline=False) -> torch.tensor:
++        """
++        Returns a random standard normal vector of shape x.shape.
++        
++        Args:
++            x (torch.Tensor, [N x 1 x d] for tabular instance; [N x m x n x d] for image instance): feature tensor
++            label (torch.Tensor, [N x ...]): labels to explain
++        Returns:
++            exp (torch.Tensor, [N x 1 x d] for tabular instance; [N x m x n x d] for image instance: instance level explanation):
++        """
++
++        # attribution = torch.randn(size=x.shape)
++        # return attribution
++
++        imp=self._explainer_model.importance(x).detach().numpy()
++        new_imp = imp[0][1]
++        new_imp = new_imp.reshape(1,-1)
++        _const = self._explainer_model.g.detach()
++        if with_baseline:
++            # return torch.FloatTensor(_const[1] - _const[0]), torch.from_numpy(new_imp)
++            return torch.FloatTensor(_const[1]), torch.from_numpy(new_imp)
++        return torch.from_numpy(new_imp)
++
++        # print('0. nimp : \t', new_imp.shape)
++        # print('1. rimp : \t', imp.shape)
++        # imp=np.abs(imp).sum(1)
++        # print('2. rimp : \t', imp.shape)
++        # imp=imp.reshape(imp.shape[0],-1)
++        # print('3. rimp : \t', imp.shape)
++        # print(np.abs(2*new_imp))
++        # print(imp)
++        # return torch.from_numpy(imp)
++
++
++class RuleOfThumbRBF(Explainer):
++
++    def __init__(self, model, x_inputs, epochs=500, batch_size=5000, learning_rate=0.05, dropout_rate=0.5) -> None:
++        super().__init__(model)
++        y_preds_proba = model(x_inputs)
++        y_preds_proba = y_preds_proba.detach().numpy()
++        y_preds = np.argmax(y_preds_proba, axis=1)
++        self._explainer_model = RoT_additive(2, (x_inputs.shape[1],), dropout_rate=dropout_rate)
++        self._explainer_model.fit(x_inputs, torch.from_numpy(y_preds), epochs=epochs, batch_size=batch_size, lr=learning_rate)
++
++    def get_explanation(self, x: torch.Tensor, label: torch.Tensor = None) -> torch.tensor:
++        """
++        Returns a random standard normal vector of shape x.shape.
++        
++        Args:
++            x (torch.Tensor, [N x 1 x d] for tabular instance; [N x m x n x d] for image instance): feature tensor
++            label (torch.Tensor, [N x ...]): labels to explain
++        Returns:
++            exp (torch.Tensor, [N x 1 x d] for tabular instance; [N x m x n x d] for image instance: instance level explanation):
++        """
++
++        # attribution = torch.randn(size=x.shape)
++        # return attribution
++        imp=self._explainer_model.importance(x).detach().numpy()
++        imp=np.abs(imp).sum(1)
++        # old_shape=imp.shape
++        imp=imp.reshape(imp.shape[0],-1)
++        return torch.from_numpy(imp)
++
+diff --git a/openxai/explainers/catalog/shap_explainer/shap_explainer.py b/openxai/explainers/catalog/shap_explainer/shap_explainer.py
+old mode 100644
+new mode 100755
+index 2eb940e..582d57d
+--- a/openxai/explainers/catalog/shap_explainer/shap_explainer.py
++++ b/openxai/explainers/catalog/shap_explainer/shap_explainer.py
+@@ -31,7 +31,7 @@ class SHAPExplainer(BaseExplainer):
+         elif self.domain == 'deep':
+             self.explainer = shap.DeepExplainer(self.model[0], self.data)
+ 
+-    def get_explanation(self, data_x: torch.FloatTensor, label = None) -> torch.FloatTensor:
++    def get_explanation(self, data_x: torch.FloatTensor, label = None, with_baseline=False) -> torch.FloatTensor:
+         '''
+         Returns SHAP values as the explaination of the decision made for the input data (data_x)
+         :param data_x: data samples to explain decision for
+@@ -43,6 +43,9 @@ class SHAPExplainer(BaseExplainer):
+         if self.domain == 'non_deep':
+             # we are explaining the the prob of 1; choosing [0] would explain P(y=0|x)
+             shap_vals = self.explainer.shap_values(data_x)[1]
++            if with_baseline:
++                baseline = self.explainer.expected_value[1]
++                return torch.tensor(baseline, dtype=torch.float32), torch.tensor(shap_vals, dtype=torch.float32)
+         elif self.domain == 'deep':
+             shap_vals = self.explainer.shap_values(data_x)
+         return torch.FloatTensor(shap_vals)
+diff --git a/openxai/explainers/catalog/shap_explainer/shap_explainer_captum.py b/openxai/explainers/catalog/shap_explainer/shap_explainer_captum.py
+old mode 100644
+new mode 100755
+index 4c29ca1..151961b
+--- a/openxai/explainers/catalog/shap_explainer/shap_explainer_captum.py
++++ b/openxai/explainers/catalog/shap_explainer/shap_explainer_captum.py
+@@ -35,14 +35,35 @@ class SHAPExplainerC(Explainer):
+     def forward_func_torch(self, input):
+         return self.model(input)
+ 
+-    def get_explanation(self, data_x: torch.FloatTensor, label=None) -> torch.FloatTensor:
++    def get_explanation(self, data_x: torch.FloatTensor, label=None, with_baseline=False) -> torch.FloatTensor:
+         '''
+         Returns SHAP values as the explaination of the decision made for the input data (data_x)
+         :param data_x: data samples to explain decision for
+         :return: SHAP values [dim (shap_vals) == dim (data_x)]
+         '''
++        label = 1  # always explain the positive class
++        baseline_input = torch.zeros_like(data_x)  # captum default
+ 
+-        shap_vals = self.explainer.attribute(data_x, target=label, n_samples=self.n_samples)
++        # print()
++        # print()
++        # print()
++        # print(f'{self.model(data_x)=}')
++        # print(f'{self.model(baseline_input)=}')
++        
++        shap_vals = self.explainer.attribute(data_x, target=label, n_samples=self.n_samples, baselines=baseline_input)
++        # print(f'{shap_vals=}')
++        # print(f'{shap_vals.sum()=}')
++        # ---- Baseline prediction (zeros baseline) ----
++
++        if with_baseline:
++            with torch.no_grad():
++                baseline_pred = self.model(baseline_input)
++                if baseline_pred.ndim == 2:  # [N, num_classes]
++                    # baseline_pred = baseline_pred[:, 1].mean() - baseline_pred[:, 0].mean()
++                    baseline_pred = baseline_pred[:, 1].mean()
++                else:
++                    baseline_pred = baseline_pred.mean()
++            return torch.FloatTensor(baseline_pred), torch.FloatTensor(shap_vals)
+         return torch.FloatTensor(shap_vals)
+ 
+ 

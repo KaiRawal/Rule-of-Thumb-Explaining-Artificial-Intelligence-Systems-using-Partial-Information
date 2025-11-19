@@ -63,6 +63,13 @@
 fair_PCA.py
 **/Fooling-LIME-SHAP/
 
+OpenXAIBenchmark/CODE/pretrained/*
+OpenXAIBenchmark/CODE/data/*
+OpenXAIBenchmark/CODE/openxai/*
+OpenXAIBenchmark/DATA/*
+OpenXAIBenchmark/pretrained/*
+
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
