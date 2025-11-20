@@ -1,4 +1,4 @@
-This experiment uses data and models from PredEx; details and citations can be found in the paper. The dataset file used is: (https://huggingface.co/datasets/L-NLProc/PredEx/blob/main/test.csv)[https://huggingface.co/datasets/L-NLProc/PredEx/blob/main/test.csv], and is included at [./DATA/PredEx/test_original.csv](./DATA/PredEx/test_original.csv). `oracle_selected_cases.txt` is a prefiltered list of cases where the model prediction is always correct, and which matches our quality filtration criteria.
+This experiment uses data and models from PredEx; details and citations can be found in the paper. The dataset file used is: [https://huggingface.co/datasets/L-NLProc/PredEx/blob/main/test.csv](https://huggingface.co/datasets/L-NLProc/PredEx/blob/main/test.csv), and is included at [./DATA/PredEx/test_original.csv](./DATA/PredEx/test_original.csv). `oracle_selected_cases.txt` is a prefiltered list of cases where the model prediction is always correct, and which matches our quality filtration criteria.
 
 Starting state:
 
@@ -42,5 +42,10 @@ The case used in Figure 2 is titled `377__GordonWoodroffeeLeatherManufacturingCo
 To reproduce table 1 you can now run `$ bash create_table.sh` to create the file `table1.csv`.
 
 
-All results from the paper can also be viewed directly by navigating to https://kairawal.github.io/Rule-of-Thumb-Explaining-Artificial-Intelligence-Systems-using-Partial-Information/JudicialCaseOutcomePrediction/Code/results.html
+**All results from the paper can also be viewed directly by navigating to [Code/results.html](Code/results.html) via the direct links below:**
+
+- anonymous.4open.science: **(if you get a 404 error try reloading)** [https://anonymous.4open.science/w/Rule-of-Thumb-Explaining-Artificial-Intelligence-Systems-using-Partial-Information-3E03/JudicialCaseOutcomePrediction/Code/results.html](https://anonymous.4open.science/w/Rule-of-Thumb-Explaining-Artificial-Intelligence-Systems-using-Partial-Information-3E03/JudicialCaseOutcomePrediction/Code/results.html)
+
+
+- github: [https://kairawal.github.io/Rule-of-Thumb-Explaining-Artificial-Intelligence-Systems-using-Partial-Information/JudicialCaseOutcomePrediction/Code/results.html](https://kairawal.github.io/Rule-of-Thumb-Explaining-Artificial-Intelligence-Systems-using-Partial-Information/JudicialCaseOutcomePrediction/Code/results.html)
 
