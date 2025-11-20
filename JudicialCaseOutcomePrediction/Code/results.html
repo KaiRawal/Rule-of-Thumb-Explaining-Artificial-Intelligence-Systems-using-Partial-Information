@@ -67,9 +67,13 @@
     </div>
     <!-- replaced subdirectory text input with select -->
     <div>
-        <label for="subdirectoryInput">Subset (defined as LLM-label_Human-label_RoT-label, only valid for Rule of Thumb):</label>
-        <select id="subdirectoryInput" style="width: 80px;"></select>
+        <label for="subdirectoryInput">Subset (only for Rule of Thumb):</label>
+        <select id="subdirectoryInput" style="width: 300px;"></select>
     </div>
+    <div>
+        <button id="visualizeButton" type="button">Visualize!</button>
+    </div>
+
     <details id="collapse" closed>
         <summary style="cursor: pointer; font-weight: 600; margin-bottom: 8px;">Advanced</summary>
         <div>
@@ -103,11 +107,26 @@
     </div>
     <hr>
     <script>
-        // wire up existing listeners (unchanged)
-        document.getElementById('directoryInput').addEventListener('change', fetchCSVFiles);
-        document.getElementById('subdirectoryInput').addEventListener('change', fetchCSVFiles);
-        document.getElementById('startIndexInput').addEventListener('change', fetchCSVFiles);
-        document.getElementById('colorToggle').addEventListener('change', fetchCSVFiles);
+        // Map DATA/... directory strings to human-readable labels
+        function mapDirToLabel(dir) {
+            const map = {
+                "DATA/SPAN_EXPS_stride_35_128_1e-05": "Rule of Thumb",
+                "DATA/SHAP_MERGED_500": "SHAP",
+                "DATA/LIME_MERGED_500": "LIME 500",
+                "DATA/LIME_MERGED_5000": "LIME 5000",
+                "DATA/IG_MERGED": "IG",
+                "DATA/UNIFORM_spANS": "Random"
+            };
+            return map[dir] || dir;
+        }
+        
+        // document.getElementById('directoryInput').addEventListener('change', fetchCSVFiles);
+        // document.getElementById('subdirectoryInput').addEventListener('change', fetchCSVFiles);
+        
+        document.getElementById('visualizeButton').addEventListener('click', fetchCSVFiles);
+
+        // document.getElementById('startIndexInput').addEventListener('change', fetchCSVFiles);
+        // document.getElementById('colorToggle').addEventListener('change', fetchCSVFiles);
         // document.getElementById('endIndexInput').addEventListener('change', fetchCSVFiles);
         
         function splitRow(row) {
@@ -138,7 +157,9 @@
                 return;
             }
             const sourceDiv = document.getElementById('source');
-            sourceDiv.textContent = `Directory: ${directory}`;
+            // display human-readable label instead of raw directory string
+            const humanDir = mapDirToLabel(directory);
+            sourceDiv.textContent = `Directory: ${humanDir} (${directory})`;
 
             const subdirectory = document.getElementById('subdirectoryInput').value;
             if (!subdirectory) {
@@ -238,7 +259,8 @@
                 const rows = fileText.split('\n').filter(row => row.trim() !== '');
                 const roberta_pred_for_case = file2roberta[fileName]
 
-                let concatenatedWords = `<h2>${fileName}</h2><h3>Roberta Prediction is ${roberta_pred_for_case}</h3> <br>`; // Initialize with filename
+                // Use human-readable directory label in the output heading
+                let concatenatedWords = `<h2> <i>[${humanDir}]</i> ${fileName}</h2><h3>LLM Prediction (matches actual case label) is ${roberta_pred_for_case}</h3> <br>`; // Initialize with filename
 
                 rows.forEach(row => {
                     //console.log(row);
@@ -317,7 +339,13 @@
             if (dirSelect.value === rotDirValue) {
                 // Populate allowed RoT options
                 const options = ['1_1_1','1_1_0','0_0_1','0_0_0'];
-                subSelect.innerHTML = options.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+                const labelMap = {
+                    '1_1_1': 'LLM and RoT both predict 1',
+                    '1_1_0': 'RoT erroneosly predicts 0',
+                    '0_0_1': 'RoT erroneosly predicts 1',
+                    '0_0_0': 'LLM and RoT both predict 0'
+                };
+                subSelect.innerHTML = options.map(opt => `<option value="${opt}">${labelMap[opt] || opt}</option>`).join('');
                 subSelect.value = '1_1_1';
                 subSelect.disabled = false;
             } else {
@@ -330,7 +358,7 @@
             // Update displayed subsource immediately
             const subsourceDiv = document.getElementById('subsource');
             subsourceDiv.textContent = `SubDirectory: ${subSelect.value}`;
-            fetchCSVFiles();
+            // fetchCSVFiles();
             const outputDiv = document.getElementById('output');
             outputDiv.innerHTML = ''; // Clear previous content
         }
@@ -341,7 +369,7 @@
         // Call once on load so initial UI matches default directory selection
         updateSubdirectoryOptions();
 
-        fetchCSVFiles();
+        // fetchCSVFiles();
     </script>
 </body>
 </html>

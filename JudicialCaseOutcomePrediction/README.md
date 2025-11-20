@@ -35,9 +35,12 @@ Steps to reproduce figure 2:
 15. Run python script: `$ python3 ./Code/05_merge_lime.py --lime_samples 5000`
 16. Run python script: `$ python3 ./Code/05_merge_tokens_generic.py --ig_dir IG`
 17. Start a python server: `$ python3 -m http.server`
-18. Navigate to http://localhost:8000/Code/token_viz_all.html
+18. Navigate to http://localhost:8000/Code/results.html
 
 The case used in Figure 2 is titled `377__GordonWoodroffeeLeatherManufacturingCoVsTheCommissionerOfIncomeTaxMadras`. (Tip: reload the page when changing explainer for accurate results.)
 
 To reproduce table 1 you can now run `$ bash create_table.sh` to create the file `table1.csv`.
+
+
+All results from the paper can also be viewed directly by navigating to https://kairawal.github.io/Rule-of-Thumb-Explaining-Artificial-Intelligence-Systems-using-Partial-Information/JudicialCaseOutcomePrediction/Code/results.html
 
