@@ -8,16 +8,16 @@ Most experiments consist of a single `RUN.sh` file that is expected to run the e
 
 | SubDirectory | Description |
 | ---------------- | ----------------------- |
-| [ExplanationExample](./ExplanationExample) | **Fig. 1 – Explanation Disagreement Example using an Interactive Gradio Demo**. |
-| [JudicialCaseOutcomePrediction](./JudicialCaseOutcomePrediction) | **Fig. 2 (+ Table 1) – Explaining Case Outcome Prediction** using a finetuned RoBERTa model. |
-| [MovieReviewSentiments](./MovieReviewSentiments) | **Table 3 – Explaining Movie Review Sentiment Prediction** using LLM APIs. |
-| [SyntheticResumeFiltering](./SyntheticResumeFiltering) | **Fig. 3 – Explaining Resume Filtering** using LLM APIs. |
-| [AIAuditing](./AIAuditing) | **Fig. 4 (+ Table 2) – XAI for Auditing Proprietary AIs without making Model Inference Calls**. |
-| [ScientificDiscovery](./ScientificDiscovery) | **Fig. 5 – XAI for Scientific Discovery**. |
-| [AdversarialAttack](./AdversarialAttack) | **Fig. 6 – Invulnerability to Adversarial Attacks on Explanations**. |
-| [OpenXAIBenchmark](./OpenXAIBenchmark) | **Fig. 7 – OpenXAI Benchmark** experiments. |
-| [Runtimes](./Runtimes) | Scripts and results for **Fig. 9 – Runtime** analysis. |
-| [LitReview](./LitReview) | Dataset (CSV files) examining papers which apply SHAP and XAI in scientific discovery. |
+| [ExplanationExample](./ExplanationExample/README.md) | **Fig. 1 – Explanation Disagreement Example using an Interactive Gradio Demo**. |
+| [JudicialCaseOutcomePrediction](./JudicialCaseOutcomePrediction/README.md) | **Fig. 2 (+ Table 1) – Explaining Case Outcome Prediction** using a finetuned RoBERTa model. |
+| [MovieReviewSentiments](./MovieReviewSentiments/README.md) | **Table 3 – Explaining Movie Review Sentiment Prediction** using LLM APIs. |
+| [SyntheticResumeFiltering](./SyntheticResumeFiltering/README.md) | **Fig. 3 – Explaining Resume Filtering** using LLM APIs. |
+| [AIAuditing](./AIAuditing/README.md) | **Fig. 4 (+ Table 2) – XAI for Auditing Proprietary AIs without making Model Inference Calls**. |
+| [ScientificDiscovery](./ScientificDiscovery/README.md) | **Fig. 5 – XAI for Scientific Discovery**. |
+| [AdversarialAttack](./AdversarialAttack/README.md) | **Fig. 6 – Invulnerability to Adversarial Attacks on Explanations**. |
+| [OpenXAIBenchmark](./OpenXAIBenchmark/README.md) | **Fig. 7 – OpenXAI Benchmark** experiments. |
+| [Runtimes](./Runtimes/README.md) | Scripts and results for **Fig. 9 – Runtime** analysis. |
+| [LitReview](./LitReview/README.md) | Dataset (CSV files) examining papers which apply SHAP and XAI in scientific discovery. |
 
 
 All experiments were run on a MacBook Pro with 24 GB memory using python 3.10.0.
