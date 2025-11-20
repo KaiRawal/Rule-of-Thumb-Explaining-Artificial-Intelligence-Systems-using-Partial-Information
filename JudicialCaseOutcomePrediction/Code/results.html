@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CSV Word Colorizer</title>
+    <title>Visualize Explanations of Judicial Case Predictions</title>
     <style>
         /* /*abridged* /
         @page {
@@ -50,54 +50,184 @@
     </style>
 </head>
 <body>
-    <h1>Visualize Explanations for Case Outcome Prediction</h1>
-    <!--div id="output"></div-->
-    
-    <div>
-        <label for="directoryInput">Explainer:</label>
-        <!-- input type="text" id="directoryInput" value="DATA/SPAN_EXPS_stride_35_128_1e-05" style="width: 300px;" -->
-        <select id="directoryInput" style="width: 300px;">
-            <option value="DATA/SPAN_EXPS_stride_35_128_1e-05" selected>Rule of Thumb</option>
-            <option value="DATA/SHAP_MERGED_500">SHAP</option>
-            <option value="DATA/LIME_MERGED_500">LIME 500</option>
-            <option value="DATA/LIME_MERGED_5000">LIME 5000</option>
-            <option value="DATA/IG_MERGED">IG</option>
-            <option value="DATA/UNIFORM_spans">Random</option>
-        </select>
-    </div>
-    <!-- replaced subdirectory text input with select -->
-    <div>
-        <label for="subdirectoryInput">Subset (only for Rule of Thumb):</label>
-        <select id="subdirectoryInput" style="width: 300px;"></select>
-    </div>
-    <div>
-        <button id="visualizeButton" type="button">Visualize!</button>
-    </div>
+    <style>
+        /* Simple, self-contained UI styling (no external libs) */
+        .panel {
+            max-width: 980px;
+            margin: 18px auto;
+            padding: 18px;
+            background: #fbfbfd;
+            border: 1px solid #e6e9ef;
+            border-radius: 10px;
+            box-shadow: 0 6px 18px rgba(33,41,60,0.06);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+        }
 
-    <details id="collapse" closed>
-        <summary style="cursor: pointer; font-weight: 600; margin-bottom: 8px;">Advanced</summary>
-        <div>
-            <div>
-                <label for="startIndexInput">Start Index (0-based):</label>
-                <input type="number" id="startIndexInput" value="0" min="0">
-            </div>
+        h1 {
+            margin: 0 0 8px 0;
+            font-size: 1.25rem;
+            color: #162B4C;
+            font-weight: 700;
+        }
 
-                
-            <div>
-                <label for="colorToggle">Toggle Color Scheme:</label>
-                <input type="checkbox" id="colorToggle">
-            </div>
+        p {
+            margin: 0 0 14px 0;
+            color: #3b4758;
+            line-height: 1.45;
+            font-size: 0.95rem;
+        }
 
+        .form-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
 
-            <!-- <div>
-                <label for="endIndexInput">End Index (exclusive, 0-based):</label>
-                <input type="number" id="endIndexInput" value="50" min="0">
-            </div> -->
-            <div id="source"></div>
-            <div id="subsource"></div>
+        .form-row label {
+            width: 250px;
+            flex: 0 0 250px;
+            color: #334155;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        select, input[type="number"], input[type="text"] {
+            flex: 1 1 auto;
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 1px solid #d6dbe7;
+            background: #fff;
+            color: #122336;
+            font-size: 0.95rem;
+            outline: none;
+            transition: box-shadow .12s ease, border-color .12s ease;
+        }
+
+        select:disabled {
+            background: #f5f7fa;
+            color: #9aa5b3;
+        }
+
+        select:focus, input[type="number"]:focus {
+            box-shadow: 0 6px 18px rgba(29, 78, 216, 0.08);
+            border-color: #1d4ed8;
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-top: 6px;
+        }
+
+        /* Ensure the visualize button wrapper pushes to the far right */
+        .controls-row .visualize-wrapper {
+            margin-left: auto;
+        }
+
+        button#visualizeButton {
+            padding: 9px 16px;
+            border-radius: 9px;
+            border: none;
+            background: #808080;
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform .08s ease, box-shadow .08s ease;
+            box-shadow: 0 6px 14px rgba(37,99,235,0.18);
+        }
+
+        button#visualizeButton:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 26px rgba(37,99,235,0.20);
+        }
+
+        /* details/advanced area */
+        details#collapse {
+            margin-top: 14px;
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #e6e9ef;
+            padding: 10px;
+        }
+
+        details#collapse summary {
+            font-size: 0.98rem;
+            color: #0f172a;
+            margin-bottom: 8px;
+        }
+
+        #source, #subsource {
+            font-size: 0.85rem;
+            color: #586476;
+            margin-top: 8px;
+        }
+
+        @media (max-width: 720px) {
+            .form-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .form-row label { width: auto; flex: none; }
+            .controls-row { flex-direction: column; align-items: stretch; }
+            /* Reset margin on small screens so button stacks naturally */
+            .controls-row .visualize-wrapper { margin-left: 0; }
+        }
+    </style>
+
+    <div class="panel" role="region" aria-label="Explainer visualization controls">
+        <h1>Visualize Explanations of Judicial Case Outcomes Predicted by a finetuned RoBERTa model.</h1>
+        <p>
+            Select the explainer method and subset, then click "Visualize!" to see the highlighted tokens.
+            The color intensity indicates the importance assigned by the explainer.
+            Positive contributions are shown in <span style="background-color: rgb(31,119,180);"> blue </span> / <span style="background-color: rgb(0,255,0);"> green </span>, negative in <span style="background-color: rgb(255,127,14);"> orange </span> / <span style="background-color: rgb(255,0,0);"> red </span>.
+        </p>
+
+        <div class="form-row">
+            <label for="directoryInput">Explainer:</label>
+            <select id="directoryInput" style="width: 250px;">
+                <option value="DATA/SPAN_EXPS_stride_35_128_1e-05" selected>Rule of Thumb</option>
+                <option value="DATA/SHAP_MERGED_500">SHAP</option>
+                <option value="DATA/LIME_MERGED_500">LIME 500</option>
+                <option value="DATA/LIME_MERGED_5000">LIME 5000</option>
+                <option value="DATA/IG_MERGED">IG</option>
+                <option value="DATA/UNIFORM_spans">Random</option>
+            </select>
         </div>
-    </details>
-    <hr>
+
+        <div class="form-row">
+            <label for="subdirectoryInput">Subset (only for Rule of Thumb):</label>
+            <select id="subdirectoryInput" style="width: 250px;"></select>
+        </div>
+
+        <div class="controls-row">
+            <div style="min-width: 220px;">
+                <details id="collapse" closed>
+                    <summary style="cursor: pointer; font-weight: 600; margin-bottom: 8px;">Advanced</summary>
+                    <div>
+                        <div style="display:flex; gap:12px; align-items:center; margin-bottom:8px;">
+                            <label for="startIndexInput" style="width:150px; flex:0 0 150px; font-weight:600;">Start Index (0-based):</label>
+                            <input type="number" id="startIndexInput" value="0" min="0">
+                        </div>
+
+                        <div style="display:flex; gap:12px; align-items:center; margin-bottom:8px;">
+                            <label for="colorToggle" style="width:150px; flex:0 0 150px; font-weight:600;">Toggle Color Scheme:</label>
+                            <input type="checkbox" id="colorToggle" aria-label="Toggle color scheme">
+                        </div>
+
+                        <div id="source"></div>
+                        <div id="subsource"></div>
+                    </div>
+                </details>
+            </div>
+
+            <div class="visualize-wrapper">
+                <button id="visualizeButton" type="button">Visualize!</button>
+            </div>
+        </div>
+    </div>
+    <hr></div>
     <div id="output"></div>
     <div><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br></div>
     <hr>
