@@ -19,3 +19,5 @@ Most experiments consist of a single `RUN.sh` file that is expected to run the e
 | [Runtimes](./Runtimes) | Scripts and results for **Fig. 9 – Runtime** analysis. |
 | [LitReview](./LitReview) | Dataset (CSV files) examining papers which apply SHAP and XAI in scientific discovery. |
 
+
+All experiments were run on a MacBook Pro with 24 GB memory using python 3.10.0.
