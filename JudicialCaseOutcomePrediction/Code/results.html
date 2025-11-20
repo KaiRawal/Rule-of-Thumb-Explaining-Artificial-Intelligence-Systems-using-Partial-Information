@@ -183,12 +183,40 @@
                 console.error("Error fetching model_performance.txt:", error);
             }
 
-            var response;
-            if (!subdirectory) {
-                response = await fetch(`../${directory}/`);
-            } else {
-                response = await fetch(`../${directory}/${subdirectory}/`);
+            // var response;
+            // if (!subdirectory) {
+            //     response = await fetch(`../${directory}/`);
+            // } else {
+            //     response = await fetch(`../${directory}/${subdirectory}/`);
+            // }
+
+            async function fetchMaybeIndex(url) {
+                let res = await fetch(url);
+
+                // if success, return it
+                if (res.ok) return res;
+
+                // if 404, try index.html
+                if (res.status === 404) {
+                    const indexURL = url.replace(/\/$/, "") + "/index.html";
+                    const res2 = await fetch(indexURL);
+                    if (res2.ok) return res2;
+                }
+
+                throw new Error("File not found: " + url);
             }
+
+            let url;
+            if (!subdirectory) {
+                url = `../${directory}/`;
+            } else {
+                url = `../${directory}/${subdirectory}/`;
+            }
+
+            const response = await fetchMaybeIndex(url);
+
+
+
             const text = await response.text();
             const parser = new DOMParser();
             const doc = parser.parseFromString(text, 'text/html');
