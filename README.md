@@ -1,6 +1,8 @@
 # Rule-of-Thumb-Explaining-Artificial-Intelligence-Systems-using-Partial-Information
 Code to replicate experiments and graphics from the paper "Rule of Thumb: Explaining Artificial Intelligence Systems using Partial Information"
 
+**anonymous.4open.science users: if you encounter a persistent "loading" page or a 404 error while navigating this repository, please reload the webpage or try a new incongito window.** The site has been tested on chrome, firefox, and safari.
+
 The core implementation for the new Rule of Thumb (RoT) explainer is in `rot_class.py`, including a subclass designed specifically to operate on text embedding data. This is typically called through a wrapper `rule_of_thumb.py` to match the standard OpenXAI benchmark interface. Eventually, `rot_class.py` and `rule_of_thumb.py` can be generalised into a python package that can be imported and configured by researchers and practitioners, like SHAP or LIME. Each experiment uses these core files, with minor changes as applicable for the particular experiment.
 
 Most experiments consist of a single `RUN.sh` file that is expected to run the entire experiment end to end, from downloading the data to producing the final plots. Some experiments were carried out via jupyter notebooks instead of orchestrated through shell scripts. The table below links to the relevant subdirectory for each experiment. Each subdirectory has a `README.md` file explaining the setup and providing basic instructions to replicate figures from the paper.
