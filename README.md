@@ -23,3 +23,66 @@ Most experiments consist of a single `RUN.sh` file that is expected to run the e
 
 
 All experiments were run on a MacBook Pro with 24 GB memory using python 3.10.0.
+
+
+## Setup
+
+Create and activate a virtual environment from the repository root, then install dependencies:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+## Run all experiments (terminal-only)
+
+Use the root-level orchestrator to run all experiments sequentially:
+
+```bash
+bash run_all_experiments.sh
+```
+
+Execution order:
+1. `adversarial_attack`
+2. `scientific_discovery`
+3. `ai_auditing`
+4. `explanation_example`
+5. `openxai_benchmark`
+6. `resume_filtering`
+7. `movie_review_sentiments`
+8. `judicial_case_outcome_prediction`
+9. `runtimes`
+
+Useful options:
+
+```bash
+# Show all step IDs
+bash run_all_experiments.sh --list-steps
+
+# Resume from a step index
+bash run_all_experiments.sh --from-step 5
+
+# Resume from a step ID
+bash run_all_experiments.sh --from-step openxai_benchmark
+
+# Stop at a specific step
+bash run_all_experiments.sh --from-step 3 --to-step 7
+
+# Stop immediately on first failure
+bash run_all_experiments.sh --fail-fast
+```
+
+If a step fails, detailed artifacts are saved under `.experiment_logs/failures/<timestamp>/<step>/` including:
+- command used
+- working directory
+- exit code
+- full output log and short tail log
+- runtime duration
+- environment snapshot
+
+Run summaries are saved under `.experiment_logs/runs/<timestamp>/summary.tsv`.
+
+This runner is intentionally terminal-only and does not execute notebooks. Notebook-dependent post-processing/plots remain available in each experiment subdirectory.
+

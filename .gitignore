@@ -2,6 +2,8 @@
 .DS_Store
 **/.DS_Store
 
+Submission/*
+
 *.npy
 *.pkl
 **/DATA/EMBEDDINGS_token_stride/*.csv
