@@ -195,8 +195,38 @@ run_regular_step() {
 
   (
     cd "$SCRIPT_DIR/$step_dir" || exit 2
-    bash -lc "$command"
+    # Avoid login shell startup files so we inherit the caller's active Python env.
+    bash -c "$command"
   ) >>"$step_log" 2>&1
+}
+
+log_python_environment() {
+  local step_log="$1"
+  local py_path=""
+  local py_exec=""
+
+  {
+    echo "[env] python_diagnostics_start"
+
+    if command -v python3 >/dev/null 2>&1; then
+      py_path="$(command -v python3)"
+      echo "[env] python3_path=$py_path"
+      echo "[env] python3_version=$(python3 --version 2>&1)"
+
+      py_exec="$(python3 -c 'import sys; print(sys.executable)' 2>/dev/null || true)"
+      if [[ -n "$py_exec" ]]; then
+        echo "[env] sys_executable=$py_exec"
+      else
+        echo "[env] sys_executable=<unavailable>"
+      fi
+    else
+      echo "[env] python3_path=<not found>"
+      echo "[env] python3_version=<not found>"
+      echo "[env] sys_executable=<not found>"
+    fi
+
+    echo "[env] python_diagnostics_end"
+  } >>"$step_log" 2>&1
 }
 
 run_explanation_example_step() {
@@ -292,6 +322,7 @@ for ((idx=1; idx<=TOTAL_STEPS; idx++)); do
 
   echo "[${idx}/${TOTAL_STEPS}] START ${step_name} (${step_id})"
   echo "=== START $(date) ===" > "$step_log"
+  log_python_environment "$step_log"
 
   case "$step_id" in
     adversarial_attack)
