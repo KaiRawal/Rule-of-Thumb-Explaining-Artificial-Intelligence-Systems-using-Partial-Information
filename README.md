@@ -72,6 +72,33 @@ bash run_all_experiments.sh --from-step 3 --to-step 7
 
 # Stop immediately on first failure
 bash run_all_experiments.sh --fail-fast
+
+# Configure heartbeat and stall warning cadence
+bash run_all_experiments.sh --heartbeat-seconds 60 --stall-warn-seconds 300
+```
+
+During execution, the runner now prints periodic `ALIVE` messages for the current step (default every 60 seconds), including pid, elapsed time, and log age/size. If a running step log does not grow for a while, it prints `WARN_STALL`.
+
+### Monitor progress while a run is active
+
+Use these commands in another terminal:
+
+```bash
+# Path to the most recent run directory
+RUN_DIR="$(cat .experiment_logs/latest_run.txt)"
+echo "$RUN_DIR"
+
+# See which steps are currently running/completed/failed
+tail -n 20 "$RUN_DIR/summary.tsv"
+
+# Follow the newest step log in real time
+tail -f "$(ls -1t "$RUN_DIR"/steps/*.log | head -n 1)"
+```
+
+If you want to inspect a specific step log directly:
+
+```bash
+tail -f .experiment_logs/runs/<timestamp>/steps/8_judicial_case_outcome_prediction.log
 ```
 
 If a step fails, detailed artifacts are saved under `.experiment_logs/failures/<timestamp>/<step>/` including:

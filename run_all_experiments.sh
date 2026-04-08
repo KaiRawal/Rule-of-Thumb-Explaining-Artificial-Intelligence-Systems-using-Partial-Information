@@ -45,6 +45,9 @@ TO_STEP="$TOTAL_STEPS"
 LOG_ROOT=".experiment_logs"
 FAIL_FAST=0
 LIST_STEPS=0
+HEARTBEAT_SECONDS=60
+STALL_WARN_SECONDS=300
+MONITOR_POLL_SECONDS=5
 
 print_help() {
   cat <<'EOF'
@@ -54,6 +57,8 @@ Options:
   --from-step <index|id>   Start from this step (default: 1)
   --to-step <index|id>     Stop after this step (default: 9)
   --log-dir <path>         Output directory for run logs/artifacts (default: .experiment_logs)
+  --heartbeat-seconds <n>  Print step liveness heartbeat every n seconds (default: 60)
+  --stall-warn-seconds <n> Warn when a running step log shows no growth for n seconds (default: 300)
   --fail-fast              Stop immediately on first failure
   --list-steps             Print step index + ids and exit
   -h, --help               Show this help message
@@ -102,6 +107,19 @@ resolve_step_selector() {
   return 1
 }
 
+resolve_positive_int() {
+  local name="$1"
+  local value="$2"
+
+  if [[ ! "$value" =~ ^[0-9]+$ ]] || (( value <= 0 )); then
+    echo "$name must be a positive integer: $value" >&2
+    return 1
+  fi
+
+  echo "$value"
+  return 0
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --from-step)
@@ -114,6 +132,14 @@ while [[ $# -gt 0 ]]; do
       ;;
     --log-dir)
       LOG_ROOT="${2:-}"
+      shift 2
+      ;;
+    --heartbeat-seconds)
+      HEARTBEAT_SECONDS="${2:-}"
+      shift 2
+      ;;
+    --stall-warn-seconds)
+      STALL_WARN_SECONDS="${2:-}"
       shift 2
       ;;
     --fail-fast)
@@ -146,6 +172,13 @@ if [[ -z "$FROM_STEP" || -z "$TO_STEP" ]]; then
   exit 1
 fi
 
+HEARTBEAT_SECONDS="$(resolve_positive_int "--heartbeat-seconds" "$HEARTBEAT_SECONDS")" || exit 1
+STALL_WARN_SECONDS="$(resolve_positive_int "--stall-warn-seconds" "$STALL_WARN_SECONDS")" || exit 1
+
+if (( STALL_WARN_SECONDS < HEARTBEAT_SECONDS )); then
+  STALL_WARN_SECONDS="$HEARTBEAT_SECONDS"
+fi
+
 FROM_INDEX="$(resolve_step_selector "$FROM_STEP")" || exit 1
 TO_INDEX="$(resolve_step_selector "$TO_STEP")" || exit 1
 
@@ -174,6 +207,8 @@ to_step_input=$TO_STEP
 from_step_index=$FROM_INDEX
 to_step_index=$TO_INDEX
 fail_fast=$FAIL_FAST
+heartbeat_seconds=$HEARTBEAT_SECONDS
+stall_warn_seconds=$STALL_WARN_SECONDS
 EOF
 
 echo "$RUN_DIR" > "$LATEST_POINTER"
@@ -188,16 +223,114 @@ SKIPPED_COUNT=0
 SUCCESS_COUNT=0
 FIRST_FAIL_INDEX=0
 
-run_regular_step() {
+get_file_size_bytes() {
+  local path="$1"
+  local size="0"
+
+  if [[ -f "$path" ]]; then
+    size="$(wc -c < "$path" 2>/dev/null | tr -d '[:space:]')"
+    if [[ -z "$size" ]]; then
+      size="0"
+    fi
+  fi
+
+  echo "$size"
+}
+
+get_file_mtime_epoch() {
+  local path="$1"
+
+  if [[ ! -f "$path" ]]; then
+    echo "0"
+    return 0
+  fi
+
+  if stat -f %m "$path" >/dev/null 2>&1; then
+    stat -f %m "$path"
+    return 0
+  fi
+
+  if stat -c %Y "$path" >/dev/null 2>&1; then
+    stat -c %Y "$path"
+    return 0
+  fi
+
+  echo "0"
+}
+
+run_monitored_step() {
   local step_dir="$1"
   local step_log="$2"
   local command="$3"
+  local idx="$4"
+  local step_id="$5"
+  local step_name="$6"
+  local pid
+  local start_ts
+  local last_heartbeat_ts
+  local last_growth_ts
+  local last_stall_notice_ts
+  local now
+  local elapsed
+  local size
+  local previous_size
+  local mtime_epoch
+  local log_age
+  local stall_elapsed
 
   (
     cd "$SCRIPT_DIR/$step_dir" || exit 2
     # Avoid login shell startup files so we inherit the caller's active Python env.
     bash -c "$command"
-  ) >>"$step_log" 2>&1
+  ) >>"$step_log" 2>&1 &
+  pid=$!
+
+  start_ts="$(date +%s)"
+  last_heartbeat_ts="$start_ts"
+  last_growth_ts="$start_ts"
+  last_stall_notice_ts=0
+  previous_size="$(get_file_size_bytes "$step_log")"
+
+  echo "[${idx}/${TOTAL_STEPS}] MONITOR ${step_name} pid=${pid} heartbeat=${HEARTBEAT_SECONDS}s stall_warn=${STALL_WARN_SECONDS}s"
+
+  while kill -0 "$pid" 2>/dev/null; do
+    sleep "$MONITOR_POLL_SECONDS"
+    now="$(date +%s)"
+
+    if (( now - last_heartbeat_ts < HEARTBEAT_SECONDS )); then
+      continue
+    fi
+
+    size="$(get_file_size_bytes "$step_log")"
+    if (( size > previous_size )); then
+      last_growth_ts="$now"
+    fi
+    previous_size="$size"
+
+    mtime_epoch="$(get_file_mtime_epoch "$step_log")"
+    if (( mtime_epoch > 0 )); then
+      log_age=$((now - mtime_epoch))
+      if (( log_age < 0 )); then
+        log_age=0
+      fi
+    else
+      log_age=-1
+    fi
+
+    elapsed=$((now - start_ts))
+    stall_elapsed=$((now - last_growth_ts))
+
+    echo "[${idx}/${TOTAL_STEPS}] ALIVE ${step_name} pid=${pid} elapsed=${elapsed}s log_size=${size}B log_age=${log_age}s"
+
+    if (( stall_elapsed >= STALL_WARN_SECONDS )) && (( now - last_stall_notice_ts >= HEARTBEAT_SECONDS )); then
+      echo "[${idx}/${TOTAL_STEPS}] WARN_STALL ${step_name} pid=${pid} no_log_growth=${stall_elapsed}s"
+      last_stall_notice_ts="$now"
+    fi
+
+    last_heartbeat_ts="$now"
+  done
+
+  wait "$pid"
 }
 
 log_python_environment() {
@@ -250,15 +383,6 @@ run_explanation_example_step() {
   return $?
 }
 
-run_judicial_step() {
-  local step_log="$1"
-
-  (
-    cd "$SCRIPT_DIR/JudicialCaseOutcomePrediction" || exit 2
-    awk '!/python3 -m http.server/' RUN.sh | bash
-  ) >>"$step_log" 2>&1
-}
-
 capture_failure_artifacts() {
   local idx="$1"
   local step_id="$2"
@@ -303,6 +427,7 @@ record_summary() {
 }
 
 echo "Running steps ${FROM_INDEX}..${TO_INDEX}"
+echo "Heartbeat: every ${HEARTBEAT_SECONDS}s (stall warning after ${STALL_WARN_SECONDS}s without log growth)"
 
 for ((idx=1; idx<=TOTAL_STEPS; idx++)); do
   step_id="${STEP_IDS[$((idx-1))]}"
@@ -327,17 +452,17 @@ for ((idx=1; idx<=TOTAL_STEPS; idx++)); do
   case "$step_id" in
     adversarial_attack)
       step_cmd="bash RUN.sh"
-      run_regular_step "$step_dir" "$step_log" "$step_cmd"
+      run_monitored_step "$step_dir" "$step_log" "$step_cmd" "$idx" "$step_id" "$step_name"
       exit_code=$?
       ;;
     scientific_discovery)
       step_cmd="bash RUN.sh"
-      run_regular_step "$step_dir" "$step_log" "$step_cmd"
+      run_monitored_step "$step_dir" "$step_log" "$step_cmd" "$idx" "$step_id" "$step_name"
       exit_code=$?
       ;;
     ai_auditing)
       step_cmd="bash RUN.sh"
-      run_regular_step "$step_dir" "$step_log" "$step_cmd"
+      run_monitored_step "$step_dir" "$step_log" "$step_cmd" "$idx" "$step_id" "$step_name"
       exit_code=$?
       ;;
     explanation_example)
@@ -347,27 +472,27 @@ for ((idx=1; idx<=TOTAL_STEPS; idx++)); do
       ;;
     openxai_benchmark)
       step_cmd="bash RUN.sh"
-      run_regular_step "$step_dir" "$step_log" "$step_cmd"
+      run_monitored_step "$step_dir" "$step_log" "$step_cmd" "$idx" "$step_id" "$step_name"
       exit_code=$?
       ;;
     resume_filtering)
       step_cmd="bash RUN.sh"
-      run_regular_step "$step_dir" "$step_log" "$step_cmd"
+      run_monitored_step "$step_dir" "$step_log" "$step_cmd" "$idx" "$step_id" "$step_name"
       exit_code=$?
       ;;
     movie_review_sentiments)
       step_cmd="bash RUN.sh"
-      run_regular_step "$step_dir" "$step_log" "$step_cmd"
+      run_monitored_step "$step_dir" "$step_log" "$step_cmd" "$idx" "$step_id" "$step_name"
       exit_code=$?
       ;;
     judicial_case_outcome_prediction)
       step_cmd="awk '!/python3 -m http.server/' RUN.sh | bash"
-      run_judicial_step "$step_log"
+      run_monitored_step "$step_dir" "$step_log" "$step_cmd" "$idx" "$step_id" "$step_name"
       exit_code=$?
       ;;
     runtimes)
       step_cmd="python3 main.py"
-      run_regular_step "$step_dir" "$step_log" "$step_cmd"
+      run_monitored_step "$step_dir" "$step_log" "$step_cmd" "$idx" "$step_id" "$step_name"
       exit_code=$?
       ;;
     *)
