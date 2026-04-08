@@ -504,6 +504,7 @@ for ((idx=1; idx<=TOTAL_STEPS; idx++)); do
 
   end_time="$(date +%s)"
   duration=$((end_time - start_time))
+  echo "=== END $(date) (exit=${exit_code} duration=${duration}s) ===" >> "$step_log"
 
   if (( exit_code == 0 )); then
     echo "[${idx}/${TOTAL_STEPS}] OK ${step_name} (${duration}s)"
