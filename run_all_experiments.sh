@@ -191,6 +191,8 @@ RUN_TS="$(date +%Y%m%d_%H%M%S)"
 RUN_DIR="$LOG_ROOT/runs/$RUN_TS"
 STEP_LOG_DIR="$RUN_DIR/steps"
 FAIL_DIR="$LOG_ROOT/failures/$RUN_TS"
+CONSOLE_LOG_FILE="$RUN_DIR/console_output.log"
+LATEST_CONSOLE_POINTER="$LOG_ROOT/latest_console_log.txt"
 
 mkdir -p "$STEP_LOG_DIR" "$FAIL_DIR"
 
@@ -198,6 +200,15 @@ SUMMARY_FILE="$RUN_DIR/summary.tsv"
 RUN_MANIFEST="$RUN_DIR/run_manifest.txt"
 LATEST_POINTER="$LOG_ROOT/latest_run.txt"
 FIRST_FAIL_FILE="$RUN_DIR/first_failure.txt"
+
+# Mirror this script's terminal output to a run-level log while preserving live console output.
+if [[ -z "${RUN_ALL_EXPERIMENTS_TEE_ACTIVE:-}" ]]; then
+  export RUN_ALL_EXPERIMENTS_TEE_ACTIVE=1
+  exec > >(tee -a "$CONSOLE_LOG_FILE")
+  exec 2> >(tee -a "$CONSOLE_LOG_FILE" >&2)
+fi
+
+echo "$CONSOLE_LOG_FILE" > "$LATEST_CONSOLE_POINTER"
 
 cat > "$RUN_MANIFEST" <<EOF
 timestamp=$RUN_TS
@@ -209,6 +220,8 @@ to_step_index=$TO_INDEX
 fail_fast=$FAIL_FAST
 heartbeat_seconds=$HEARTBEAT_SECONDS
 stall_warn_seconds=$STALL_WARN_SECONDS
+console_log_file=$CONSOLE_LOG_FILE
+latest_console_pointer=$LATEST_CONSOLE_POINTER
 EOF
 
 echo "$RUN_DIR" > "$LATEST_POINTER"
@@ -536,6 +549,7 @@ done
 
 echo ""
 echo "Run complete."
+echo "Console output log: $CONSOLE_LOG_FILE"
 echo "Summary file: $SUMMARY_FILE"
 echo "Run manifest: $RUN_MANIFEST"
 echo "Failure artifacts root: $FAIL_DIR"
