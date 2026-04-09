@@ -1,4 +1,6 @@
 
+# Setup data (download if needed)
+bash ./Code/setup_data.sh
 
 mkdir ./DATA/EMBEDDINGS
 python3 ./Code/gen_token_embeddings.py --input_file ./DATA/movies/train.jsonl
