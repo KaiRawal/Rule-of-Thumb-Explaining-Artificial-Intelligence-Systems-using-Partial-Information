@@ -74,11 +74,14 @@ python3 ./Code/06_v05_run_RoT.py --train_set EMBEDDINGS_token_stride
 echo "Step 8/16: running baseline explainers: shap (nsamps=500)"
 python3 ./Code/06_baseline_explainers.py --shap --nsamps 500 --overwrite
 
-echo "Step 9/16: running baseline explainers: lime (nsamps=500) [skipped for feasibility, uncomment ids_to_test override in the script to run on a smaller subset of examples]"
+echo "Step 9a/16: running baseline explainers: lime (nsamps=500) on fast fixed subset ids [377, 405] via --lime_subset_only"
+python3 ./Code/06_baseline_explainers.py --lime --nsamps 500 --overwrite --lime_subset_only
+# echo "Step 9b/16: running baseline explainers: lime (nsamps=500) WARNING: SLOW, consider using --lime_subset_only to run on fast fixed subset ids [377, 405] instead of full set"
 # python3 ./Code/06_baseline_explainers.py --lime --nsamps 500 --overwrite
 
-echo "Step 10/16: running baseline explainers: lime (nsamps=5000) [skipped for feasibility, uncomment ids_to_test override in the script to run on a smaller subset of examples]"
-# Note: you may want to uncomment ids_to_test override inside the script to speed up processing between step 9 and 10
+echo "Step 10a/16: running baseline explainers: lime (nsamps=5000) on fast fixed subset ids [377, 405] via --lime_subset_only"
+python3 ./Code/06_baseline_explainers.py --lime --nsamps 5000 --overwrite --lime_subset_only
+# echo "Step 10b/16: running baseline explainers: lime (nsamps=5000) WARNING: EXTREMELY SLOW, consider using --lime_subset_only to run on fast fixed subset ids [377, 405] instead of full set"
 # python3 ./Code/06_baseline_explainers.py --lime --nsamps 5000 --overwrite
 
 echo "Step 11/16: running baseline explainers: ig"

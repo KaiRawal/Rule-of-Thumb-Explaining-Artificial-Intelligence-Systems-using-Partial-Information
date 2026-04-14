@@ -192,7 +192,7 @@ def ig_explain_text_to_csv(text: str, output_filename: str, overwrite=False):
 
 # ---------- Main Driver ----------
 
-def main(nsamps=500, overwrite=False, lime=False, shap=False, ig=False):
+def main(nsamps=500, overwrite=False, lime=False, shap=False, ig=False, lime_subset_only=False):
 
     base_dir = 'DATA/SPAN_EXPS_stride_35_128_1e-05'
     print(f"Looking inside: {base_dir} for valid CSVs")
@@ -211,12 +211,16 @@ def main(nsamps=500, overwrite=False, lime=False, shap=False, ig=False):
         csv_file = csv_file.split('__')[0]
         ids_to_test.append(int(csv_file))
 
+    # Optional speed/debug shortcut for LIME runs only.
+    # This keeps the full dataset behavior unless explicitly requested.
+    if lime and lime_subset_only:
+        ids_to_test = [377, 405]
     # ids_to_test = [322, 377, 435, 56]
     # ids_to_test = [377]
     # ids_to_test = [405]
-
-    print(len(ids_to_test))
-    print(ids_to_test)
+    
+    print(f'Selected {len(ids_to_test)} case ids for processing.')
+    print(f'Case ids to process: {ids_to_test}')
 
     input_df = pd.read_csv('./DATA/PREP/bert_input_sample.csv')
     for count, (uid, text) in enumerate(zip(input_df['Case Name'], input_df['Input']), 1):
@@ -244,8 +248,20 @@ if __name__ == '__main__':
     parser.add_argument('--nsamps', type=int, default=500, help='number of samples for explainers (default: 500)')
     parser.add_argument('--overwrite', action='store_true', help='overwrite existing outputs (default: False)')
     parser.add_argument('--lime', action='store_true', help='run LIME explainer (default: False)')
+    parser.add_argument(
+        '--lime_subset_only',
+        action='store_true',
+        help='when used with --lime, restrict processing to the fixed subset ids [377, 405]'
+    )
     parser.add_argument('--shap', action='store_true', help='run SHAP explainer (default: False)')
     parser.add_argument('--ig', action='store_true', help='run Integrated Gradients explainer (default: False)')
     args = parser.parse_args()
 
-    main(nsamps=args.nsamps, overwrite=args.overwrite, lime=args.lime, shap=args.shap, ig=args.ig)
+    main(
+        nsamps=args.nsamps,
+        overwrite=args.overwrite,
+        lime=args.lime,
+        shap=args.shap,
+        ig=args.ig,
+        lime_subset_only=args.lime_subset_only,
+    )
