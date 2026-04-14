@@ -81,12 +81,15 @@ def lime_explain_text_to_csv(text: str, output_filename: str, nsamps=100, overwr
     if not overwrite and os.path.exists(output_filepath):
         return
 
+    start_time = time.time()
+
     # LIME needs a prediction function returning probability array
     def lime_predict(texts):
         return predict_proba_batch(texts)
 
     explainer = LimeTextExplainer(class_names=['neg', 'pos'], random_state=3)
     explanation = explainer.explain_instance(text, lime_predict, num_features=100, num_samples=nsamps)
+    end_time = time.time()
 
     words = []
     scores = []
@@ -99,6 +102,8 @@ def lime_explain_text_to_csv(text: str, output_filename: str, nsamps=100, overwr
     max_importance = np.max(np.abs(imps_array))
     df['scaled_importance'] = (imps_array * 100 / max_importance) if max_importance != 0 else 0
     df.to_csv(output_filepath, index=False)
+    with open('./TIMING.csv', 'a') as time_file:
+        time_file.write(f"lime,{output_filename},{end_time-start_time}\n")
     html_filepath = f'DATA/LIME_TOKENS_{nsamps}/{output_filename}.html'
     with open(html_filepath, 'w') as f:
         f.write(explanation.as_html())

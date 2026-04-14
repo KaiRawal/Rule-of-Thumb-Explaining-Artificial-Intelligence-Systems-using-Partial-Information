@@ -1,7 +1,30 @@
 #!/usr/bin/env bash
 
 
-mkdir ./DATA/PREP
+# Ensure relative paths are resolved from this script's directory.
+cd "$(dirname "$0")"
+
+run_time_uid="$(date +%s)-$$"
+timing_file="./TIMING.csv"
+timing_backup_dir="./DATA/TIMING_BACKUPS/${run_time_uid}"
+
+backup_timing_after() {
+	if [ -d "$timing_backup_dir" ] && [ -f "$timing_file" ]; then
+		cp -f "$timing_file" "$timing_backup_dir/TIMING_after.csv" || true
+	fi
+}
+
+trap backup_timing_after EXIT
+
+mkdir -p ./DATA/PREP
+mkdir -p "$timing_backup_dir"
+
+touch "$timing_file"
+cp -f "$timing_file" "$timing_backup_dir/TIMING_before.csv"
+: > "$timing_file"
+
+echo "TIMING backup run uid: $run_time_uid"
+echo "Saved pre-run timing backup: $timing_backup_dir/TIMING_before.csv"
 
 echo "Step 1/16: running 00_oracle_test_filter.py"
 python3 ./Code/00_oracle_test_filter.py
@@ -25,17 +48,17 @@ echo "Step 7/16: running 06_v05_run_RoT.py with train_set EMBEDDINGS_token_strid
 python3 ./Code/06_v05_run_RoT.py --train_set EMBEDDINGS_token_stride
 
 echo "Step 8/16: running baseline explainers: shap (nsamps=500)"
-python3 ./Code/06_baseline_explainers.py --shap --nsamps 500
+python3 ./Code/06_baseline_explainers.py --shap --nsamps 500 --overwrite
 
 echo "Step 9/16: running baseline explainers: lime (nsamps=500) [skipped for feasibility, uncomment ids_to_test override in the script to run on a smaller subset of examples]"
-# python3 ./Code/06_baseline_explainers.py --lime --nsamps 500
+# python3 ./Code/06_baseline_explainers.py --lime --nsamps 500 --overwrite
 
 echo "Step 10/16: running baseline explainers: lime (nsamps=5000) [skipped for feasibility, uncomment ids_to_test override in the script to run on a smaller subset of examples]"
 # Note: you may want to uncomment ids_to_test override inside the script to speed up processing between step 9 and 10
-# python3 ./Code/06_baseline_explainers.py --lime --nsamps 5000
+# python3 ./Code/06_baseline_explainers.py --lime --nsamps 5000 --overwrite
 
 echo "Step 11/16: running baseline explainers: ig"
-python3 ./Code/06_baseline_explainers.py --ig
+python3 ./Code/06_baseline_explainers.py --ig --overwrite
 
 echo "Step 12/16: running random_baseline.py"
 python3 ./Code/random_baseline.py
