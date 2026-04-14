@@ -4,13 +4,37 @@
 # Ensure relative paths are resolved from this script's directory.
 cd "$(dirname "$0")"
 
+serve_results=1
+
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+		--non-interactive)
+			serve_results=0
+			shift
+			;;
+		--serve)
+			serve_results=1
+			shift
+			;;
+		-h|--help)
+			echo "Usage: bash RUN.sh [--non-interactive|--serve]"
+			exit 0
+			;;
+		*)
+			echo "Unknown argument: $1" >&2
+			echo "Usage: bash RUN.sh [--non-interactive|--serve]" >&2
+			exit 1
+			;;
+	esac
+done
+
 run_time_uid="$(date +%s)-$$"
 timing_file="./TIMING.csv"
 timing_backup_dir="./DATA/TIMING_BACKUPS/${run_time_uid}"
 
 backup_timing_after() {
 	if [ -d "$timing_backup_dir" ] && [ -f "$timing_file" ]; then
-		cp -f "$timing_file" "$timing_backup_dir/TIMING_after.csv" || true
+		cp "$timing_file" "$timing_backup_dir/TIMING_after.csv" || true
 	fi
 }
 
@@ -20,7 +44,7 @@ mkdir -p ./DATA/PREP
 mkdir -p "$timing_backup_dir"
 
 touch "$timing_file"
-cp -f "$timing_file" "$timing_backup_dir/TIMING_before.csv"
+cp "$timing_file" "$timing_backup_dir/TIMING_before.csv"
 : > "$timing_file"
 
 echo "TIMING backup run uid: $run_time_uid"
@@ -75,6 +99,9 @@ python3 ./Code/05_merge_lime.py --lime_samples 5000
 echo "Step 16/16: running 05_merge_tokens_generic.py with ig_dir IG"
 python3 ./Code/05_merge_tokens_generic.py --ig_dir IG
 
-echo "All steps completed, starting local server to serve results at http://localhost:8000"
-
-python3 -m http.server
+if [ "$serve_results" -eq 1 ]; then
+	echo "All steps completed, starting local server to serve results at http://localhost:8000"
+	python3 -m http.server
+else
+	echo "All steps completed, non-interactive mode enabled, skipping local server"
+fi

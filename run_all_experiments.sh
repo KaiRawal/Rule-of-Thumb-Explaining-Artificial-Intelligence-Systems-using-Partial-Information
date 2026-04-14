@@ -479,7 +479,7 @@ for ((idx=1; idx<=TOTAL_STEPS; idx++)); do
       exit_code=$?
       ;;
     explanation_example)
-      step_cmd="python3 app.py (launched then terminated intentionally for terminal-only run)"
+      step_cmd="python3 app.py --non-interactive"
       run_explanation_example_step "$step_log"
       exit_code=$?
       ;;
@@ -499,7 +499,7 @@ for ((idx=1; idx<=TOTAL_STEPS; idx++)); do
       exit_code=$?
       ;;
     judicial_case_outcome_prediction)
-      step_cmd="awk '!/python3 -m http.server/' RUN.sh | bash"
+      step_cmd="bash RUN.sh --non-interactive"
       run_monitored_step "$step_dir" "$step_log" "$step_cmd" "$idx" "$step_id" "$step_name"
       exit_code=$?
       ;;
