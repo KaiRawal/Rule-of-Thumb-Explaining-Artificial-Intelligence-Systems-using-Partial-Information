@@ -27,12 +27,12 @@ python3 ./Code/06_v05_run_RoT.py --train_set EMBEDDINGS_token_stride
 echo "Step 8/16: running baseline explainers: shap (nsamps=500)"
 python3 ./Code/06_baseline_explainers.py --shap --nsamps 500
 
-echo "Step 9/16: running baseline explainers: lime (nsamps=500)"
-python3 ./Code/06_baseline_explainers.py --lime --nsamps 500
+echo "Step 9/16: running baseline explainers: lime (nsamps=500) [skipped for feasibility, uncomment ids_to_test override in the script to run on a smaller subset of examples]"
+# python3 ./Code/06_baseline_explainers.py --lime --nsamps 500
 
-echo "Step 10/16: running baseline explainers: lime (nsamps=5000)"
+echo "Step 10/16: running baseline explainers: lime (nsamps=5000) [skipped for feasibility, uncomment ids_to_test override in the script to run on a smaller subset of examples]"
 # Note: you may want to uncomment ids_to_test override inside the script to speed up processing between step 9 and 10
-python3 ./Code/06_baseline_explainers.py --lime --nsamps 5000
+# python3 ./Code/06_baseline_explainers.py --lime --nsamps 5000
 
 echo "Step 11/16: running baseline explainers: ig"
 python3 ./Code/06_baseline_explainers.py --ig

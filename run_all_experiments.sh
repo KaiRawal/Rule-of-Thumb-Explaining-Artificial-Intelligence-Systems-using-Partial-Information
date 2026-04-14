@@ -381,7 +381,7 @@ run_explanation_example_step() {
 
   (
     cd "$SCRIPT_DIR/ExplanationExample" || exit 2
-    python3 app.py
+    python3 app.py --non-interactive
   ) >>"$step_log" 2>&1 &
   pid=$!
 

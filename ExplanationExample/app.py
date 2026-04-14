@@ -1,4 +1,5 @@
 import shap
+import argparse
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
@@ -116,6 +117,22 @@ def load_and_train_model():
 
 def get_model_and_data():
     return bb_model, x_test, feature_names
+
+
+def generate_datapoint_19_figures():
+    """Generate and save explanations for datapoint 19 using existing plot functions."""
+    model, background_data, names = get_model_and_data()
+
+    if background_data is None or len(background_data) <= 19:
+        print(f"[warning] datapoint 19 unavailable (x_test size={0 if background_data is None else len(background_data)})")
+        return
+
+    x_example_scaled = background_data[19, :].reshape(1, -1)
+    print("[info] Generating SHAP and RoT figures for datapoint 19")
+
+    generate_shap_plot(model, x_example_scaled, background_data, names)
+    generate_rot_plot(model, x_example_scaled, background_data, names, 'identity')
+    generate_rot_plot(model, x_example_scaled, background_data, names, 'logit')
 
 def generate_examples():
     """
@@ -569,6 +586,16 @@ with gr.Blocks(css=custom_css) as iface:
     gr.Examples(inputs=inp, examples=generate_examples().values.tolist(), label="min, avg, and max inputs")
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--non-interactive", action="store_true", help="Run setup only and skip launching Gradio")
+    args = parser.parse_args()
+
     set_seeds()
     load_and_train_model()
+
+    if args.non_interactive or os.getenv("ROT_NON_INTERACTIVE", "0") == "1":
+        generate_datapoint_19_figures()
+        print("[info] non-interactive mode: skipping Gradio launch.")
+        raise SystemExit(0)
+
     iface.launch(share=True)
