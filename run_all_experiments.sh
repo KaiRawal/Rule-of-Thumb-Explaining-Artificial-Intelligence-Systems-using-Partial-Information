@@ -504,7 +504,7 @@ for ((idx=1; idx<=TOTAL_STEPS; idx++)); do
       exit_code=$?
       ;;
     runtimes)
-      step_cmd="python3 main.py"
+      step_cmd="bash run_runtimes.sh"
       run_monitored_step "$step_dir" "$step_log" "$step_cmd" "$idx" "$step_id" "$step_name"
       exit_code=$?
       ;;
