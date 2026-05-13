@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rule of Thumb: Explaining Artificial Intelligence Systems using Partial Information</title>
+    
+    <!-- KaTeX for mathematics rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.7;
+            color: #2c3e50;
+            background: #f8f9fa;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 60px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin: 1em 0 0.5em 0;
+            color: #1a252f;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        h2 {
+            font-size: 1.8em;
+            margin: 1.5em 0 0.8em 0;
+            color: #1a252f;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 0.5em;
+            font-weight: 700;
+        }
+
+        h3 {
+            font-size: 1.4em;
+            margin: 1.2em 0 0.6em 0;
+            color: #34495e;
+            font-weight: 600;
+        }
+
+        h4 {
+            font-size: 1.1em;
+            margin: 1em 0 0.5em 0;
+            color: #34495e;
+            font-weight: 600;
+        }
+
+        p {
+            margin-bottom: 1.2em;
+            text-align: justify;
+        }
+
+        .author-info {
+            text-align: center;
+            margin: 2em 0 1em 0;
+            font-size: 0.95em;
+            color: #555;
+        }
+
+        .author-info .authors {
+            margin: 0.5em 0;
+        }
+
+        .author-info .affiliations {
+            margin: 0.5em 0;
+            font-size: 0.9em;
+        }
+
+        .author-info .contact {
+            margin: 0.5em 0;
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .keywords {
+            text-align: center;
+            margin: 1.5em 0;
+            font-size: 0.95em;
+            color: #666;
+        }
+
+        .keywords strong {
+            font-weight: 600;
+        }
+
+        .abstract {
+            background: #f0f7ff;
+            border-left: 4px solid #007bff;
+            padding: 1.5em;
+            margin: 2em 0;
+            border-radius: 4px;
+            font-size: 1.02em;
+            line-height: 1.8;
+        }
+
+        .abstract h4 {
+            margin-top: 0;
+        }
+
+        figure {
+            margin: 2em 0;
+            text-align: center;
+        }
+
+        figure img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 8px;
+            background: #fff;
+        }
+
+        figcaption {
+            font-size: 0.95em;
+            color: #555;
+            margin-top: 1em;
+            text-align: left;
+            font-style: italic;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5em 0;
+            font-size: 0.95em;
+        }
+
+        table th {
+            background: #007bff;
+            color: white;
+            padding: 0.8em;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        table td {
+            padding: 0.8em;
+            border-bottom: 1px solid #ddd;
+        }
+
+        table tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        table tr:hover {
+            background: #f0f7ff;
+        }
+
+        ol, ul {
+            margin: 1em 0 1em 2em;
+        }
+
+        li {
+            margin-bottom: 0.5em;
+        }
+
+        em {
+            font-style: italic;
+        }
+
+        strong {
+            font-weight: 600;
+        }
+
+        a {
+            color: #007bff;
+            text-decoration: none;
+            border-bottom: 1px solid rgba(0, 123, 255, 0.3);
+        }
+
+        a:hover {
+            border-bottom: 1px solid #007bff;
+        }
+
+        .ref {
+            font-size: 0.9em;
+            vertical-align: super;
+            margin: 0 2px;
+        }
+
+        /* Collapsible sections styling */
+        details {
+            margin: 1.5em 0;
+            padding: 1em;
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        details[open] {
+            background: #f0f7ff;
+            border-color: #007bff;
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: #007bff;
+            user-select: none;
+            outline: none;
+            padding: 0.5em;
+            margin: -0.5em;
+        }
+
+        summary:hover {
+            color: #0056b3;
+        }
+
+        details > :not(summary) {
+            margin-top: 1em;
+        }
+
+        /* Math display */
+        .katex-display {
+            overflow-x: auto;
+            margin: 1.5em 0;
+        }
+
+        .katex {
+            font-size: 1.1em;
+        }
+
+        .inline-math {
+            display: inline;
+        }
+
+        code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9em;
+        }
+
+        .toc {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 1.5em;
+            margin: 2em 0;
+        }
+
+        .toc h3 {
+            margin-top: 0;
+        }
+
+        .toc ol {
+            margin: 1em 0 0 2em;
+        }
+
+        .bibliography {
+            margin-top: 3em;
+            padding-top: 2em;
+            border-top: 2px solid #ddd;
+        }
+
+        .bibitem {
+            margin-bottom: 1.5em;
+            margin-left: 2em;
+            text-indent: -2em;
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+
+        .bibitem .id {
+            display: inline-block;
+            width: 2em;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 30px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            h2 {
+                font-size: 1.4em;
+            }
+
+            h3 {
+                font-size: 1.1em;
+            }
+
+            table {
+                font-size: 0.85em;
+            }
+
+            table th, table td {
+                padding: 0.6em;
+            }
+        }
+
+        .back-to-top {
+            display: none;
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            z-index: 100;
+        }
+
+        .back-to-top:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Rule of Thumb: Explaining Artificial Intelligence Systems using Partial Information</h1>
+        
+        <div class="author-info">
+            <div class="authors">
+                Kaivalya Rawal<sup>1</sup>, Daria Onitiu<sup>2</sup>, Sandra Wachter<sup>1,2</sup>, Brent Mittelstadt<sup>1,3</sup>, Chris Russell<sup>1</sup>
+            </div>
+            <div class="affiliations">
+                <sup>1</sup>Oxford Internet Institute, University of Oxford<br>
+                <sup>2</sup>Hasso Plattner Institute<br>
+                <sup>3</sup>Weizenbaum Institute
+            </div>
+            <div class="contact">
+                <strong>Correspondence:</strong> <a href="mailto:kaivalya.rawal@oii.ox.ac.uk">kaivalya.rawal@oii.ox.ac.uk</a> | <a href="https://github.com/KaiRawal/Rule-of-Thumb-Explaining-Artificial-Intelligence-Systems-using-Partial-Information">GitHub Repository</a>
+            </div>
+        </div>
+
+        <div class="keywords">
+            <strong>Keywords:</strong> Explainable AI, Machine Learning Interpretability, AI Auditing
+        </div>
+
+        <div class="abstract">
+            <h4>Abstract</h4>
+            <p>Explainable artificial intelligence (XAI) seeks to explain how an AI system arrived at a particular output. Many common XAI methods function by measuring the sensitivity of an AI output to changes in various model inputs, requiring unfettered model access to make multiple model inferences per explanation. This is computationally expensive, vulnerable to adversarial attacks, and unviable if a third-party restricts model access for an AI audit. New approaches are hence necessary to enable XAI in emerging applications: (a) zero shot classification using large language models (LLMs), (b) AI auditing of opaque black-box systems that do not provide model access, and (c) the use of AI in scientific discovery. We propose <strong><em>Rule-of-Thumb</em></strong> (RoT) explanations — a new approach to XAI based upon a novel mathematical formulation that identifies the most relevant features for predicting the behaviour of a machine learning (ML) model, for a particular datapoint. We show how RoT is well suited to enable XAI in each emerging application listed above. Additionally, RoT meets specific requirements from leading AI regulations, provides a familiar interface and visualisations for XAI practitioners, is completely model-agnostic and makes no causal assumptions, and is significantly faster in practice than alternative XAI algorithms. <a href="https://github.com/KaiRawal/Rule-of-Thumb-Explaining-Artificial-Intelligence-Systems-using-Partial-Information">Link to our code</a></p>
+        </div>
+
+        <!-- Introduction -->
+        <section id="introduction">
+            <h2>Introduction</h2>
+            
+            <p>To understand how explainable AI (XAI) could work, we consider an example from one of the earliest texts on medical statistics <a href="#ref-meehl1954clinical" class="ref">[1]</a>. Suppose we wished to know where a doctor was on Wednesday night. If we know that most Wednesday nights, they visit the cinema, we might assume they are there. However, if we know they are currently housebound with a broken leg, we would become confident that they were at home. Meehl <a href="#ref-meehl1954clinical" class="ref">[1]</a> argued that one advantage of an expert over the statistical models of the time, was that an expert could take advantage of these rare events to change their predictions. Inspired by this, we propose <strong>RoT</strong>, a new form of XAI that quantifies the predictive importance of each feature value, or piece of information, about a particular datapoint.</p>
+
+            <p>This is a clear departure from existing approaches. Popular approaches to explainable AI (XAI) are variants of sensitivity analysis. The underlying intuition behind these approaches is that by perturbing the inputs to a machine learning model, we can identify those inputs that the model is most sensitive to, i.e. the input which upon modification, causes larger changes in the model output. These explainers such as LIME<a href="#ref-lime" class="ref">[2]</a>, SHAP<a href="#ref-SHAP" class="ref">[3]</a>, and many more<a href="#ref-grad" class="ref">[4]</a> provide post-hoc local feature-importance explanations which describe how sensitive a model output is to each input feature for a particular datapoint. Explanations generated using these explainers are signed vectors representing the importance of each input to the output for a given prediction. Benchmarks to evaluate explainers also often work by verifying that model sensitivity or model gradients match purported feature importance scores. These forms of explanation are increasingly being used to debug models during development, audit black-box AI systems after deployment, or even to understand model training data to propose scientific hypotheses.</p>
+
+            <p>Such approaches have received substantial criticism. As each feature is artificially perturbed, sensitivity analysis relies on the response of the model to synthetically generated data. This data generation fails to capture causal dependencies between variables, and can create out-of-distribution data that could never occur in the real world. Performing sensitivity analysis implicitly relies on at least three fundamental assumptions: 1. it is possible to pass new datapoints to the model and see how the output alters; 2. perturbing the input results in meaningful changes of the output; and 3. these changes in model output also occur with real-world data.</p>
+
+            <p>These assumptions make existing forms of XAI inapplicable in three of the most important use cases. 1. <em>Auditing external models</em> where we do not have control over the inputs to the model. 2. <em>Zero-shot classification using large language models (LLMs)</em> where models output boolean yes or no responses based on input text rather than the continuous scores required for sensitivity analysis to work reliably. 3. <em>Scientific Discovery using XAI</em> where AI models are trained on real-world scientific data, and explanations are sought to uncover natural phenomena rather than explain the AI model. Because the models trained may fit the data without matching real-world causal dependencies, their explanations do not faithfully capture scientific relationships. The SHAP explanation in Figure <a href="#fig-explanation-example">1</a> can only propose valid scientific hypotheses to the extent that the trained AI model accurately predicts behaviour on never seen before out-of-distribution data.</p>
+
+            <figure id="fig-explanation-example">
+                <div style="display: flex; gap: 1em; justify-content: center; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 300px; text-align: center;">
+                        <img src="../LaTeX/figures/pima_example/RoT_force_plot-19.pdf" alt="Rule of Thumb (RoT) explanation" style="max-width: 100%; height: auto;">
+                        <div style="font-size: 0.9em; margin-top: 0.5em;"><strong>a)</strong> <strong>Rule of Thumb (RoT)</strong> explanation for a datapoint. Glucose and age (in blue) contribute most to reducing the predicted probability</div>
+                    </div>
+                    <div style="flex: 1; min-width: 300px; text-align: center;">
+                        <img src="../LaTeX/figures/pima_example/SHAP_force_plot-19.pdf" alt="SHAP explanation" style="max-width: 100%; height: auto;">
+                        <div style="font-size: 0.9em; margin-top: 0.5em;"><strong>b)</strong> <strong>SHAP</strong> explanation for the same datapoint. Glucose (in blue) is still most important in reducing output probability, but here age (in red) increases it</div>
+                    </div>
+                </div>
+                <figcaption>
+                    <strong>Figure 1:</strong> Examples of local feature importance explanations from a diabetes prediction Random Forest model. The model is trained on the Pima dataset <a href="#ref-pima" class="ref">[5]</a> and for a datapoint with feature values: glucose level = 99, age = 30, BMI = 34, etc, predicts a diabetes probability of 0.235. RoT and SHAP explain this prediction differently, but glucose is the most important input feature for both. Standard force plots visualise how individual feature importances contribute to the model prediction.
+                </figcaption>
+            </figure>
+
+            <p>We consider an alternate approach that bypasses these limitations. Rather than formulating XAI in terms of how changes in feature value alter model output, we ask how knowledge of particular feature values should alter our predictions of the model's behaviour. We see echos of this idea in an early work on medical statistics <a href="#ref-meehl1954clinical" class="ref">[1]</a> that argued that one of the benefits of an expert's prediction over that of a general statistical model is that the expert can exploit important information that occurs too rarely to be captured by a general model. Following this, an unconsidered form of XAI would be to highlight the information most useful for an expert trying to predict model behaviour.</p>
+        </section>
+
+        <!-- RoT Formulation -->
+        <section id="formulation">
+            <h2>RoT Formulation</h2>
+
+            <p>We assume that our expert has already uniformly sampled an unknown subset of features<a href="#footref-1" class="ref">*</a> with probability $p$, and wishes to know which features are most likely to be useful to look at next. We make some simplifying assumptions to answer this efficiently. Given a model $C(\cdot)$ defined over features $\mathbb{J}$, and dataset $X$, we want to find the optimal set of additive functions such that for any subset of features $J \subseteq \mathbb{J}$ and datapoint $x \in X$ we can estimate $C(x)$ as:</p>
+
+            <div class="katex-display">
+            $$C(x) \approx F \left( \sum_{j \in J} f_{\theta_{j}}(x_j) + G \right) \quad \forall J \in \mathcal{P}(\mathbb{J}) \quad \text{(Equation 1)}$$
+            </div>
+
+            <p>where $f_{\theta_j}(x_j)$ is a learnt function representing the information provided by knowing that the $j^{\text{th}}$ feature takes value $x_j$, and $G$ a global bias term that indicates what prediction should be made without knowing anything about the datapoint $x$. We refer to $f_{\theta_j}(x_j)$ as the importance of a feature $j$ taking value $x_j$. This corresponds to how much a prediction of $C(x)$ should update, on average, after discovering this information.</p>
+
+            <p>Given any random subset of features, we can always approximate $C(x)$ using the sum of importances. This idea of always having a rough estimate given any amount of limited information gives rise to the name of the method <em>Rule of Thumb</em>. To find the optimal weights $\theta_j \forall j \in \mathbb{J}$ for our model, we minimize the following objective $\mathcal{L}$:</p>
+
+            <div class="katex-display">
+            $$\min_{\theta} \mathcal{L} = \min_\theta \sum_{ {J} \subseteq \mathbb{J}} \sum_{x \in X} \left( p^{|J|} (1-p)^{(|\mathbb{J}|-|J|)} \cdot \ell\left[ C(x), F \left( \sum_{j \in J}f_{\theta_{j}}(x_j) + G \right) \right] \right) \quad \text{(Equation 2)}$$
+            </div>
+
+            <p>Here the term $\ell\left[ C(x), F \left( \sum_{j \in J}f_{\theta_{j}}(x_j) + G \right) \right]$ is a standard training loss such as log loss or squared error that penalizes mispredictions of $C(x)$. This loss is not only marginalized over all datapoints, as is common in standard machine learning, but also all possible masks of the data. Although computing $\mathcal{L}$ exactly is expensive and requires computing the standard loss over the entire dataset $2^{|\mathbb{J}|}$ times, it can be efficiently optimized using stochastic gradient descent with dropout<a href="#ref-dropout" class="ref">[6]</a> applied to the feature importances $f_{\theta_{j}}(x_j)$. Using dropout, the training time for fitting is almost the same as fitting the simple additive form of Equation 1 that does not consider subsets of features.</p>
+
+            <p>After fitting the model, the feature $j$ with the largest absolute value $|f_{\theta_j}(x_j)|$ is the one that will most change our confidence in the prediction, and by sorting the features by absolute value, we obtain a ranking of feature importance.</p>
+
+            <h3>Comparison with Existing Methods</h3>
+
+            <p>Gradient-based methods<a href="#ref-grad" class="ref">[4]</a> are computationally efficient but require direct access to model weights, which are often proprietary. With LLMs it is common to provide access only via an application programming interface (API) access. Gradient-based approaches cannot be applied to any model that only offers API access.</p>
+
+            <p>Sensitivity-based approaches LIME and SHAP optimise a per-datapoint objective. While RoT masks information and fits one model for the entire dataset, these approaches perturb datapoints and fit one linear model per datapoint. This creates substantial differences in applicability — not only is sensitivity analysis badly suited for analyzing opaque models that only return yes/no decisions (such as those provided by an LLM API), but it also requires many times (typically ×500 to ×5000) more model or API calls to explain each prediction. Finally, by definition, sensitivity analysis can explain models only in terms of their inputs. RoT can utilise non-input features by fitting on extended datasets if required. This enables explaining model predictions using external models such as BERT<a href="#ref-bert" class="ref">[7]</a> to generate more informative explanations.</p>
+
+            <p>Of existing approaches, RoT is closest to SHAP. While RoT reveals how informative it is to know on average that a feature takes a certain value, SHAP reveals the average change that occurs upon altering a feature to a certain value from its mean. This is valuable because it allows us to visualise RoT explanations using the same familiar plots as SHAP explanations (e.g., the force-plots in Figure 1). This relationship also makes SHAP a natural basis for experimental comparisons with RoT.</p>
+
+            <h3>XAI for Regulation and Auditing</h3>
+
+            <p>Compared to other XAI methods, RoT has a range of strengths that make it an ideal tool for making existing AI systems auditable and accountable. Its robustness against adversarial attacks and fidelity compared to sensitivity-based approaches like SHAP give it a clear advantage in meeting the EU AI Act's requirements for accuracy, robustness, and adversarial testing of high-risk AI systems. Its robustness against adversarial attacks and fidelity compared to sensitivity-based approaches like SHAP give it a clear advantage in meeting the AI Act's technical requirements for robustness and resilience. This in turn, supports transparency and instructions of use requirements. RoT's computational efficiency compared to approaches requiring construction of a mimic model give it clear advantages in meeting environmental sustainability goals<a href="#ref-sustainability" class="ref">[8]</a>. Most importantly, it allows auditing proprietary models, overcoming inherent transparency limitations found in many AI regulatory frameworks<a href="#ref-wachter2024limitations" class="ref">[9]</a>.</p>
+
+            <p>Enforcement of existing AI regulation often falters due to a lack of evidence, stemming from weak or missing requirements for transparency and model access for regulators, third-party auditors, and researchers<a href="#ref-wachter2017" class="ref">[10]</a>. Gathering sufficient evidence of potentially illegal model behaviour is highly difficult without full API access that would allow regulators to feed the model data to evaluate its responses or oversee model outputs holistically<a href="#ref-casper2024" class="ref">[11]</a>. By working without model call access and requiring only observations of prior model outputs or predictions, RoT can bypass significant barriers to regulatory enforceability created by trade secrecy and confidentiality. RoT thus democratizes access to explaining and auditing AI systems. This is crucial because strong provisions enabling access or auditing by third parties (e.g., civil society organizations, vetted researchers) are uncommon in AI regulation. RoT enables participatory governance of both narrow and general-purpose AI systems, facilitating independent external testing and adversarial testing of general-purpose systems with systemic risk.</p>
+
+            <p>In this regard, RoT may prove particularly valuable for enforcement of the AI Act. Importantly, enforcement authorities have access to the training, validation, and testing datasets to carry out investigations into these systems. However, this is limited to dataset access, and normally does not include full model access or enable regulators to feed new data to a model to check its responses. RoT offers a clear advantage over other methods in this regard because it can compute accurate explanations using only these datasets, while others require full API access or training a mimic model.</p>
+
+            <p>RoT can also be a powerful tool to identify and challenge anti-competitive practices of major technology companies that are increasingly embedding AI systems across their platforms. RoT can help identify self-preferencing practices, such as search result manipulation, that may be illegal under competition laws. Establishing causality is, however, not universally required by competition law. A recent case against Google in the United States has shown that proving the mere existence of anti-competitive conditions is sufficient to show the law has been breached<a href="#ref-usdc2024" class="ref">[12]</a>. In this context, even if specific instances of this behaviour in a production environment cannot be shown due to a lack of access to model outputs, RoT can demonstrate that a model displays anti-competitive behaviour. Unlike measuring the sensitivity of mimic models, RoT makes no causal assumptions and thus its ability to predict behaviour of models directly makes it a stronger tool to demonstrate potentially discriminatory behaviour.</p>
+
+            <div id="footref-1" style="margin-top: 1.5em; font-size: 0.9em; color: #666; border-top: 1px solid #ddd; padding-top: 1em;">
+                <p><strong>*</strong> Using a known feature subset would require each user to specify which features are known, making the explanation vary from user to user.</p>
+            </div>
+        </section>
+
+        <!-- Section 3: Emerging XAI Applications -->
+        <section id="section-3-emerging-xai">
+            <h2>Rule-of-Thumb: Explanations Designed for Emerging XAI Applications</h2>
+
+            <p>Explanations obtained through sensitivity-based XAI techniques often serve as an aid for users and developers in understanding and debugging model behaviour. However, they fall short in key emerging application areas: zero shot classification with LLMs, auditing black-box AI, and scientific discovery using AI.</p>
+
+            <!-- Section 3.1: LLMs -->
+            <h3>Model Evaluation and Zero-Shot Classification with LLMs</h3>
+
+            <p>LLMs are often used for zero-shot classification when there is no labelled dataset to train a classifier model. For each datapoint, an LLM is prompted to output a classification. Since there are no target labels to compare predictions with, typical model performance metrics such as accuracy, precision or recall cannot be readily computed. XAI offers a complementary path to performance evaluation, allowing us to inspect and verify that the "correct" features are predictive of the model's behaviour.</p>
+
+            <p>For example, fine-tuned language models can be used to predict the outcomes of judicial appeals from a court summary<a href="#ref-PredEx" class="ref">[13]</a>, or commercial LLM APIs can be used to filter resumes<a href="#ref-veldanda2023" class="ref">[14]</a>. We consider these two applications, where a key challenge is that new predictions can be difficult to obtain for arbitrarily modified model inputs. When using commercial models, this manifests as increased costs (by default, SHAP requires 500 additional API calls to explain a single API prediction, while LIME requires 5000). Even with an open source model, this causes explanations to be prohibitively slow to compute. By contrast RoT only requires a single API call for each datapoint. To improve RoT's predictive power on text, we generate embeddings for each input token and treat these as the features, performing dropout at the token level.</p>
+
+            <h4>Explaining Judicial Case Predictions from a Fine-Tuned RoBERTa Model</h4>
+
+            <p>To test RoT explanations on LLMs, we study an AI system to predict appeal outcomes in Indian courts. We present example explanations for a case in Figure <a href="#fig-good-case-example">2</a>. The data includes annotation labels for individual segments in each case. These indicate which portions of the text were important to the judgement<a href="#ref-PredEx" class="ref">[13]</a>. This allows us to measure explanation quality by computing the area under a precision-recall curve (PR-AUC), giving a measure of agreement between the importances from XAI methods and the annotations.</p>
+
+            <figure id="fig-good-case-example">
+                <div style="display: flex; gap: 1em; justify-content: center; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 300px; text-align: center;">
+                        <img src="../LaTeX/figures/indian_cases/RoT351281e5_abridged_377_0_NoPow.pdf" alt="RoT case explanation" style="max-width: 100%; height: auto;">
+                        <div style="font-size: 0.9em; margin-top: 0.5em;"><strong>a)</strong> A datapoint with text segments highlighted as per RoT importances</div>
+                    </div>
+                    <div style="flex: 1; min-width: 300px; text-align: center;">
+                        <img src="../LaTeX/figures/indian_cases/SHAP500_abridged_377_0_NoPow.pdf" alt="SHAP case explanation" style="max-width: 100%; height: auto;">
+                        <div style="font-size: 0.9em; margin-top: 0.5em;"><strong>b)</strong> The same datapoint with segments highlighted as per SHAP importances</div>
+                    </div>
+                </div>
+                <figcaption>
+                    <strong>Figure 2:</strong> A judicial appeal is rejected by a fine-tuned RoBERTa large language model<a href="#ref-PredEx" class="ref">[13]</a> making zero-shot predictions. This prediction is explained by RoT and SHAP, with more important text segments highlighted with a deeper colour. Human annotation of the segments is indicated in bold, and aligns better with RoT than with SHAP. Extended results are available in the Methods section.
+                </figcaption>
+            </figure>
+
+            <p>As a fine-tuned RoBERTa classifier is used here, standard XAI methods such as SHAP and LIME can also be used to explain the existing classifier. Table 1 presents ROC-AUC scores measuring explanation quality across cases. For LIME we reduced the number of background samples from 5000 to 500 because it is prohibitively slow to compute. Details about preparation, explanation generation, and weighted ROC-AUC evaluation can be found below, and all results can be analysed via: <a href="https://kairawal.github.io/Rule-of-Thumb-Explaining-Artificial-Intelligence-Systems-using-Partial-Information/JudicialCaseOutcomePrediction/Code/results.html">Interactive Results</a>.</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th><strong>RoT</strong></th>
+                        <th><strong>SHAP (500 samples)</strong></th>
+                        <th><strong>Integrated Gradients</strong></th>
+                        <th><strong>LIME (500 samples)</strong></th>
+                        <th><strong>Random</strong></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Average ROC-AUC</strong></td>
+                        <td><em><strong>0.76668</strong></em></td>
+                        <td>0.74226</td>
+                        <td>0.64082</td>
+                        <td>0.58910</td>
+                        <td>0.46710</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <details>
+                <summary><strong>📋 Methods: Judicial Case Explanation Evaluation</strong></summary>
+                <div style="padding: 1em; margin-top: 1em;">
+                    <p>From the published PredEx<a href="#ref-PredEx" class="ref">[13]</a> data, we start by removing all annotations that contain hallucinations or text that we could not reliably match in the raw case text. We drop datapoints with missing case text or missing annotations, and datapoints where no text segments were found to be important or where the entire case text was found to be important. The data was annotated by law students who tried to identify text responsible for the judgement. However, the finetuned model making predictions does not always match the ground-truth predictions. Since the explanation annotations are produced from the ground-truth, but our explainers try to explain the model, there is a discrepancy. To resolve this, we drop all cases where the model predictions were incorrect, since we are interested in explaining the model but comparing our outputs with annotations which were produced independent of the model. From the remaining subset, we further drop those cases where highlighted segments were too "short" to be reliable: we enforce the condition that the minimum character length of a highlighted or non-highlighted segment in the text should be at least 75 characters. This threshold is large enough to ensure that common phrases do not get highlighted unnecessarily, and small enough to ensure we still have enough datapoints pass the filter and be included in our experiment.</p>
+
+                    <p>This finally leaves us with a set of 502 cases, from which we compute SHAP and RoT explanations on a random 20% of cases (101 cases total). The RoT explainer we build uses the remaining 401 cases as background, but results using all 502 cases or only the 101 explanation cases as background are qualitatively similar. For the 401 case corpus, RoT is only fit on the final RoBERTa prediction per case, and not on the per-segment annotations within the case text.</p>
+
+                    <p>We report the PR-AUC of the explanations with respect to the ground truth human annotations. Computing this metric involves comparing explanation importances (which can be negative) with human annotations (which are a binary 0 or 1). Since the annotations indicate whether text is important without direction (appeal rejection or acceptance), we post-process the feature importance by aligning them with the case prediction manually. That is, if the case appeal was rejected, we consider negative values to denote higher importance by flipping the sign of the importance for all segments, and if the case appeal was accepted, we consider the importance values as is. This way, positive values always indicate higher importance as defined by the annotators. This post-processing is not specific to RoT and is common to all explainers because it is a peculiarity arising from the PredEx data.</p>
+
+                    <p>For RoT explanations, we use a straightforward implementation where dropout is used both on input features and on input tokens. For SHAP, we use the canonical partition explainer implementation (which defaults to 500 background samples) available for use with language models. For LIME we use the text explainer with its default bag-of-words tokenizer. By default this requires 5000 background samples, but this turns out to be prohibitively slow to compute on the entire dataset so we reduce this to 500 for PR-AUC calculations.</p>
+                </div>
+            </details>
+
+            <h4>Explaining Movie Review Classifications from an LLM API</h4>
+
+            <p>We conduct a similar experiment with movie reviews, where we explain zero shot sentiment classification behaviour from OpenAI's GPT-4.1-nano model. When compared with ground truth importance annotations<a href="#ref-eraser" class="ref">[15]</a> for review sentiments, RoT achieves a weighted AUC-ROC of 0.72, while a random baseline achieves 0.50. Gradient based explainers (Integrated Gradients) cannot be compared, as access to GPT weights is restricted, and perturbation based explainers (LIME, SHAP) are infeasible to apply even at this modest scale. This showcases a unique RoT ability, where we can explain the behaviour of the model both without access to it's weights and without making additional API calls, simply by looking at predictions already made by the AI.</p>
+
+            <h4>Explaining Resume Filtering from Proprietary LLMs</h4>
+
+            <p>We examine a resume filtering system built using OpenAI's commercial GPT-4.1-nano API<a href="#ref-veldanda2023" class="ref">[14]</a>. This performs zero-shot classification to identify candidates for information-technology (IT) jobs. We use RoT to generate explanations identifying which parts of the text were important to selecting candidates as suitable for an IT position. We augment our text-based features with three attributes — race, gender, and political orientation. This utilises RoT's unique ability to produce explanations using non-input features. We verify findings from the original study indicating that GPT ascribes negligible importance to race, gender, and political orientation<a href="#fn-synthetic" class="ref">*</a> when making hiring decisions. We evaluate the system with two types of resumes: teachers and IT-workers. The wordcloud in Figure <a href="#fig-wordclouds">3</a> presents the text identified as predictive of selection and rejection across the resume corpus.</p>
+
+            <figure id="fig-wordclouds">
+                <div style="text-align: center;">
+                    <img src="../LaTeX/figures/resumes/all_wordcloud_SUM.pdf" alt="Resume wordcloud" style="max-width: 100%; height: auto;">
+                </div>
+                <figcaption>
+                    <strong>Figure 3:</strong> A zero-shot resume filter system uses LLM APIs to find suitable candidates for an information technology (IT) role. RoT explanations indicate the importance of individual text tokens, which we visualise using an importance-weighted word cloud. Alongside IT workers which pass the filter, our corpus contains resumes of bankers, accountants, teachers, and others which our filter rejects. Tokens with positive contributions are in green, and with negative contributions are in red.
+                </figcaption>
+            </figure>
+
+            <div id="fn-synthetic" style="margin-top: 1.5em; font-size: 0.9em; color: #666; border-top: 1px solid #ddd; padding-top: 1em;">
+                <p><strong>*</strong> Following<a href="#ref-veldanda2023" class="ref">[14]</a>, this is evaluated on synthetic data, by varying names and political orientation on otherwise static resumes.</p>
+            </div>
+
+            <!-- Section 3.2: Auditing -->
+            <h3>Auditing Proprietary Black-Box AI Systems</h3>
+
+            <p>Explaining <em>how</em> a model makes predictions forms a vital component of AI auditing. Explanations reveal model behaviour and are critical for evaluating and auditing AI holistically. When explaining a proprietary AI system, model access can be restricted. With unavailable model weights and the inability to obtain model outputs for synthetically perturbed inputs, no sensitivity-based explainer can be used. One strategy is to collect observable input-output pairs from real-world model deployments, and use this dataset to build a "mimic" AI model. With unrestricted access to the mimic, predictions can be obtained on new synthetically-perturbed inputs, enabling the use of sensitivity based explainers.</p>
+
+            <p>In real world settings explaining mimic models instead of the original might be a simple matter of convenience<a href="#ref-surrogate-azure" class="ref">[16]</a>. Mimic models suffer from the "Rashomon effect" where they can make identical predictions to the original model, but through different internal mechanisms<a href="#ref-rashomon" class="ref">[17]</a>, consequently yielding different model explanations than the original<a href="#ref-marx2020" class="ref">[18]</a>. RoT explanations are different, and can be computed without access to the model or the ability to obtain outputs for new inputs, using only the mimic training dataset of input-output pairs. This makes RoT valuable for enforcing regulations which do not grant third-party model or source code access, for example under the AI Act which grants regulators access only to observe model outputs on fixed input data, but not the ability to obtain new prediction on arbitrary inputs.</p>
+
+            <p>To demonstrate this advantage, we replicate an audit of Amazon's e-commerce recommendation system conducted by The Markup<a href="#ref-markup" class="ref">[19]</a>. Lacking access to Amazon's recommendation system, we scrape product rankings from Amazon and use them to train a model to mimic how pairs of product are ranked relative to one another. We then explain mimic model predictions. Standard explanations reveal the most sensitive input feature is whether the product brand is Amazon ("brand is amazon"), followed by "product reviews". However, different mimic models alter feature importances. We find many models in the Rashomon set of roughly equally performant models, presented in Table 2.</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th><strong>RF (Markup)</strong></th>
+                        <th><strong>RF (Default)</strong></th>
+                        <th><strong>LogReg</strong></th>
+                        <th><strong>LogReg (L1)</strong></th>
+                        <th><strong>LogReg (L2)</strong></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Test Accuracy</strong></td>
+                        <td>0.68551</td>
+                        <td>0.68905</td>
+                        <td>0.71025</td>
+                        <td><em><strong>0.72438</strong></em></td>
+                        <td>0.69258</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <figure id="fig-markup-bars">
+                <div style="display: flex; gap: 0.8em; justify-content: center; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 250px; text-align: center;">
+                        <img src="../LaTeX/figures/markup/sl-markup_bar.pdf" alt="Markup SHAP" style="max-width: 100%; height: auto;">
+                        <div style="font-size: 0.85em; margin-top: 0.5em;"><strong>a)</strong> Explanations from The Markup's Random Forest mimic model</div>
+                    </div>
+                    <div style="flex: 1; min-width: 250px; text-align: center;">
+                        <img src="../LaTeX/figures/markup/sl-rf_bar.pdf" alt="Default RF SHAP" style="max-width: 100%; height: auto;">
+                        <div style="font-size: 0.85em; margin-top: 0.5em;"><strong>b)</strong> Explanations from the scikit-learn default Random Forest</div>
+                    </div>
+                    <div style="flex: 1; min-width: 250px; text-align: center;">
+                        <img src="../LaTeX/figures/markup/rot_bar.pdf" alt="RoT explanations" style="max-width: 100%; height: auto;">
+                        <div style="font-size: 0.85em; margin-top: 0.5em;"><strong>c)</strong> RoT importances without mimic models</div>
+                    </div>
+                </div>
+                <figcaption>
+                    <strong>Figure 4:</strong> Auditing Amazon's proprietary recommendation model through mimic models and directly with RoT. With SHAP, Markup's mimic model shows brand and product reviews as important features (a). But the default Random Forest mimic model shows different feature importances (b), demonstrating that sensitivity based explainers produce different explanations for different mimics. By contrast, RoT (c) does not need any mimic models or access to the proprietary model. RoT reveals that both "brand is amazon" and "sold by amazon" are important, uncovering a new insight: a preference for products sold by Amazon over those from third-party sellers.
+                </figcaption>
+            </figure>
+
+            <p>We present global (model-level) explanations for various mimic models from the Rashomon set to verify differences in their internal decision mechanisms. Together, these tables show that models with similar accuracies can have different internal prediction mechanisms. In Figure 4 we show how SHAP explanations vary for different Random Forest models, and compare these with the RoT importances generated without any mimic model. This variation is not due to explainer errors, but rather to intrinsic differences in model behaviour. An audit that arbitrarily presents results from one mimic model can therefore be undermined by simply selecting a different mimic. Further, the audit results can be questioned because insights from any explanation can only be attributed to the chosen mimic, but not the original model.</p>
+
+            <p>Like previous explanations, RoT also uncovers "brand is amazon" to be the most important feature. However, critically, it also shows "sold by amazon" is an important feature, something that remained hidden in The Markup's original analysis. This is a new insight signalling a preference for products sold by Amazon over those from third party sellers. Because the explanation is independent of idiosyncrasies arising from the choice of mimic model, and RoT makes no causal claims, this insight into potentially self-preferencing behaviour cannot be undermined like others.</p>
+
+            <details>
+                <summary><strong>📋 Methods: Amazon Recommendation Auditing</strong></summary>
+                <div style="padding: 1em; margin-top: 1em;">
+                    <p>Journalists at The Markup audited Amazon's product recommendation system. Since the model used is proprietary, it cannot be queried at will, which renders all previous explainers inapplicable. To circumvent this, product recommendation data was scraped from the Amazon website, consisting of product pairs — the first and second product recommended for any particular search. A model would be built as a "proxy" to mimic Amazon product rankings, formulated as a binary classifier selecting one of the products from the scraped pair. Feature inputs to this model were also scraped, consisting of attributes like product stars (the difference in number of stars between the pair of models), and whether the picked model brand was Amazon, was sold by Amazon, shipped by Amazon, etc.</p>
+
+                    <p>The Markup analysed this data by building a Random Forest model and then computing SHAP explanations of this model. Following this methodology, they discovered Amazon to systematically promote products from its own brand over others, as SHAP considered "brand is Amazon" to be the most important feature, and "product reviews" to be second. The model trained and explained was not arbitrary, but chosen after a typical hyperparameter search. When we replicated this audit, we found several models that were (marginally) more accurate, which are listed in Table 2.</p>
+
+                    <p>All our models had similar accuracies and formed a Rashomon set. Their internal mechanisms were distinct, as can be verified from the global explanations. This variation is also evident from the SHAP explanations for these models, which led to different conclusions about input feature importances depending on the mimic used. All models found "brand is amazon" to be the most important input feature, but following this, subsequent features had different importances depending on the model selected.</p>
+
+                    <p>RoT explanations, by contrast, do not require mimic models. Results obtained from RoT are therefore stronger in an auditing context, because they cannot be attributed to peculiarities in any mimic model, which can otherwise be used to absolve the original inaccessible, proprietary model.</p>
+                </div>
+            </details>
+
+            <!-- Section 3.3: Scientific Discovery -->
+            <h3>Scientific Discovery Using XAI</h3>
+
+            <p>Model explanations are sought not just to explain the behaviour of a model, but to also understand the underlying data it was trained on. This strategy has been advocated as a means of scientific discovery<a href="#ref-xai4sci" class="ref">[20]</a> in diverse fields like medicine<a href="#ref-med" class="ref">[21]</a>, engineering<a href="#ref-eng" class="ref">[22]</a>, chemistry<a href="#ref-chem" class="ref">[23]</a>, and many more. Upon analyzing 1151 research articles at the intersection of XAI and science, we found 4.9% of them used model explanations as a means of novel scientific discovery. Of these, 70% used SHAP.</p>
+
+            <p>XAI use in scientific discovery suffers the same challenges as AI auditing — like mimic models, models trained to predict scientific phenomena are not guaranteed to faithfully replicate underlying causal mechanisms. Such uses are criticised because sensitivity analysis generates explanations by making predictions on synthetic, out-of-distribution datapoints, which may include physically implausible values. For these implausible, off-manifold datapoints, the behaviour of the model could be anything, and consequently the feature importances could be arbitrary<a href="#ref-kumar2020" class="ref">[24]</a>. By contrast, RoT importances are inspired by feature "predictiveness" rather than sensitivity, overcoming these limitations without implicitly introducing harder problems such as learning causal models or density estimation.</p>
+
+            <h4>Identifying Uninformative Features as Unimportant</h4>
+
+            <p>If a model shows any changes in outputs for arbitrary, out-of-distribution perturbations of an input feature, sensitivity based explainers consider that input important<a href="#ref-kumar2020" class="ref">[24]</a>. This definition considers a feature to be important not if it is useful to a model's predictions, but merely if it causes changes in them, even if the changes themselves are random. In this way, uninformative features can inadvertently seem important. We consider a scenario using the Pima Indians diabetes prediction dataset, transformed using FairPCA<a href="#ref-fairpca" class="ref">[25]</a> to ensure that the age input feature is statistically uncorrelated with the target output — diabetes.</p>
+
+            <p>We consider a scenario where researchers are interested in understanding diabetes and its diagnosis. Explaining a diabetes prediction model is a common way to achieve this. On our transformed dataset, since age has been deliberately rendered uninformative, a useful XAI technique would correctly identify that age does not affect diabetes diagnoses. We use this as a test to determine if an explainer is suitable for use in scientific discovery. Figure 5 displays feature importances from RoT, SHAP, and LIME on transformed diabetes data. RoT is the only explainer to consider age unimportant. Model details and our use of FairPCA<a href="#ref-fairpca" class="ref">[25]</a> to ensure statistical independence between age and diabetes are detailed below.</p>
+
+            <figure id="fig-swarmplots">
+                <div style="display: flex; gap: 0.8em; justify-content: center; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 250px; text-align: center;">
+                        <img src="../LaTeX/figures/pima_fairpca/Age-rotswarm.pdf" alt="RoT swarmplot" style="max-width: 100%; height: auto;">
+                        <div style="font-size: 0.85em; margin-top: 0.5em;"><strong>a)</strong> RoT finds age to be unimportant</div>
+                    </div>
+                    <div style="flex: 1; min-width: 250px; text-align: center;">
+                        <img src="../LaTeX/figures/pima_fairpca/Age-shapswarm.pdf" alt="SHAP swarmplot" style="max-width: 100%; height: auto;">
+                        <div style="font-size: 0.85em; margin-top: 0.5em;"><strong>b)</strong> SHAP finds age to be somewhat important</div>
+                    </div>
+                    <div style="flex: 1; min-width: 250px; text-align: center;">
+                        <img src="../LaTeX/figures/pima_fairpca/Age-limeswarm.pdf" alt="LIME swarmplot" style="max-width: 100%; height: auto;">
+                        <div style="font-size: 0.85em; margin-top: 0.5em;"><strong>c)</strong> LIME finds age to be somewhat important</div>
+                    </div>
+                </div>
+                <figcaption>
+                    <strong>Figure 5:</strong> When using XAI for scientific discovery, explanations can help improve our understanding. A diabetes prediction model is trained on synthetically transformed "Pima Indians data"<a href="#ref-pima" class="ref">[5]</a> such that age is uncorrelated with diabetes. Explanations should ideally surface that age is unimportant. Swarmplots display feature importances across the dataset. While RoT correctly ascribes negligible importance to age due to our data transformation, sensitivity based explainers SHAP and LIME do find it to be somewhat important. When using XAI for scientific discovery, RoT thus provides clear benefits over SHAP and LIME.
+                </figcaption>
+            </figure>
+
+            <p>Although age is, by definition, uninformative and unpredictive of the output of the model on the transformed dataset, altering its value in isolation does alter the classifier response, and consequently SHAP and LIME find it to be an important feature. These explainers are not erroneous — they are just measuring model sensitivity, which does not serve as a good measure of importance for scientific discovery. If our interest is in learning about the laws and relations that govern the data, RoT is the better method. In addition to force-plots from Figure 1, the swarmplots in Figure 5 demonstrate RoT can be used as a drop-in replacement in existing XAI code.</p>
+
+            <h4>Identifying Important Features in the Presence of Misleading Features</h4>
+
+            <p>We have seen that explainers can be vulnerable to out-of-distribution model behaviour. Adversarial attacks have been proposed to exploit this vulnerability<a href="#ref-adv-shap" class="ref">[26]</a> which modify models to explicitly use different internal mechanisms on out-of-distribution data. This effectively presents different model behaviour to SHAP or LIME than to real-world inputs. The adversarial attack masks model behaviour by hiding the actual importances of "sensitive" features and manipulating explainers into selecting misleading "foil" features as important instead.</p>
+
+            <p>When using XAI for scientific discovery, the inadvertent inclusion of adversarial models in the Rashomon set can cause misleading results. In black-box AI audits, this can enable "fairwashing" by allowing malicious actors to deliberately hide models with discriminatory behaviour behind benign-looking explanations. To test RoT in such a situation we construct adversarial models designed to hide the importance of an important "sensitive" feature by introducing one or more misleading "foil" features. We then generate explanations and check the relative importance of the sensitive feature compared to the foil features and other features. In Figure 6 we show the distribution of importances over three feature categories: sensitive, adversarial, and other, from an adversarial attack we replicate for SHAP and LIME. Details about the datasets used, model behaviours introduced, "sensitive" input features masked and adversarially misleading "foil" features introduced are available below.</p>
+
+            <p>We report detailed statistics about the proportion of explanations that identified the sensitive feature as most important (success), or the foil feature (adversarial failure) or other features (non-adversarial failure). Across 10 experiments, for LIME or SHAP the rate of recovering the sensitive feature as most important does not exceed 5% except once, where adversarial failures (i.e., foil feature is most important) still outnumber success (i.e., sensitive feature is most important). RoT has a success rate always greater than 89%, and in 6 out of 10 experiments, RoT has a perfect recovery rate of 100%, correctly identifying the sensitive feature to be the most important for every prediction.</p>
+
+            <figure id="fig-advattack">
+                <div style="display: flex; gap: 0.8em; justify-content: center; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 300px; text-align: center;">
+                        <img src="../LaTeX/figures/advattack/triangle_shap_rot.pdf" alt="SHAP vs RoT adversarial attack" style="max-width: 100%; height: auto;">
+                        <div style="font-size: 0.85em; margin-top: 0.5em;"><strong>a)</strong> Distribution of feature importances from SHAP and RoT explanations across "sensitive", "foil" or other features for an adversarial model</div>
+                    </div>
+                    <div style="flex: 1; min-width: 300px; text-align: center;">
+                        <img src="../LaTeX/figures/advattack/triangle_lime_rot.pdf" alt="LIME vs RoT adversarial attack" style="max-width: 100%; height: auto;">
+                        <div style="font-size: 0.85em; margin-top: 0.5em;"><strong>b)</strong> Distribution of feature importances from LIME and RoT explanations across "sensitive", "foil" or other features for an adversarial model</div>
+                    </div>
+                </div>
+                <figcaption>
+                    <strong>Figure 6:</strong> An adversarial attack on explanations where the model makes predictions using a "sensitive" demographic feature, but the adversary misleads explainers into ascribing importance to spurious "foil" features instead. We plot the distribution of feature importances across the "sensitive", "foil", and other features, and find that both SHAP and LIME are misled by the adversary, but RoT correctly ascribes importance to the "sensitive" feature.
+                </figcaption>
+            </figure>
+
+            <details>
+                <summary><strong>📋 Methods: Scientific Discovery with Fair PCA</strong></summary>
+                <div style="padding: 1em; margin-top: 1em;">
+                    <p>When using XAI for scientific discovery, we want explanations not to consider uninformative input features as important. We deliberately transform the "age" feature of the "Pima Indians"<a href="#ref-pima" class="ref">[5]</a> diabetes prediction dataset to be uncorrelated with diabetes, the target feature, and then compute explanations with various explainers to test which ones still find "age" to be important.</p>
+
+                    <p>To make a feature statistically uncorrelated with the target, we adopt the FairPCA<a href="#ref-fairpca" class="ref">[25]</a> method to transform our dataset. For our dataset with 8 input features, this transformation works by learning a low dimensional space of 7 features, such that age information is deliberately lost. By transforming our data into this space, any model trained cannot utilise age information. Finally, we learn a Logistic Regression classifier on the data, and use standard SHAP, LIME, and RoT explainers to obtain feature importances. As seen in Figure 5, we find sensitivity based explainers unable to identify the unimportance of age, but RoT does this perfectly.</p>
+                </div>
+            </details>
+
+            <details>
+                <summary><strong>📋 Methods: Adversarial Attack Resilience</strong></summary>
+                <div style="padding: 1em; margin-top: 1em;">
+                    <p>We consider a scenario where an adversary tries to mislead explainers into selecting spurious "foil" features as important, instead of the "sensitive" features the model actually uses to make decisions.</p>
+
+                    <p>We use the same datasets as those used in the paper proposing the adversarial attack<a href="#ref-adv-shap" class="ref">[26]</a>, and follow its setup exactly: for the COMPAS<a href="#ref-compas" class="ref">[27]</a> and Communities &amp; Crime<a href="#ref-communities" class="ref">[28]</a> datasets, the "sensitive" feature is "race" whereas for the German Credit<a href="#ref-german" class="ref">[29]</a> dataset it is "gender". All models are binary classifiers formulated as simple if statements depending on the sensitive feature, predicting recidivism risk for the former two datasets, and loan repayment probabilities for the latter.</p>
+
+                    <p>The "foil" attributes used are synthetically added features for COMPAS and Communities and Crime, whereas for the German Credit dataset, the foil used is not synthetic but a new feature that is a function of other input features. Further, instead of 3 experiments (one for each dataset), for COMPAS and Communities and Crime we conduct experiments twice — once with a single synthetic foil, and once with 2 synthetic foils. The adversary modifies models to mislead explainers. These modifications work can be tailored to the particular perturbations used by a sensitivity based explainer, and we consider models designed to mislead both SHAP and LIME, comparing both with RoT.</p>
+
+                    <p>Like in the original paper, this setup leads to 5 experiments with each explainer: 1 German Credit, 2 COMPAS, and 2 Communities and Crime. For each datapoint in each experiment, we consider the absolute importance of the sensitive feature, average absolute importance of the foil features, and average absolute importance of all other features, forming a sample from a ternary distribution. We visualise this distribution of importances in Figure 6 combined from across each of the 5 experiments so each experiment has the same weight.</p>
+                </div>
+            </details>
+
+        </section>
+
+        <!-- Section 4: Benchmark XAI Evaluations and Computational Efficiency -->
+        <section id="sec-4">
+            <h2>Benchmark XAI Evaluations and Computational Efficiency</h2>
+
+            <p>As demonstrated, RoT has clear benefits in emerging XAI applications of scientific discovery, auditing, and LLM explanation. We now analyse RoT in traditional tabular modalities using existing XAI benchmarks, where it is a drop-in replacement for other explainers. We observe RoT produces similar explanations as SHAP but is more computationally efficient.</p>
+
+            <h3>Benchmark Evaluations of RoT Explanations</h3>
+
+            <p>Sensitivity analysis underlies XAI evaluation benchmarks the same way it underlies explainers themselves. The OpenXAI benchmark<a href="#ref-agarwal2022openxai" class="ref">[30]</a> is a popular benchmark, but unfortunately suffers errors that systematically promote gradient based explainers. OpenXAI evaluates explanations using either "perturbation" based metrics, which are explicit variants of sensitivity analysis, or "ground-truth" comparison based metrics. These function by training Logistic Regression models and comparing local explanations for any input datapoint with global model coefficients. This formulation sets the "ground-truth" explanation to be identical for every datapoint, promoting a single explanation as correct for all datapoints, regardless of the specific input feature values. This promotes LIME over other sensitivity explainers due to its sampling kernel, and also guarantees that gradient-based explainers would recover these "ideal" explanations<a href="#ref-integratedgradients" class="ref">[31]</a> exactly.</p>
+
+            <p>OpenXAI considers Logistic Regression coefficients as the "ground-truth" explanation for all datapoints. Regardless of the specific feature values for a given datapoint, such ground-truth comparison metrics consider a single explanation as ideal across all input datapoints, promoting a single unchanging explanation. Using Logistic Regression coefficients OpenXAI deliberately promotes gradient methods or LIME, which are Taylor-series like approximations of model behaviour and can recover the Logistic Regression coefficients exactly for any input datapoint. While these explainers score better than SHAP in the published OpenXAI benchmark scores, they are undesirable in practice because they cannot explain individual predictions and always produce identical feature importance outputs. Due to these aforementioned issues, instead of reporting the official metrics from OpenXAI, we adopt the benchmark to verify that RoT behaviour mirrors SHAP, and every input datapoint does not yield the same explanation output.</p>
+
+            <figure id="fig-openxai">
+                <div style="display: flex; gap: 0.8em; justify-content: center; flex-wrap: wrap;">
+                    <div style="flex: 0.6; min-width: 300px; text-align: center;">
+                        <img src="../LaTeX/figures/openxai/OpenXAI_COMPAS_bars.pdf" alt="OpenXAI bar plot" style="max-width: 100%; height: auto;">
+                        <div style="font-size: 0.85em; margin-top: 0.5em;"><strong>a)</strong> Feature importances for an initial and final datapoint with different predictions</div>
+                    </div>
+                    <div style="flex: 0.4; min-width: 250px; text-align: center;">
+                        <img src="../LaTeX/figures/openxai/OpenXAI_COMPAS_scatter.pdf" alt="OpenXAI scatter plot" style="max-width: 100%; height: auto;">
+                        <div style="font-size: 0.85em; margin-top: 0.5em;"><strong>b)</strong> Changes in "length of stay" feature importance for input feature value changes</div>
+                    </div>
+                </div>
+                <figcaption>
+                    <strong>Figure 7:</strong> Analysing explainers using a pretrained binary classification model from the OpenXAI benchmark (COMPAS data). For any initial datapoint, if changing a feature value changes the class predicted by the model, that feature should be important. We show all feature importances for one such datapoint <strong>(a)</strong>, and the changes in one importance across all such datapoints <strong>(b)</strong>. Changing input features changes the corresponding importances for SHAP and RoT, but not for LIME or Gradients. While LIME and gradients show the same feature importance regardless of the feature values, undermining the usefulness of OpenXAI metrics which consider these explanations to be the best.
+                </figcaption>
+            </figure>
+
+            <p>Figure 7 shows how changing input feature values do not always lead to changes in the corresponding feature importances. Only the SHAP and RoT explainers show desirable behaviour, where the local explanation is truly a function of the datapoint being explained. LIME and gradients show the same feature importance regardless of the feature values, undermining the usefulness of OpenXAI metrics which consider these explanations to be the best. All gradient based methods in OpenXAI generated similar explanations, and we show only Integrated Gradients<a href="#ref-integratedgradients" class="ref">[31]</a> for clarity.</p>
+
+            <details>
+                <summary><strong>📋 Methods: OpenXAI Benchmark Analysis</strong></summary>
+                <div style="padding: 1em; margin-top: 1em;">
+                    <p>We compute explanations of the pretrained OpenXAI models by running publicly available code from the benchmark<a href="#ref-agarwal2022openxai" class="ref">[30]</a>. We present results from the COMPAS dataset because it has the fewest features from among OpenXAI datasets, allowing us to present results succinctly. To select an initial point and a final point for comparison, we find pairs of datapoints with different model predictions such that L0 distance between them is 2 or less, and L1 distance between them is as large as possible. For the scatter plot analysis, we consider all pairs where L0 distance is exactly 1 while maximising L1 distances as before, and ensuring the feature changed is always "length of stay". While we present select results, we are able to repeat this process for all provided pretrained models and datasets: COMPAS, Home Equity Line of Credit (HELOC), Adult Income, and German Credit.</p>
+                </div>
+            </details>
+
+            <h3>Runtimes and Computational Efficiency</h3>
+
+            <p>Many local explainers function by collecting data about model behaviour and then fitting an interpretable model. Sensitivity based explainers like SHAP and LIME collect data by perturbing inputs and fitting a new interpretable model for each explanation. This requires data collection by making arbitrarily time-consuming calls to the model for each additional explanation. By contrast, RoT fits a single interpretable model on the entire unperturbed dataset, and each explanation is generated using per-feature outputs from this model. Since model inference is quicker than training, this makes computing explanations extremely fast once RoT is fit. It also reduces the environmental footprint of computing explanations by eliminating the need to train new interpretable models or generate extra predictions on perturbed inputs. This latter component can be very computationally expensive in modern AI applications, as we noted in our judicial case prediction experiment, where SHAP required significant resources and LIME was rendered completely unviable at scale.</p>
+
+            <figure id="fig-speedups">
+                <div style="display: flex; gap: 0.8em; justify-content: center; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 200px; text-align: center;">
+                        <img src="../LaTeX/figures/speedups/unsorted_runtimes.pdf" alt="Unsorted runtimes" style="max-width: 100%; height: auto;">
+                        <div style="font-size: 0.85em; margin-top: 0.5em;"><strong>a)</strong> Explanation Runtimes: Judicial Case Outcome Prediction</div>
+                    </div>
+                    <div style="flex: 1; min-width: 200px; text-align: center;">
+                        <img src="../LaTeX/figures/speedups/sorted_runtimes_cumulative.pdf" alt="Cumulative runtimes" style="max-width: 100%; height: auto;">
+                        <div style="font-size: 0.85em; margin-top: 0.5em;"><strong>b)</strong> Cumulative Runtimes (Quickest First)</div>
+                    </div>
+                    <div style="flex: 1; min-width: 200px; text-align: center;">
+                        <img src="../LaTeX/figures/speedups/runtimes_ax1.pdf" alt="Tabular runtimes" style="max-width: 100%; height: auto;">
+                        <div style="font-size: 0.85em; margin-top: 0.5em;"><strong>c)</strong> Runtimes: Tabular Data Experiments</div>
+                    </div>
+                    <div style="flex: 1; min-width: 200px; text-align: center;">
+                        <img src="../LaTeX/figures/speedups/runtimes_ax2.pdf" alt="Speedup factors" style="max-width: 100%; height: auto;">
+                        <div style="font-size: 0.85em; margin-top: 0.5em;"><strong>d)</strong> Speedup Factor (RoT vs SHAP/LIME)</div>
+                    </div>
+                </div>
+                <figcaption>
+                    <strong>Figure 8:</strong> Program runtimes (in seconds) from experiments with text data — <strong>(a)</strong> and <strong>(b)</strong>; and tabular data — <strong>(c)</strong> and <strong>(d)</strong>. While the first RoT explanation takes time to fit the explainer, additional explanations are virtually instantaneous, unlike SHAP and LIME. Consequently, the time-complexity of SHAP appears linear in number of cases, while RoT appears to be constant. For the text data, <em>13 million RoT explanations</em> can be computed <em>for each additional SHAP explanation</em>, after the first. Even the 7 fastest SHAP explanations take as long as all 101 RoT explanations. For the tabular data, the RoT speedup factor increases with explanations as the RoT initialisation gets amortised over more of them, reducing the average time taken.
+                </figcaption>
+            </figure>
+
+            <p>In practice it is impractical to compute SHAP or LIME explanations for LLM predictions, except in rare cases where only a handful of datapoints need explaining. Gradient methods are quicker, but require model access which is also unavailable in practice over commercial APIs. RoT is the first explainer that can actually be deployed in practice, bringing feature importance XAI to LLMs. For judicial case outcome prediction, the <em>first</em> RoT explanation took 1160 seconds, and each additional explanation took less than 0.1 milliseconds. By contrast, the <em>average</em> time taken for each SHAP explanation was 1320 seconds. On tabular data we find similar behaviour, where RoT is orders of magnitude faster than SHAP and LIME, despite including explainer initialisation times.</p>
+
+            <details>
+                <summary><strong>📋 Methods: Runtimes and Computational Efficiency</strong></summary>
+                <div style="padding: 1em; margin-top: 1em;">
+                    <p>All runtime measurements were conducted on standard hardware, comparing the wall-clock time required to compute explanations across all experiments discussed in this paper. For judicial case outcome prediction with LLMs, we measured the time to fit the RoT model and compute explanations for 101 cases, compared with SHAP explanations computed over the same 101 cases. For tabular data experiments, we computed explanations across all test datapoints from the auditing, fair PCA, and adversarial attack experiments, as well as using the OpenXAI pretrained models and provided datasets. Wall-clock times include all preprocessing, model fitting (where applicable), and explanation generation, but exclude data loading and input feature computation.</p>
+                </div>
+            </details>
+
+        </section>
+
+        <!-- Section 5: Conclusion -->
+        <section id="sec-5">
+            <h2>Conclusion</h2>
+
+            <p>This paper presents a new approach to explainable AI based on the predictiveness of feature values, rather than their sensitivity to alteration. This <em>rule of thumb</em> approach allows us to approximate any decision making process by summing the importance response over any subset of features values. The most useful feature values for a prediction are naturally those with largest importance, and their predictive power overrides the contribution of others. In this way, RoT is a post-hoc local explanation method inspired by ablation studies, rather than sensitivity analysis.</p>
+
+            <p>This approach addresses several long-standing concerns in the community about the validity and practical utility of XAI, and importantly does so without making additional assumptions. It is flexible and useful in a range of emerging XAI applications areas where other forms of XAI simply cannot be used — evaluating LLMs and explaining their behaviour in zero-shot classification, auditing proprietary AI systems where we can only observe their predictions and not alter input features, and using XAI to understand real-world phenomena and propose novel scientific hypotheses. As a local, post-hoc explanation method, RoT can be used as a drop in replacement for other explainers in existing XAI codebases, and visualised the same way, providing an exceedingly fast and environmentally friendly method of explaining AI model behaviour.</p>
+
+        </section>
+
+        <!-- Acknowledgements -->
+        <section id="acknowledgements">
+            <h2>Acknowledgements</h2>
+
+            <p>The work of all the authors has been supported through research funding provided by the Wellcome Trust (grant nr 223765/Z/21/Z), Sloan Foundation (grant nr G-2021-16779), Department of Health and Social Care, EPSRC (grant nr EP/Y019393/1), and Luminate Group. Their funding supports the Trustworthiness Auditing for AI project and Governance of Emerging Technologies research programme at the Oxford Internet Institute, University of Oxford. The work of Sandra Wachter, Kai Rawal, Daria Onitiu and Chris Russell has also been supported by the Alexander von Humboldt Foundation in the framework of the Alexander von Humboldt Professorship (Humboldt Professor of Technology and Regulation) endowed by the Federal Ministry of Education and Research via the Hasso Plattner Institute.</p>
+
+        </section>
+
+        <!-- Bibliography placeholder -->
+        <section id="bibliography">
+            <h2>References</h2>
+            <div id="ref-list" style="font-size: 0.9em; line-height: 1.6;">
+                <div id="ref-pima" style="margin-bottom: 1em;"><strong>[1]</strong> Smith, J.W., et al., "Using the ADAP learning algorithm to forecast the onset of diabetes mellitus," in Proceedings of the Symposium on Computer Applications and Medical Care, IEEE Computer Society Press, 1988.</div>
+                
+                <div id="ref-meehl1954" style="margin-bottom: 1em;"><strong>[2]</strong> Meehl, P.E., <em>Clinical versus Statistical Prediction: A Theoretical Analysis and a Review of the Evidence</em>. University of Minnesota Press, 1954.</div>
+                
+                <div id="ref-movies" style="margin-bottom: 1em;"><strong>[3]</strong> Zaidan, O., Eisner, J., and Piatko, C., "Using annotator rationales to improve machine learning for text categorization," in Proceedings of the Conference of the North American Chapter of the Association for Computational Linguistics (NAACL), pp. 260-267, 2007.</div>
+                
+                <div id="ref-compas" style="margin-bottom: 1em;"><strong>[4]</strong> Larson, J., Mattu, S., Kirchner, L., and Angwin, J., "How we analyzed the COMPAS recidivism algorithm," ProPublica, May 2016. [Online]. Available: https://www.propublica.org/article/how-we-analyzed-the-compas-recidivism-algorithm</div>
+                
+                <div id="ref-german" style="margin-bottom: 1em;"><strong>[5]</strong> Hofmann, H., "Statlog (German Credit Data)," UCI Machine Learning Repository, 1994. [Online]. DOI: https://doi.org/10.24432/C5NC77</div>
+                
+                <div id="ref-communities" style="margin-bottom: 1em;"><strong>[6]</strong> Redmond, M., "Communities and Crime," 2002. [Online]. DOI: https://doi.org/10.24432/C51913</div>
+                
+                <div id="ref-fairpca" style="margin-bottom: 1em;"><strong>[7]</strong> Calmon, F., et al., "Optimized pre-processing for discrimination prevention," in Advances in Neural Information Processing Systems (NIPS), 2017.</div>
+                
+                <div id="ref-usdc2024" style="margin-bottom: 1em;"><strong>[8]</strong> United States District Court, "United States of America v. Google LLC," 2024.</div>
+                
+                <div id="ref-SHAP" style="margin-bottom: 1em;"><strong>[9]</strong> Lundberg, S.M. and Lee, S.-I., "A unified approach to interpreting model predictions," in Advances in Neural Information Processing Systems (NIPS), 2017.</div>
+                
+                <div id="ref-lime" style="margin-bottom: 1em;"><strong>[10]</strong> Ribeiro, M.T., Singh, S., and Guestrin, C., "Why Should I Trust You?: Explaining the Predictions of Any Classifier," in Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining (KDD '16), pp. 1135-1144, 2016.</div>
+                
+                <div id="ref-integratedgradients" style="margin-bottom: 1em;"><strong>[11]</strong> Sundararajan, M., Taly, A., and Yan, Q., "Axiomatic attribution for deep networks," in Proceedings of the 34th International Conference on Machine Learning (ICML), vol. 70, pp. 3319-3328, 2017.</div>
+                
+                <div id="ref-agarwal2022openxai" style="margin-bottom: 1em;"><strong>[12]</strong> Agarwal, C., et al., "OpenXAI: Towards a transparent and interpretable explainable AI," arXiv preprint arXiv:2206.11593, 2022.</div>
+                
+                <div id="ref-adv-shap" style="margin-bottom: 1em;"><strong>[13]</strong> Slack, D., et al., "Fooling LIME and SHAP: Adversarial attacks on post hoc explanation methods of machine learning models," in Proceedings of the 25th ACM SIGKDD International Conference on Knowledge Discovery &amp; Data Mining (KDD '20), pp. 1725-1734, 2020.</div>
+                
+                <div id="ref-kumar2020" style="margin-bottom: 1em;"><strong>[14]</strong> Kumar, I.E., Venkatasubramanian, S., Scheidegger, C., and Friedler, S., "Problems with Shapley-value-based explanations as feature importance measures," arXiv preprint arXiv:2002.11097, 2020.</div>
+                
+                <div id="ref-markup" style="margin-bottom: 1em;"><strong>[15]</strong> Khan, S., et al., "The markup: Amazon's algorithm kept adding thousands of dolls to search results for 'Black dolls' and similar searches," The Markup, 2021.</div>
+                
+                <div id="ref-xai4sci" style="margin-bottom: 1em;"><strong>[16]</strong> Roscher, R., Bohn, B., Duarte, M.F., and Garcke, J., "Explainable machine learning for scientific insights and discoveries," IEEE Access, vol. 8, pp. 42200-42216, 2020.</div>
+                
+                <div id="ref-wachter2017" style="margin-bottom: 1em;"><strong>[17]</strong> Wachter, S., Mittelstadt, B., and Russell, C., "Counterfactual explanations without opening the black box: Automated decisions and the GDPR," IEEE Security &amp; Privacy, 2017.</div>
+                
+                <div id="ref-mitchell2023" style="margin-bottom: 1em;"><strong>[18]</strong> Mitchell, M., et al., "AI model cards for model reporting," in Proceedings of the 2021 ACM Conference on Fairness, Accountability, and Transparency, pp. 398-409, 2021.</div>
+                
+                <div id="ref-vapor" style="margin-bottom: 1em;"><strong>[19]</strong> Gou, R., et al., "Atmospheric water demand constrains net ecosystem production in subtropical mangrove forests," Journal of Hydrology, vol. 630, p. 130651, 2024.</div>
+                
+                <div id="ref-med" style="margin-bottom: 1em;"><strong>[20]</strong> Ejiyi, C.J., et al., "A robust predictive diagnosis model for diabetes mellitus using Shapley-incorporated machine learning algorithms," Healthcare Analytics, vol. 3, p. 100166, 2023.</div>
+                
+                <div id="ref-eng" style="margin-bottom: 1em;"><strong>[21]</strong> Sun, Z., et al., "Interpreting cumulative displacement in a suspension bridge with a physics-based characterisation of environment and roadway/railway loads," Journal of Civil Structural Health Monitoring, vol. 13, no. 2, pp. 387-397, 2023.</div>
+                
+                <div id="ref-chem" style="margin-bottom: 1em;"><strong>[22]</strong> Esterhuizen, J.A., Goldsmith, B.R., and Linic, S., "Interpretable machine learning for knowledge generation in heterogeneous catalysis," Nature Catalysis, vol. 5, no. 3, pp. 175-184, 2022.</div>
+                
+                <div id="ref-pica" style="margin-bottom: 1em;"><strong>[23]</strong> Dybowski, R., "Interpretable machine learning as a tool for scientific discovery in chemistry," New Journal of Chemistry, vol. 44, no. 48, pp. 20914-20920, 2020.</div>
+                
+            </div>
+        </section>
+        
+    </div>
+
+    <a href="#" class="back-to-top" onclick="window.scrollTo(0, 0); return false;">↑ Back to Top</a>
+
+    <script>
+        // Show/hide back-to-top button
+        window.addEventListener('scroll', function() {
+            const btn = document.querySelector('.back-to-top');
+            if (window.scrollY > 300) {
+                btn.style.display = 'block';
+            } else {
+                btn.style.display = 'none';
+            }
+        });
+
+        // Auto-render KaTeX expressions
+        document.addEventListener('DOMContentLoaded', function() {
+            renderMathInElement(document.body, {
+                delimiters: [
+                    { left: '$$', right: '$$', display: true },
+                    { left: '$', right: '$', display: false },
+                    { left: '\\[', right: '\\]', display: true },
+                    { left: '\\(', right: '\\)', display: false }
+                ]
+            });
+        });
+    </script>
+</body>
+</html>
