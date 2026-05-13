@@ -3,6 +3,10 @@
 **/.DS_Store
 
 Submission/*
+Paper/LaTeX/*
+# But do track the site folder and figures for hosting
+!Paper/site/
+!Paper/LaTeX/figures/
 
 *.npy
 *.pkl
