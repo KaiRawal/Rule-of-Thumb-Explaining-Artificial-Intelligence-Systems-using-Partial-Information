@@ -60,7 +60,8 @@ main() {
 
   if [[ -f "$TIMING_SOURCE" ]]; then
     stage "Copying TIMING.csv from JudicialCaseOutcomePrediction"
-    cp "$TIMING_SOURCE" "$TIMING_LOCAL"
+    printf "ID,case,time" > "$TIMING_LOCAL"
+    cat "$TIMING_SOURCE" >> "$TIMING_LOCAL"
     timing_ready=1
   else
     warn "TIMING source not found at $TIMING_SOURCE; skipping notebook-derived figures (a/b)"
