@@ -60,7 +60,7 @@ main() {
 
   if [[ -f "$TIMING_SOURCE" ]]; then
     stage "Copying TIMING.csv from JudicialCaseOutcomePrediction"
-    printf "ID,case,time" > "$TIMING_LOCAL"
+    printf "ID,case,time\n" > "$TIMING_LOCAL"
     cat "$TIMING_SOURCE" >> "$TIMING_LOCAL"
     timing_ready=1
   else
