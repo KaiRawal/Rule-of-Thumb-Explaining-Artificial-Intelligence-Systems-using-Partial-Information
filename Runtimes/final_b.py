@@ -18,11 +18,25 @@ df_shap = df[df['ID'] == 'shap']
 df_shap=df_shap.sort_values(by='time')
 df_ig = df[df['ID'] == 'ig']
 df_ig=df_ig.sort_values(by='time')
+df_lime_500 = df[df['ID'] == 'lime_500']
+df_lime_500=df_lime_500.sort_values(by='time')
+df_lime_5000 = df[df['ID'] == 'lime_5000']
+df_lime_5000=df_lime_5000.sort_values(by='time')
 
 
 df_ig['cumm_time'] = df_ig['time'].cumsum()
 df_ig['avg_time'] = 1
 df_ig['avg_time'] = df_ig['cumm_time'] / df_ig['avg_time'].cumsum()
+
+
+df_lime_500['cumm_time'] = df_lime_500['time'].cumsum()
+df_lime_500['avg_time'] = 1
+df_lime_500['avg_time'] = df_lime_500['cumm_time'] / df_lime_500['avg_time'].cumsum()
+
+
+df_lime_5000['cumm_time'] = df_lime_5000['time'].cumsum()
+df_lime_5000['avg_time'] = 1
+df_lime_5000['avg_time'] = df_lime_5000['cumm_time'] / df_lime_5000['avg_time'].cumsum()
 
 
 df_shap['cumm_time'] = df_shap['time'].cumsum()
@@ -39,6 +53,8 @@ df_shap['rot_avg'] = df_shap['rot_cumm'] / df_shap['rot_avg']
 
 df_shap['case_number'] = [i+1 for i in range(len(df_shap))]
 df_ig['case_number'] = [i+1 for i in range(len(df_ig))]
+df_lime_500['case_number'] = [i+1 for i in range(len(df_lime_500))]
+df_lime_5000['case_number'] = [i+1 for i in range(len(df_lime_5000))]
 
 
 plt.figure(figsize=(6,6))
@@ -47,6 +63,8 @@ plt.axvline(19, linestyle=':', color='black', linewidth=3)
 plt.plot(df_shap['case_number'], df_shap['rot_cumm'], label='RoT', marker='.', linewidth=1)
 plt.plot(df_shap['case_number'], df_shap['cumm_time'], label='SHAP', marker='x', linewidth=1)
 plt.plot(df_ig['case_number'], df_ig['cumm_time'], label='Int. Grad.', marker='2', linewidth=1)
+plt.plot(df_lime_500['case_number'], df_lime_500['cumm_time'], label='LIME-500', marker='^', linewidth=1)
+plt.plot(df_lime_5000['case_number'], df_lime_5000['cumm_time'], label='LIME-5000', marker='v', linewidth=1)
 plt.xlabel('Number of Cases Explained', fontsize=24)
 plt.ylabel('Cumulative Runtime (log)', fontsize=24)
 plt.yscale('log')
@@ -61,6 +79,8 @@ plt.savefig('sorted_runtimes_cumulative.pdf', dpi=300)
 
 plt.plot(df_shap['case_number'], df_shap['rot_avg'], label='RoT average time', marker=',')
 plt.plot(df_shap['case_number'], df_shap['avg_time'], label='SHAP average time', marker='.')
+plt.plot(df_lime_500['case_number'], df_lime_500['avg_time'], label='LIME-500 average time', marker='^')
+plt.plot(df_lime_5000['case_number'], df_lime_5000['avg_time'], label='LIME-5000 average time', marker='v')
 # plt.axhline(np.mean(df_shap['avg_time']), label='SHAP overall average', linestyle=':')
 # plt.axhline(df_shap['rot_cumm'].values.tolist()[-1], label='RoT total', linestyle=':')
 plt.xlabel('num cases')
@@ -75,6 +95,8 @@ rot_times[0] += rot_combined
 
 plt.plot(df_shap['case_number'], rot_times, label='RoT times', marker=',')
 plt.plot(df_shap['case_number'], sorted(df_shap['time']), label='SHAP times', marker='.')
+plt.plot(df_lime_500['case_number'], df_lime_500['time'], label='LIME-500 times', marker='^')
+plt.plot(df_lime_5000['case_number'], df_lime_5000['time'], label='LIME-5000 times', marker='v')
 plt.axhline(np.mean(df_shap['time']), label='SHAP overall average', linestyle=':', color='tab:orange')
 plt.axhline(np.mean(rot_times), label='RoT overall average', linestyle=':')
 
