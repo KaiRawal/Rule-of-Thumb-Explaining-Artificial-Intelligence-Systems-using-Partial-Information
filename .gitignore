@@ -4,9 +4,14 @@
 
 Submission/*
 Paper/LaTeX/*
-# But do track the site folder and figures for hosting
-!Paper/site/
-!Paper/LaTeX/figures/
+# # But do track the site folder and figures for hosting
+# !Paper/site/
+# !Paper/LaTeX/figures/
+Paper/*
+.vscode/*
+
+**/DATA/PetImages/*
+*.zip
 
 *.npy
 *.pkl
