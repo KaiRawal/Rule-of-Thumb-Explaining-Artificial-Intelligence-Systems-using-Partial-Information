@@ -10,7 +10,8 @@ Most experiments consist of a single `RUN.sh` file that is expected to run the e
 
 | SubDirectory | Description |
 | ---------------- | ----------------------- |
-| [ExplanationExampleLocal](./ExplanationExampleLocal/README.md) | **Fig. 1 – Explanation Disagreement Example using an Interactive Gradio Demo**. |
+| [ExplanationExampleLocal](./ExplanationExampleLocal/README.md) | **Fig. 1 – Explanation Disagreement Example using an Interactive Gradio Demo** (Pima Indians Diabetes). |
+| [ExplanationExampleRemote](./ExplanationExampleRemote/README.md) | **Fig. 0 – Explanation Disagreement Example using GPT-4o-mini for Image Classification** (Cat/Dog). |
 | [JudicialCaseOutcomePrediction](./JudicialCaseOutcomePrediction/README.md) | **Fig. 2 (+ Table 1) – Explaining Case Outcome Prediction** using a finetuned RoBERTa model. |
 | [MovieReviewSentiments](./MovieReviewSentiments/README.md) | **Table 3 – Explaining Movie Review Sentiment Prediction** using LLM APIs. |
 | [SyntheticResumeFiltering](./SyntheticResumeFiltering/README.md) | **Fig. 3 – Explaining Resume Filtering** using LLM APIs. |
@@ -48,7 +49,7 @@ Execution order:
 1. `adversarial_attack`
 2. `scientific_discovery`
 3. `ai_auditing`
-4. `explanation_example`
+4. `explanation_example` (remote: `orchestrate.sh`, then local: `app.py --non-interactive`)
 5. `openxai_benchmark`
 6. `resume_filtering`
 7. `movie_review_sentiments`
