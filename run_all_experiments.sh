@@ -32,7 +32,7 @@ STEP_DIRS=(
   "AdversarialAttack"
   "ScientificDiscovery"
   "AIAuditing"
-  "ExplanationExample"
+  "ExplanationExampleLocal"
   "OpenXAIBenchmark"
   "SyntheticResumeFiltering"
   "MovieReviewSentiments"
@@ -380,13 +380,19 @@ run_explanation_example_step() {
   local pid
 
   (
-    cd "$SCRIPT_DIR/ExplanationExample" || exit 2
+    cd "$SCRIPT_DIR/ExplanationExampleLocal" || exit 2
     python3 app.py --non-interactive
   ) >>"$step_log" 2>&1 &
   pid=$!
 
+  # Give --non-interactive mode enough time to train the model,
+  # generate force-plot figures, and self-terminate (SystemExit 0
+  # in app.py). The kill below is only a safety net in case the
+  # process unexpectedly remains alive (e.g. Gradio launches despite
+  # the flag), preventing a hang in batch mode.
+  sleep 300
   if kill -0 "$pid" 2>/dev/null; then
-    echo "[info] explanation_example: Gradio process started with pid=$pid; stopping to keep run non-interactive." >>"$step_log"
+    echo "[info] explanation_example: still alive after 300s; stopping to keep run non-interactive." >>"$step_log"
     kill "$pid" 2>/dev/null || true
     wait "$pid" 2>/dev/null || true
     return 0

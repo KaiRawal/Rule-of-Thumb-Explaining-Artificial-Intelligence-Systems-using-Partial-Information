@@ -10,7 +10,7 @@ Most experiments consist of a single `RUN.sh` file that is expected to run the e
 
 | SubDirectory | Description |
 | ---------------- | ----------------------- |
-| [ExplanationExample](./ExplanationExample/README.md) | **Fig. 1 – Explanation Disagreement Example using an Interactive Gradio Demo**. |
+| [ExplanationExampleLocal](./ExplanationExampleLocal/README.md) | **Fig. 1 – Explanation Disagreement Example using an Interactive Gradio Demo**. |
 | [JudicialCaseOutcomePrediction](./JudicialCaseOutcomePrediction/README.md) | **Fig. 2 (+ Table 1) – Explaining Case Outcome Prediction** using a finetuned RoBERTa model. |
 | [MovieReviewSentiments](./MovieReviewSentiments/README.md) | **Table 3 – Explaining Movie Review Sentiment Prediction** using LLM APIs. |
 | [SyntheticResumeFiltering](./SyntheticResumeFiltering/README.md) | **Fig. 3 – Explaining Resume Filtering** using LLM APIs. |
