@@ -1,0 +1,12 @@
+Training accuracy:
+True Positives:  1857
+True Negatives:  1838
+False Positives: 37
+False Negatives: 18
+Accuracy:        98.53%
+Test accuracy:
+True Positives:  615
+True Negatives:  605
+False Positives: 20
+False Negatives: 10
+Accuracy:        97.60%
