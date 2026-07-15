@@ -11,6 +11,7 @@ Paper/*
 .vscode/*
 
 **/DATA/PetImages/*
+**/saliency_*.pdf
 *.zip
 
 *.npy
