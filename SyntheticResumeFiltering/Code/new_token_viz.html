@@ -3,89 +3,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CSV Word Colorizer</title>
+    <title>Visualize Token-Level Explanations of Resume Screening</title>
     <style>
+        #output {
+            font-size: 95%;
+            line-height: 1.6;
+        }
+        .resume {
+            margin-bottom: 28px;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
         .word {
             display: inline-block;
-            margin: 2px;
-            padding: 2px;
+            margin: 0px;
+            padding: 0px;
+            padding-right: 5px;
+        }
+        .punctuation {
+            display: inline-block;
+            margin: 0px;
+            padding: 0px;
         }
     </style>
 </head>
 <body>
-    <h1>Upload CSV to Colorize Words</h1>
-    <input type="file" id="csvFileInput" accept=".csv">
-    
-    <div id="output"></div>
-    <hr>
-    <div id="meta">
-        <span id="metadata"></span>
-        <span id="metaexplainer" style="display: None;">INDEX,filename,LLM-PRED,HUMAN-LABEL,RoT-OUTPUT</span>
-    </div>
+    <h1>Token-Level Importance of Resume Summary Predictions</h1>
+    <p>
+        Every resume in <code>DATA/TOKEN_EXPS</code> is rendered automatically, one section per resume.
+        Token color intensity indicates the importance assigned by the explainer.
+        Positive contributions are shown in <span style="background-color: rgb(0,255,0);"> green </span>, negative in <span style="background-color: rgb(255,0,0);"> red </span>.
+        Reload the page if colors do not appear correctly.
+    </p>
+    <div id="output"><em>Loading resume explanations...</em></div>
+
     <script>
-        document.getElementById('csvFileInput').addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+        // Filenames of every token-explanation CSV in DATA/TOKEN_EXPS
+        // (baked in at build time so the page does not need a directory listing).
+        const TOKEN_CSVS = [
+            '1.csv', '2.csv', '5.csv', '8.csv', '10.csv', '14.csv', '18.csv', '20.csv', '27.csv', '30.csv', '31.csv', '34.csv', '37.csv', '39.csv', '40.csv', '45.csv', '49.csv', '50.csv', '54.csv', '55.csv', '60.csv', '62.csv', '65.csv', '68.csv', '71.csv', '75.csv', '76.csv', '77.csv', '79.csv', '85.csv', '97.csv', '101.csv', '103.csv', '105.csv', '113.csv', '116.csv', '122.csv', '140.csv', '141.csv', '142.csv', '144.csv', '145.csv', '150.csv', '154.csv', '156.csv', '158.csv', '162.csv', '167.csv', '172.csv', '175.csv', '181.csv', '193.csv', '196.csv', '200.csv', '202.csv', '204.csv', '210.csv', '214.csv', '215.csv', '222.csv', '230.csv', '231.csv', '236.csv', '239.csv', '240.csv', '247.csv', '249.csv', '251.csv', '252.csv', '253.csv', '255.csv', '258.csv', '261.csv', '262.csv', '264.csv', '266.csv', '267.csv', '270.csv', '271.csv', '272.csv', '278.csv', '279.csv', '283.csv', '285.csv', '293.csv', '294.csv', '298.csv', '299.csv', '306.csv', '308.csv', '310.csv', '311.csv', '312.csv', '316.csv', '317.csv', '319.csv', '320.csv', '330.csv', '331.csv', '332.csv', '337.csv', '338.csv', '342.csv', '345.csv', '346.csv', '350.csv', '351.csv', '352.csv', '356.csv', '358.csv', '362.csv', '363.csv', '364.csv', '366.csv', '372.csv', '378.csv', '379.csv', '382.csv', '384.csv', '385.csv', '390.csv', '399.csv', '402.csv', '403.csv', '406.csv', '408.csv', '409.csv', '413.csv', '416.csv', '422.csv', '424.csv', '425.csv', '432.csv', '434.csv', '441.csv', '443.csv', '452.csv', '456.csv', '462.csv', '465.csv', '467.csv', '471.csv', '474.csv', '476.csv', '477.csv', '479.csv', '491.csv', '494.csv', '497.csv', '500.csv', '501.csv', '505.csv', '506.csv', '511.csv', '513.csv', '518.csv', '522.csv', '524.csv', '529.csv', '530.csv', '532.csv', '533.csv', '538.csv', '548.csv', '549.csv', '553.csv', '558.csv', '561.csv', '566.csv', '567.csv', '568.csv', '569.csv', '571.csv', '578.csv', '580.csv', '583.csv', '586.csv', '587.csv', '590.csv', '592.csv', '596.csv', '597.csv', '602.csv', '603.csv', '609.csv', '614.csv', '615.csv', '619.csv', '622.csv', '627.csv', '632.csv', '636.csv', '638.csv', '643.csv', '650.csv', '651.csv', '655.csv', '658.csv', '661.csv', '662.csv', '666.csv', '667.csv', '669.csv', '670.csv', '671.csv', '672.csv', '678.csv', '680.csv', '683.csv', '704.csv', '706.csv', '710.csv', '712.csv', '713.csv', '717.csv', '722.csv', '724.csv', '727.csv', '728.csv', '733.csv', '735.csv', '747.csv', '749.csv', '750.csv', '751.csv', '752.csv', '753.csv', '758.csv', '761.csv', '769.csv', '792.csv', '794.csv', '796.csv', '798.csv', '801.csv', '807.csv', '810.csv', '814.csv', '815.csv', '818.csv', '820.csv', '822.csv', '826.csv', '829.csv', '833.csv', '834.csv', '836.csv', '838.csv', '841.csv', '842.csv', '851.csv', '852.csv', '853.csv', '862.csv', '863.csv', '865.csv', '867.csv', '868.csv', '873.csv', '878.csv', '879.csv', '880.csv', '882.csv', '883.csv', '885.csv', '886.csv', '887.csv', '892.csv', '895.csv', '903.csv', '905.csv', '909.csv', '910.csv', '912.csv', '914.csv', '916.csv', '917.csv'
+        ];
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const text = e.target.result;
-                const rows = text.split('\n').filter(row => row.trim() !== '');
-                const outputDiv = document.getElementById('output');
-                outputDiv.innerHTML = ''; // Clear previous content
+        // Quote-aware row parser. Handles tokens that are punctuation commas
+        // stored as "","" (quoted), so "token,importance,scaled_importance"
+        // and "",",1.07,4.49" both parse. Mirrors Code/results.html splitRow.
+        function splitRow(row) {
+            const trimmed = row.trim();
+            const parts = trimmed.split(',');
 
-                let concatenatedWords = ''; // Initialize an empty string to concatenate words
+            if (parts.length < 3) return null;
 
-                rows.forEach(row => {
-                    const [word, , number] = row.split(',').map(item => item.trim());
-                    if (word && number) {
-                        const num = parseFloat(number);
-                        const opacity = Math.min(Math.abs(num) / 100, 1);
-                        const color = num >= 0 ? `rgba(0, 255, 0, ${opacity})` : `rgba(255, 0, 0, ${opacity})`;
+            const num2 = parseFloat(parts.pop().trim()); // scaled_importance
+            parts.pop(); // importance (unused for color intensity)
+            let word = parts.join(',').trim();
 
-                        const span = document.createElement('span');
-                        span.className = 'word';
-                        span.style.backgroundColor = color;
-                        span.textContent = word;
+            if (word.startsWith('"') && word.endsWith('"')) {
+                word = word.slice(1, -1).trim();
+            }
 
-                        concatenatedWords += span.outerHTML; // Concatenate the span's outerHTML
-                    }
+            return { word, num2 };
+        }
+
+        // Load ../DATA/meta.csv into a fileName -> {llm, human, rot} map.
+        async function loadMetadata() {
+            const pred = {};
+            try {
+                const response = await fetch('../DATA/meta.csv');
+                if (!response.ok) return pred;
+                const text = await response.text();
+                text.split('\n').forEach(metaRow => {
+                    metaRow = metaRow.trim();
+                    if (!metaRow) return;
+                    const parts = metaRow.split(',');
+                    if (parts.length < 5) return;
+                    const fileName = parts[1].trim();
+                    if (!fileName) return;
+                    pred[fileName] = {
+                        llm: parts[2].trim(),
+                        human: parts[3].trim(),
+                        rot: parts[4].trim()
+                    };
                 });
+            } catch (err) {
+                console.error('Error fetching metadata:', err);
+            }
+            return pred;
+        }
 
-                outputDiv.innerHTML = concatenatedWords; // Set the concatenated words as the innerHTML
+        // Render one resume CSV into a colored-token section.
+        async function renderResume(fileName, meta) {
+            const response = await fetch('../DATA/TOKEN_EXPS/' + fileName);
+            const text = await response.text();
+            const rows = text.split('\n').filter(row => row.trim() !== '');
 
-                // Fetch metadata
-                fetch('../DATA/meta.csv')
-                    .then(response => response.text())
-                    .then(metaText => {
-                        const metaRows = metaText.split('\n').filter(row => row.trim() !== '');
-                        console.log(metaRows)
-                        const metadataDiv = document.getElementById('metadata');
-                        metadataDiv.innerHTML = ''; // Clear previous content
+            const resumeId = fileName.replace('.csv', '');
+            const info = meta[resumeId];
+            let heading = `<h2>Resume ${resumeId}</h2>`;
+            if (info) {
+                heading += `<h3>LLM Prediction: ${info.llm} &middot; Human Label: ${info.human} &middot; RoT Prediction: ${info.rot}</h3>`;
+            }
 
-                        let fileFound = false; // Flag to check if the file is found
+            const fragments = [];
+            rows.forEach(row => {
+                const result = splitRow(row);
+                if (!result) return;
+                const num = result.num2;
+                if (!(result.word && isFinite(num))) return;
 
-                        const strippedFileName = file.name.replace(/\.csv$/, ''); // Strip .csv from the file name
+                const opacity = Math.min(Math.abs(num) / 100, 1);
+                const color = num >= 0 ? `rgba(0, 255, 0, ${opacity})` : `rgba(255, 0, 0, ${opacity})`;
 
-                        metaRows.forEach(metaRow => {
-                            const [, filename, metadata1, metadata2, metadata3] = metaRow.split(',').map(item => item.trim());
-                            if (filename === strippedFileName) {
-                                metadataDiv.textContent = metaRow; // Update metadata div with the corresponding metadata
-                                fileFound = true; // Set flag to true if file is found
-                            }
-                        });
+                const isPunct = !/\w/.test(result.word);
+                const span = document.createElement('span');
+                span.className = isPunct ? 'punctuation' : 'word';
+                span.style.backgroundColor = color;
+                span.textContent = result.word;
+                fragments.push(span.outerHTML);
+            });
 
-                        if (!fileFound) {
-                            console.log(`Filename not found in metadata: ${strippedFileName}`); // Log missing filename
-                        } else {
-                            const metaex = document.getElementById('metaexplainer');
-                            metaex.style.display = 'block'; // Make the metadata span visible
-                        }
-                    })
-                    .catch(error => console.error('Error fetching metadata:', error));
-            };
-            reader.readAsText(file);
-        });
+            const div = document.createElement('div');
+            div.className = 'resume';
+            div.innerHTML = heading + fragments.join('');
+            return div;
+        }
+
+        async function renderAll() {
+            const outputDiv = document.getElementById('output');
+            const meta = await loadMetadata();
+
+            outputDiv.innerHTML = '';
+            const frag = document.createDocumentFragment();
+            for (const fileName of TOKEN_CSVS) {
+                try {
+                    frag.appendChild(await renderResume(fileName, meta));
+                } catch (err) {
+                    console.error('Error rendering', fileName, err);
+                }
+            }
+            outputDiv.appendChild(frag);
+        }
+
+        renderAll();
     </script>
 </body>
 </html>
