@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Word Colorizer</title>
+    <style>
+        .word {
+            display: inline-block;
+            margin: 2px;
+            padding: 2px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Upload CSV to Colorize Words</h1>
+    <input type="file" id="csvFileInput" accept=".csv">
+    
+    <div id="output"></div>
+    <hr>
+    <div id="meta">
+        <span id="metadata"></span>
+        <span id="metaexplainer" style="display: None;">INDEX,filename,LLM-PRED,HUMAN-LABEL,RoT-OUTPUT</span>
+    </div>
+    <script>
+        document.getElementById('csvFileInput').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const rows = text.split('\n').filter(row => row.trim() !== '');
+                const outputDiv = document.getElementById('output');
+                outputDiv.innerHTML = ''; // Clear previous content
+
+                let concatenatedWords = ''; // Initialize an empty string to concatenate words
+
+                rows.forEach(row => {
+                    const [word, , number] = row.split(',').map(item => item.trim());
+                    if (word && number) {
+                        const num = parseFloat(number);
+                        const opacity = Math.min(Math.abs(num) / 100, 1);
+                        const color = num >= 0 ? `rgba(0, 255, 0, ${opacity})` : `rgba(255, 0, 0, ${opacity})`;
+
+                        const span = document.createElement('span');
+                        span.className = 'word';
+                        span.style.backgroundColor = color;
+                        span.textContent = word;
+
+                        concatenatedWords += span.outerHTML; // Concatenate the span's outerHTML
+                    }
+                });
+
+                outputDiv.innerHTML = concatenatedWords; // Set the concatenated words as the innerHTML
+
+                // Fetch metadata
+                fetch('../DATA/meta.csv')
+                    .then(response => response.text())
+                    .then(metaText => {
+                        const metaRows = metaText.split('\n').filter(row => row.trim() !== '');
+                        console.log(metaRows)
+                        const metadataDiv = document.getElementById('metadata');
+                        metadataDiv.innerHTML = ''; // Clear previous content
+
+                        let fileFound = false; // Flag to check if the file is found
+
+                        const strippedFileName = file.name.replace(/\.csv$/, ''); // Strip .csv from the file name
+
+                        metaRows.forEach(metaRow => {
+                            const [, filename, metadata1, metadata2, metadata3] = metaRow.split(',').map(item => item.trim());
+                            if (filename === strippedFileName) {
+                                metadataDiv.textContent = metaRow; // Update metadata div with the corresponding metadata
+                                fileFound = true; // Set flag to true if file is found
+                            }
+                        });
+
+                        if (!fileFound) {
+                            console.log(`Filename not found in metadata: ${strippedFileName}`); // Log missing filename
+                        } else {
+                            const metaex = document.getElementById('metaexplainer');
+                            metaex.style.display = 'block'; // Make the metadata span visible
+                        }
+                    })
+                    .catch(error => console.error('Error fetching metadata:', error));
+            };
+            reader.readAsText(file);
+        });
+    </script>
+</body>
+</html>
