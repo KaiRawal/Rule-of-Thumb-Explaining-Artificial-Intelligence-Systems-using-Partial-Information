@@ -35,7 +35,7 @@ Paper/LaTeX/*
 **/DATA/SPAN_EXPS_stride_35_128_1e-05/DATASET_VISUALISED.txt
 **/DATA/SPAN_EXPS_stride_35_128_1e-05/hyperparams.txt
 **/DATA/SPAN_EXPS_stride_35_128_1e-05/model_performance.txt
-**/DATA/SPAN_EXPS_stride_35_128_1e-05/meta.csv
+# **/DATA/SPAN_EXPS_stride_35_128_1e-05/meta.csv
 # **/DATA/PREP/rot_input_embeddings_stride.csv
 **/DATA/PREP/model_preds_stride.csv
 **/DATA/PREP/filter_all.csv
