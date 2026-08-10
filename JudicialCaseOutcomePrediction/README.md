@@ -44,7 +44,7 @@ To reproduce table 1 you can now run `$ bash create_table.sh` to create the file
 
 **All results from the paper can also be viewed directly by navigating to [Code/results.html](Code/results.html) via the direct links below:**
 
-- anonymous.4open.science: **(if you get a 404 error try reloading)** [https://anonymous.4open.science/w/Rule-of-Thumb-Explaining-Artificial-Intelligence-Systems-using-Partial-Information-3E03/JudicialCaseOutcomePrediction/Code/results.html](https://anonymous.4open.science/w/Rule-of-Thumb-Explaining-Artificial-Intelligence-Systems-using-Partial-Information-3E03/JudicialCaseOutcomePrediction/Code/results.html)
+- anonymous.4open.science: **(if you get a 404 error try reloading)** [https://anonymous.4open.science/w/Rule-of-Thumb-Explaining-Artificial-Intelligence-Systems-using-Partial-Information-1516/JudicialCaseOutcomePrediction/Code/results.html](https://anonymous.4open.science/w/Rule-of-Thumb-Explaining-Artificial-Intelligence-Systems-using-Partial-Information-1516/JudicialCaseOutcomePrediction/Code/results.html)
 
 
 - github: [https://kairawal.github.io/Rule-of-Thumb-Explaining-Artificial-Intelligence-Systems-using-Partial-Information/JudicialCaseOutcomePrediction/Code/results.html](https://kairawal.github.io/Rule-of-Thumb-Explaining-Artificial-Intelligence-Systems-using-Partial-Information/JudicialCaseOutcomePrediction/Code/results.html)
