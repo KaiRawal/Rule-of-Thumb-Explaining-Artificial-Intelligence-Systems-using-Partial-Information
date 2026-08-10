@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token-Level Importance of Two Resumes</title>
+    <style>
+        #output {
+            font-size: 95%;
+            line-height: 1.6;
+        }
+        .resume {
+            margin-bottom: 28px;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .word {
+            display: inline-block;
+            margin: 0px;
+            padding: 0px;
+            padding-right: 5px;
+        }
+        .punctuation {
+            display: inline-block;
+            margin: 0px;
+            padding: 0px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Token-Level Importance of Two Resume Summaries</h1>
+    <p>
+        Renders <code>DATA/TOKEN_EXPS/60_formatted.csv</code> and
+        <code>DATA/TOKEN_EXPS/215_formatted.csv</code> automatically, one section per resume.
+        Token color intensity indicates the importance assigned by the explainer.
+        Positive contributions are shown in <span style="background-color: rgb(0,255,0);"> green </span>, negative in <span style="background-color: rgb(255,0,0);"> red </span>.
+        Reload the page if colors do not appear correctly.
+    </p>
+    <div id="output"><em>Loading resume explanations...</em></div>
+
+    <script>
+        // Token-explanation CSVs rendered by this page, baked in at build time.
+        const FILES = ['60_formatted.csv', '215_formatted.csv'];
+
+        // Hardcoded predictions from ../DATA/meta.csv for these two resumes:
+        // index, id, llm_prediction, human_label, rot_prediction
+        const META = {
+            '60_formatted': { llm: '1', human: '1', rot: '1' },
+            '215_formatted': { llm: '0', human: '0', rot: '0' }
+        };
+
+        // Quote-aware row parser. Handles tokens that are punctuation commas
+        // stored as "","" (quoted), so "token,importance,scaled_importance"
+        // and "",",1.07,4.49" both parse. Mirrors Code/results.html splitRow.
+        function splitRow(row) {
+            const trimmed = row.trim();
+            const parts = trimmed.split(',');
+
+            if (parts.length < 3) return null;
+
+            const num2 = parseFloat(parts.pop().trim()); // scaled_importance
+            parts.pop(); // importance (unused for color intensity)
+            let word = parts.join(',').trim();
+
+            if (word.startsWith('"') && word.endsWith('"')) {
+                word = word.slice(1, -1).trim();
+            }
+
+            return { word, num2 };
+        }
+
+        // Render one resume CSV into a colored-token section.
+        async function renderResume(fileName) {
+            const response = await fetch('../DATA/TOKEN_EXPS/' + fileName);
+            const text = await response.text();
+            const rows = text.split('\n').filter(row => row.trim() !== '');
+
+            const resumeId = fileName.replace('.csv', '');
+            const info = META[resumeId];
+            let heading = `<h2>Resume ${resumeId}</h2>`;
+            if (info) {
+                heading += `<h3>LLM Prediction: ${info.llm} &middot; Human Label: ${info.human} &middot; RoT Prediction: ${info.rot}</h3>`;
+            }
+
+            const fragments = [];
+            rows.forEach(row => {
+                const result = splitRow(row);
+                if (!result) return;
+                const num = result.num2;
+
+                // Explicit paragraph break (stored as a "\n" token).
+                if (result.word === '\\n') {
+                    fragments.push('<br>');
+                    return;
+                }
+
+                if (!(result.word && isFinite(num))) return;
+
+                const opacity = Math.min(Math.abs(num) / 100, 1);
+                const color = num >= 0 ? `rgba(0, 255, 0, ${opacity})` : `rgba(255, 0, 0, ${opacity})`;
+
+                const isPunct = !/\w/.test(result.word);
+                const span = document.createElement('span');
+                span.className = isPunct ? 'punctuation' : 'word';
+                span.style.backgroundColor = color;
+                span.textContent = result.word;
+                fragments.push(span.outerHTML);
+            });
+
+            const div = document.createElement('div');
+            div.className = 'resume';
+            div.innerHTML = heading + fragments.join('');
+            return div;
+        }
+
+        async function renderAll() {
+            const outputDiv = document.getElementById('output');
+            outputDiv.innerHTML = '';
+
+            const frag = document.createDocumentFragment();
+            for (const fileName of FILES) {
+                try {
+                    frag.appendChild(await renderResume(fileName));
+                } catch (err) {
+                    console.error('Error rendering', fileName, err);
+                }
+            }
+            outputDiv.appendChild(frag);
+        }
+
+        renderAll();
+    </script>
+</body>
+</html>
