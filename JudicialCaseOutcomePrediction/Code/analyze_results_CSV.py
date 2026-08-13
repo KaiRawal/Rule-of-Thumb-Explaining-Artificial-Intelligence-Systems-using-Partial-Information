@@ -2,8 +2,7 @@ import os
 import argparse
 import pandas as pd
 from sklearn.metrics import confusion_matrix, accuracy_score
-from sklearn.metrics import roc_auc_score as auc_score
-# from sklearn.metrics import average_precision_score as auc_score
+from sklearn.metrics import roc_auc_score, average_precision_score
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -18,6 +17,15 @@ FLIP_0 = False
 FLIP_1 = False
 
 FORMULA = None
+METRIC = None
+
+def get_metric_name():
+    return 'PRAUC' if METRIC == 'pr_auc' else 'AUC'
+
+def sc_score(y_true, y_score, sample_weight=None):
+    if METRIC == 'pr_auc':
+        return average_precision_score(y_true, y_score, sample_weight=sample_weight)
+    return roc_auc_score(y_true, y_score, sample_weight=sample_weight)
 
 class Case:
     def __init__(self):
@@ -112,19 +120,19 @@ class Case:
         y_preds = self.get_rot_labels()
         y_actual = self.get_human_labels()
         try:
-            auc = auc_score(y_actual, y_preds)
-            w_auc = auc_score(y_actual, y_preds, sample_weight=sample_weights)
+            auc = sc_score(y_actual, y_preds)
+            w_auc = sc_score(y_actual, y_preds, sample_weight=sample_weights)
         except ValueError:
             pass
-            # print("AUC: Cannot be computed (possibly due to single class in y_true).")
+            # print(f"{get_metric_name()}: Cannot be computed (possibly due to single class in y_true).")
             # print(f'{self.case_name=}')
             # print(f'{y_actual=}')
             # print(f'{y_preds=}')
             # print()
-            raise ValueError(f'AUC computations failed for {self.case_name}: {y_preds=} {y_actual=}')
+            raise ValueError(f'{get_metric_name()} computations failed for {self.case_name}: {y_preds=} {y_actual=}')
         if self._display():
-            print(f'AUC \t {self.case_name} \t {auc}')
-            print(f'wAUC \t {self.case_name} \t {w_auc}')
+            print(f'{get_metric_name()} \t {self.case_name} \t {auc}')
+            print(f'w{get_metric_name()} \t {self.case_name} \t {w_auc}')
         return auc, w_auc
     
     def compute_accuracy(self, threshold=0.5):
@@ -255,8 +263,8 @@ def experiment(cases, subset_roberta_match_predex=False, verbose=True, index=" "
     
     # Compute overall AUC and accuracy
     try:
-        overall_auc = auc_score(y_actual, y_preds)
-        overall_weighted_auc = auc_score(y_actual, y_preds, sample_weight=sample_weights)
+        overall_auc = sc_score(y_actual, y_preds)
+        overall_weighted_auc = sc_score(y_actual, y_preds, sample_weight=sample_weights)
         auc_computable = True
     except ValueError:
         overall_auc = "NA"
@@ -271,19 +279,19 @@ def experiment(cases, subset_roberta_match_predex=False, verbose=True, index=" "
         # Original verbose output
         print(f'TOTAL NUMBER OF CASES: {case_count=}')
         print('======================')
-        print(f'{subset_roberta_match_predex=}\tunweighted mean AUC:\t ', unweighted_mean_auc)
+        print(f'{subset_roberta_match_predex=}\tunweighted mean {get_metric_name()}:\t ', unweighted_mean_auc)
         print(f'{subset_roberta_match_predex=}\tunweighted mean Accuracy:', unweighted_mean_accuracy)
-        print(f'{subset_roberta_match_predex=}\tweighted mean AUC:\t ', weighted_mean_auc)
+        print(f'{subset_roberta_match_predex=}\tweighted mean {get_metric_name()}:\t ', weighted_mean_auc)
         print(f'{subset_roberta_match_predex=}\tweighted mean Accuracy:\t ', weighted_mean_accuracy)
         print(f'{subset_roberta_match_predex=}\tBEST mean Accuracy\t\t:\t ', best_mean_accuracy)
         print(f'{subset_roberta_match_predex=}\tBEST weighted mean Accuracy\t:\t ', best_weighted_mean_accuracy)
         print('======================')
         
         if auc_computable:
-            print(f"{subset_roberta_match_predex=}\tAUC \t\t:\t {overall_auc:.8f}")
-            print(f"{subset_roberta_match_predex=}\tw_AUC \t\t:\t {overall_weighted_auc:.8f}")
+            print(f"{subset_roberta_match_predex=}\t{get_metric_name()} \t\t:\t {overall_auc:.8f}")
+            print(f"{subset_roberta_match_predex=}\tw_{get_metric_name()} \t\t:\t {overall_weighted_auc:.8f}")
         else:
-            print(f"{subset_roberta_match_predex=}\tAUC: Cannot be computed (possibly due to single class in y_true).")
+            print(f"{subset_roberta_match_predex=}\t{get_metric_name()}: Cannot be computed (possibly due to single class in y_true).")
         print(f"{subset_roberta_match_predex=}\tAccuracy \t:\t {overall_accuracy:.8f}")
         print(f"{subset_roberta_match_predex=}\tw_Accuracy \t:\t {overall_weighted_accuracy:.8f}")
         print()
@@ -426,16 +434,18 @@ def span_stats(cases, flip_axes=False):
 
 
 def main():
-    global FORMULA
+    global FORMULA, METRIC
     parser = argparse.ArgumentParser(description="Prepare CASE objects from input files.")
     parser.add_argument("--directory", required=True, type=str, help="Subdirectory inside ./DATA/")
     parser.add_argument("--formula", required=True, type=str, default=' ', choices=["linear", "positived", "conditional", "flip", "flip_clip"], help="importance to prob formula")
     parser.add_argument("--comment", required=False, type=str, default=' ', help="Optional comment for CSV")
+    parser.add_argument("--metric", required=False, type=str, default='auc', choices=["auc", "pr_auc"], help="Scoring metric: auc (ROC AUC) or pr_auc (average precision)")
     # parser.add_argument("--csv", default=False, type=bool, help="Set False for CSV style output")
     parser.add_argument("--csv", default=False, action='store_true', help="Output in CSV format")
     args = parser.parse_args()
 
     FORMULA = args.formula
+    METRIC = args.metric
 
     base_dir = os.path.join("DATA", args.directory)
     # print(f"Looking inside: {base_dir}")

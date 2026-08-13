@@ -1,0 +1,6 @@
+index, comment, roberta_correct_only, case_count, PR_AUC_weighted_case
+SPAN_EXPS_stride_35_128_1e-05,Token-level RoT 35,True,101,0.7742019331152263
+IG_MERGED,Integrated Gradients,True,101,0.687959878285849
+SHAP_MERGED_500,Default 500 Sample SHAP,True,101,0.7576997916204845
+LIME_MERGED_5000,Default 5000 Sample LIME,True,101,0.6760425122355517
+UNIFORM_spans,Uniform Random Importance per PredEx span,True,101,0.5347964609467698
