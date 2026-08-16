@@ -1,0 +1,17 @@
+---
+interface Props {
+  id?: string;
+  label: string; // e.g. "Table 1"
+  caption: string; // full caption as HTML (shown above the table)
+}
+
+const { id, label, caption } = Astro.props;
+---
+
+<div class="table-scroll" {id}>
+  <div class="table-caption">
+    <span class="caption-label">{label}:</span>{" "}
+    <span set:html={caption} />
+  </div>
+  <slot />
+</div>

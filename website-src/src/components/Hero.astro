@@ -1,0 +1,19 @@
+---
+interface Props {
+  title: string;
+  authors: string;
+  affiliations: string;
+  correspondence: string;
+  arxiv: string;
+}
+
+const { title, authors, affiliations, correspondence, arxiv } = Astro.props;
+---
+
+<header class="hero">
+  <h1>{title}</h1>
+  <p class="authors" set:html={authors} />
+  <p class="affils" set:html={affiliations} />
+  <p class="correspondence">{correspondence}</p>
+  <span class="arxiv">{arxiv}</span>
+</header>

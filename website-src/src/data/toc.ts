@@ -1,0 +1,27 @@
+export interface ToCItem {
+  id: string;
+  label: string;
+  lvl?: number;
+}
+
+export const toc: ToCItem[] = [
+  { id: "abstract", label: "Abstract" },
+  { id: "s1", label: "1. Introduction" },
+  { id: "s2", label: "2. Rule-of-Thumb: Explanations for Emerging XAI Applications" },
+  { id: "s2-1", label: "2.1 Formulation", lvl: 2 },
+  { id: "s3", label: "3. Experiments" },
+  { id: "s3-1", label: "3.1 Model Evaluation and Zero-Shot Classification with LLMs", lvl: 2 },
+  { id: "s3-2", label: "3.2 Auditing Proprietary Black-Box AI Systems", lvl: 2 },
+  { id: "s3-3", label: "3.3 Scientific Discovery using XAI", lvl: 2 },
+  { id: "s3-4", label: "3.4 Computational Efficiency and Environmental Impacts", lvl: 2 },
+  { id: "s4", label: "4. Regulations Concerning Emerging XAI Applications" },
+  { id: "s5", label: "5. Conclusion" },
+  { id: "acknowledgments", label: "Acknowledgments" },
+  { id: "references", label: "References" },
+  { id: "supplementary", label: "Supplementary Information" },
+  { id: "appendix-a", label: "A. Motivation and Related Work", lvl: 2 },
+  { id: "appendix-b", label: "B. RoT Implementation Details", lvl: 2 },
+  { id: "appendix-c", label: "C. XAI for Regulation and Auditing", lvl: 2 },
+  { id: "appendix-d", label: "D. Experimental Details", lvl: 2 },
+  { id: "appendix-e", label: "E. Extended Results", lvl: 2 },
+];

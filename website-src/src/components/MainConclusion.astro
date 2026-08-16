@@ -1,0 +1,35 @@
+---
+const rot = `<span class="rot">RoT</span>`;
+---
+
+<!-- ============ SECTION 5 : CONCLUSION ============ -->
+<section class="section" id="s5">
+  <h2><span class="sec-num">5.</span> Conclusion</h2>
+
+  <p>
+    This paper presents a new approach to explainable AI based on the
+    predictiveness of individual feature values, rather than their sensitivity
+    to alteration. This Rule of Thumb approach allows us to approximate any
+    decision making process by summing the importance response over any subset
+    of feature values. The most useful feature values for a prediction are
+    naturally those with largest importance, and their predictive power
+    overrides the contribution of others. As such, <span class="rot">RoT</span> can be understood as a
+    post-hoc and per-datapoint explainer with more in common with ablation
+    studies than sensitivity analysis.
+  </p>
+
+  <p>
+    <span class="rot">RoT</span> addresses several long-standing concerns in the community about the
+    validity and practical utility of XAI, and importantly does so without
+    making additional assumptions. It is flexible and useful in a range of
+    emerging XAI applications areas where other forms of XAI simply can not be
+    used – evaluating LLMs and explaining their behaviour in zero-shot
+    classification, auditing proprietary AI systems where we can only observe
+    their predictions and not alter input features, and using XAI to understand
+    real-world phenomena and propose novel scientific hypotheses. As a local,
+    post-hoc explanation method, <span class="rot">RoT</span> can be used as a drop in replacement for
+    other explainers in existing XAI codebases, and visualised the same way,
+    providing a fast and computationally efficient (and therefore
+    environmentally friendly) method of explaining AI.
+  </p>
+</section>

@@ -1,0 +1,132 @@
+---
+import "../styles/global.css";
+import "katex/dist/katex.min.css";
+
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23002147'/%3E%3Ctext x='50' y='66' font-size='52' font-family='sans-serif' font-weight='700' fill='white' text-anchor='middle'%3ERoT%3C/text%3E%3C/svg%3E"
+    />
+  </head>
+  <body>
+    <slot />
+    <script>
+      // Turn "[8]", "[1, 2]", "[56, 80]", "[81–83]" into links to #ref-N
+      function linkifyCitations(root) {
+        const excludeSel =
+          ".references, .search-block, a, code, .mono, .url, script, style";
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+          acceptNode(node) {
+            const text = node.nodeValue;
+            if (!text || text.indexOf("[") === -1) return NodeFilter.FILTER_REJECT;
+            let el = node.parentElement;
+            while (el && el !== root) {
+              if (el.matches(excludeSel)) return NodeFilter.FILTER_REJECT;
+              el = el.parentElement;
+            }
+            return NodeFilter.FILTER_ACCEPT;
+          },
+        });
+        const nodes = [];
+        while (walker.nextNode()) nodes.push(walker.currentNode);
+        const re = /\[(\d+(?:\s*[,\u2013-]\s*\d+)*)\]/g;
+        for (const node of nodes) {
+          const text = node.nodeValue;
+          re.lastIndex = 0;
+          const matches = [];
+          let m;
+          while ((m = re.exec(text)) !== null) matches.push(m);
+          if (!matches.length) continue;
+          const frag = document.createDocumentFragment();
+          let last = 0;
+        for (const m of matches) {
+            if (m.index > last)
+              frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+            frag.appendChild(document.createTextNode("["));
+            const innerRe = /(\d+)|([,\u2013-])/g;
+            let im;
+            let innerLast = 0;
+            while ((im = innerRe.exec(m[1])) !== null) {
+              if (im.index > innerLast)
+                frag.appendChild(document.createTextNode(m[1].slice(innerLast, im.index)));
+              if (im[1]) {
+                const a = document.createElement("a");
+                a.className = "cite";
+                a.href = "#ref-" + im[1];
+                a.textContent = im[1];
+                frag.appendChild(a);
+              } else {
+                frag.appendChild(document.createTextNode(im[0]));
+              }
+              innerLast = im.index + im[0].length;
+            }
+            if (innerLast < m[1].length)
+              frag.appendChild(document.createTextNode(m[1].slice(innerLast)));
+            frag.appendChild(document.createTextNode("]"));
+            last = m.index + m[0].length;
+          }
+          if (last < text.length)
+            frag.appendChild(document.createTextNode(text.slice(last)));
+          node.parentNode.replaceChild(frag, node);
+        }
+      }
+
+      // Scale equations down to fit the column on large screens (no scrollbar).
+      function fitEquations() {
+        const desktop = window.matchMedia("(min-width: 48rem)").matches;
+        document.querySelectorAll(".equation").forEach((el) => {
+          el.style.fontSize = "";
+          if (!desktop) return;
+          const content = el.querySelector(".katex");
+          if (!content) return;
+          const available = el.clientWidth;
+          const wide = content.scrollWidth;
+          if (wide > available) {
+            const scale = (available / wide) * 0.98;
+            el.style.fontSize = Math.floor(100 * scale) + "%";
+          }
+        });
+      }
+
+      function init() {
+        const content = document.querySelector(".content");
+        if (content) linkifyCitations(content);
+        fitEquations();
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init);
+      } else {
+        init();
+      }
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(fitEquations);
+      }
+      let resizeTimer;
+      window.addEventListener("resize", () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(fitEquations, 120);
+      });
+    </script>
+  </body>
+</html>

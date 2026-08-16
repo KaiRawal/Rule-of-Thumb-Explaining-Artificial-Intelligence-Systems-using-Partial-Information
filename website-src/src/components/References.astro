@@ -1,0 +1,205 @@
+---
+// References [1]-[96], transcribed verbatim from the PDF. URLs are clickable links.
+const refs: string[] = [
+  `Marco Tulio Ribeiro, Sameer Singh, and Carlos Guestrin. “why should i trust you?”: Explaining the predictions of any classifier. In <em>Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining</em>, KDD ’16, page 1135–1144, New York, NY, USA, 2016. Association for Computing Machinery. ISBN 9781450342322. doi: <a href="https://doi.org/10.1145/2939672.2939778" target="_blank" rel="noopener">10.1145/2939672.2939778</a>. URL <a href="https://doi.org/10.1145/2939672.2939778" target="_blank" rel="noopener">https://doi.org/10.1145/2939672.2939778</a>.`,
+
+  `Ramprasaath R. Selvaraju, Michael Cogswell, Abhishek Das, Ramakrishna Vedantam, Devi Parikh, and Dhruv Batra. Grad-cam: Visual explanations from deep networks via gradient-based localization. In <em>Proceedings of the IEEE International Conference on Computer Vision (ICCV)</em>, pages 618–626, October 2017.`,
+
+  `Bhavik Jikadara. Cats and Dogs Classification Dataset. <a href="https://www.kaggle.com/datasets/bhavikjikadara/dog-and-cat-classification-dataset" target="_blank" rel="noopener">https://www.kaggle.com/datasets/bhavikjikadara/dog-and-cat-classification-dataset</a>, 2024. Kaggle dataset.`,
+
+  `Karen Simonyan, Andrea Vedaldi, and Andrew Zisserman. Deep inside convolutional networks: Visualising image classification models and saliency maps. In Yoshua Bengio and Yann LeCun, editors, <em>2nd International Conference on Learning Representations, ICLR 2014, Banff, AB, Canada, April 14-16, 2014, Workshop Track Proceedings</em>, 2014. URL <a href="http://arxiv.org/abs/1312.6034" target="_blank" rel="noopener">http://arxiv.org/abs/1312.6034</a>.`,
+
+  `Mukund Sundararajan, Ankur Taly, and Qiqi Yan. Axiomatic attribution for deep networks. In Doina Precup and Yee Whye Teh, editors, <em>Proceedings of the 34th International Conference on Machine Learning</em>, volume 70 of Proceedings of Machine Learning Research, pages 3319–3328. PMLR, 06–11 Aug 2017. URL <a href="https://proceedings.mlr.press/v70/sundararajan17a.html" target="_blank" rel="noopener">https://proceedings.mlr.press/v70/sundararajan17a.html</a>.`,
+
+  `Sandra Wachter, Brent Mittelstadt, and Chris Russell. Counterfactual explanations without opening the black box: Automated decisions and the gdpr. <em>Harv. JL &amp; Tech.</em>, 31:841, 2018.`,
+
+  `Leonard Bereska and Stratis Gavves. Mechanistic Interpretability for AI Safety - A Review. <em>Transactions on Machine Learning Research</em>, 2024. URL <a href="https://mlanthology.org/tmlr/2024/bereska2024tmlr-mechanistic/" target="_blank" rel="noopener">https://mlanthology.org/tmlr/2024/bereska2024tmlr-mechanistic/</a>.`,
+
+  `Scott M. Lundberg and Su-In Lee. A unified approach to interpreting model predictions. In <em>Proceedings of the 31st International Conference on Neural Information Processing Systems</em>, NIPS’17, page 4768–4777, Red Hook, NY, USA, 2017. Curran Associates Inc. ISBN 9781510860964.`,
+
+  `Kaivalya Rawal and Himabindu Lakkaraju. Beyond individualized recourse: Interpretable and interactive summaries of actionable recourses. In H. Larochelle, M. Ranzato, R. Hadsell, M.F. Balcan, and H. Lin, editors, <em>Advances in Neural Information Processing Systems</em>, volume 33, pages 12187–12198. Curran Associates, Inc., 2020. URL <a href="https://proceedings.neurips.cc/paper_files/paper/2020/file/8ee7730e97c67473a424ccfeff49ab20-Paper.pdf" target="_blank" rel="noopener">https://proceedings.neurips.cc/paper_files/paper/2020/file/8ee7730e97c67473a424ccfeff49ab20-Paper.pdf</a>.`,
+
+  `Akshaj Kumar Veldanda, Fabian Grob, Shailja Thakur, Hammond Pearce, Benjamin Tan, Ramesh Karri, and Siddharth Garg. Investigating hiring bias in large language models. In <em>R0-FoMo:Robustness of Few-shot and Zero-shot Learning in Large Foundation Models</em>, 2023. URL <a href="https://openreview.net/forum?id=erl90pLIH0" target="_blank" rel="noopener">https://openreview.net/forum?id=erl90pLIH0</a>.`,
+
+  `Daniel Smilkov, Nikhil Thorat, Been Kim, Fernanda B. Viégas, and Martin Wattenberg. Smoothgrad: removing noise by adding noise. <em>CoRR</em>, abs/1706.03825, 2017. URL <a href="http://arxiv.org/abs/1706.03825" target="_blank" rel="noopener">http://arxiv.org/abs/1706.03825</a>.`,
+
+  `Avanti Shrikumar, Peyton Greenside, and Anshul Kundaje. Learning important features through propagating activation differences. In <em>Proceedings of the 34th International Conference on Machine Learning - Volume 70</em>, ICML’17, page 3145–3153. JMLR.org, 2017.`,
+
+  `Jack W Smith, James E Everhart, William C Dickson, William C Knowler, and Robert Scott Johannes. Using the adap learning algorithm to forecast the onset of diabetes mellitus. In <em>Proceedings of the annual symposium on computer application in medical care</em>, page 261, 1988.`,
+
+  `Nitish Srivastava, Geoffrey Hinton, Alex Krizhevsky, Ilya Sutskever, and Ruslan Salakhutdinov. Dropout: A simple way to prevent neural networks from overfitting. <em>Journal of Machine Learning Research</em>, 15(56):1929–1958, 2014. URL <a href="http://jmlr.org/papers/v15/srivastava14a.html" target="_blank" rel="noopener">http://jmlr.org/papers/v15/srivastava14a.html</a>.`,
+
+  `Andrew Howard, Mark Sandler, Grace Chu, Liang-Chieh Chen, Bo Chen, Mingxing Tan, Weijun Wang, Yukun Zhu, Ruoming Pang, Vijay Vasudevan, et al. Searching for mobilenetv3. In <em>Proceedings of the IEEE/CVF international conference on computer vision</em>, pages 1314–1324, 2019.`,
+
+  `Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova. BERT: Pre-training of deep bidirectional transformers for language understanding. In Jill Burstein, Christy Doran, and Thamar Solorio, editors, <em>Proceedings of the 2019 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies, Volume 1 (Long and Short Papers)</em>, pages 4171–4186, Minneapolis, Minnesota, June 2019. Association for Computational Linguistics. doi: <a href="https://doi.org/10.18653/v1/N19-1423" target="_blank" rel="noopener">10.18653/v1/N19-1423</a>. URL <a href="https://aclanthology.org/N19-1423" target="_blank" rel="noopener">https://aclanthology.org/N19-1423</a>.`,
+
+  `Shubham Kumar Nigam, Anurag Sharma, Danush Khanna, Noel Shallum, Kripabandhu Ghosh, and Arnab Bhattacharya. Legal judgment reimagined: PredEx and the rise of intelligent AI interpretation in Indian courts. In Lun-Wei Ku, Andre Martins, and Vivek Srikumar, editors, <em>Findings of the Association for Computational Linguistics: ACL 2024</em>, pages 4296–4315, Bangkok, Thailand, August 2024. Association for Computational Linguistics. doi: <a href="https://doi.org/10.18653/v1/2024.findings-acl.255" target="_blank" rel="noopener">10.18653/v1/2024.findings-acl.255</a>. URL <a href="https://aclanthology.org/2024.findings-acl.255/" target="_blank" rel="noopener">https://aclanthology.org/2024.findings-acl.255/</a>.`,
+
+  `Omar Zaidan, Jason Eisner, and Christine Piatko. Using ”annotator rationales” to improve machine learning for text categorization. In <em>Proceedings of the conference of the North American chapter of the Association for Computational Linguistics (NAACL)</em>, pages 260–267, 2007.`,
+
+  `Jay DeYoung, Sarthak Jain, Nazneen Fatema Rajani, Eric Lehman, Caiming Xiong, Richard Socher, and Byron C. Wallace. Eraser: A benchmark to evaluate rationalized nlp models, 2019.`,
+
+  `Adrianne Jeffries and Leon Yin. Amazon puts its own “brands” first above better-rated products. <em>The Markup</em>, October 2021. URL <a href="https://themarkup.org/amazons-advantage/2021/10/14/amazon-puts-its-own-brands-first-above-better-rated-products" target="_blank" rel="noopener">https://themarkup.org/amazons-advantage/2021/10/14/amazon-puts-its-own-brands-first-above-better-rated-products</a>.`,
+
+  `Krishna Gade, Sahin Geyik, Krishnaram Kenthapadi, Varun Mithal, and Ankur Taly. Explainable ai in industry: Practical challenges and lessons learned. In <em>Companion Proceedings of the Web Conference 2020</em>, WWW ’20, page 303–304, New York, NY, USA, 2020. Association for Computing Machinery. ISBN 9781450370240. doi: <a href="https://doi.org/10.1145/3366424.3383110" target="_blank" rel="noopener">10.1145/3366424.3383110</a>. URL <a href="https://doi.org/10.1145/3366424.3383110" target="_blank" rel="noopener">https://doi.org/10.1145/3366424.3383110</a>.`,
+
+  `Arize AI. Surrogate Model. URL <a href="https://docs.arize.com/arize/machine-learning/how-to-ml/explainability/surrogate-model" target="_blank" rel="noopener">https://docs.arize.com/arize/machine-learning/how-to-ml/explainability/surrogate-model</a>. Accessed: 2024-08-02.`,
+
+  `Fiddler AI. Surrogate Models. URL <a href="https://docs.fiddler.ai/ui-guide/explainability-ui-giude/surrogate-models" target="_blank" rel="noopener">https://docs.fiddler.ai/ui-guide/explainability-ui-giude/surrogate-models</a>. Accessed 2024-08-02.`,
+
+  `Microsoft. Model interpretability - Azure Machine Learning, 2023. URL <a href="https://learn.microsoft.com/en-us/azure/machine-learning/concept-model-interpretability" target="_blank" rel="noopener">https://learn.microsoft.com/en-us/azure/machine-learning/concept-model-interpretability</a>. Accessed 2024-08-02.`,
+
+  `Lucas Monteiro Paes, Rodrigo Cruz, Flavio P. Calmon, and Mario Diaz. On the inevitability of the rashomon effect. In <em>2023 IEEE International Symposium on Information Theory (ISIT)</em>, pages 549–554, 2023. doi: <a href="https://doi.org/10.1109/ISIT54713.2023.10206657" target="_blank" rel="noopener">10.1109/ISIT54713.2023.10206657</a>.`,
+
+  `Cynthia Rudin, Chudi Zhong, Lesia Semenova, Margo Seltzer, Ronald Parr, Jiachang Liu, Srikar Katta, Jon Donnelly, Harry Chen, and Zachery Boner. Amazing things come from having many good models, 2024. URL <a href="https://arxiv.org/abs/2407.04846" target="_blank" rel="noopener">https://arxiv.org/abs/2407.04846</a>.`,
+
+  `Xavier Renard, Thibault Laugel, and Marcin Detyniecki. Understanding prediction discrepancies in classification. <em>Machine Learning</em>, Aug 2024. ISSN 1573-0565. doi: <a href="https://doi.org/10.1007/s10994-024-06557-4" target="_blank" rel="noopener">10.1007/s10994-024-06557-4</a>. URL <a href="https://doi.org/10.1007/s10994-024-06557-4" target="_blank" rel="noopener">https://doi.org/10.1007/s10994-024-06557-4</a>.`,
+
+  `Charles Marx, Flavio Calmon, and Berk Ustun. Predictive multiplicity in classification. In Hal Daumé III and Aarti Singh, editors, <em>Proceedings of the 37th International Conference on Machine Learning</em>, volume 119 of Proceedings of Machine Learning Research, pages 6765–6774. PMLR, 13–18 Jul 2020. URL <a href="https://proceedings.mlr.press/v119/marx20a.html" target="_blank" rel="noopener">https://proceedings.mlr.press/v119/marx20a.html</a>.`,
+
+  `Sebastian Müller, Vanessa Toborek, Katharina Beckh, Matthias Jakobs, Christian Bauckhage, and Pascal Welke. An empirical evaluation of the rashomon effect in explainable machine learning. In Danai Koutra, Claudia Plant, Manuel Gomez Rodriguez, Elena Baralis, and Francesco Bonchi, editors, <em>Machine Learning and Knowledge Discovery in Databases: Research Track</em>, pages 462–478, Cham, 2023. Springer Nature Switzerland. ISBN 978-3-031-43418-1.`,
+
+  `European Union. Regulation (eu) 2024/1689 of the european parliament and of the council of 13 june 2024 laying down harmonised rules on artificial intelligence and amending certain union legislative acts (artificial intelligence act). <em>Official Journal of the European Union</em>, L 202, 12 July 2024, pp. 1–241, 2024. URL <a href="https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32024R1689" target="_blank" rel="noopener">https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32024R1689</a>. OJ L 202, 12.7.2024, p. 1–241.`,
+
+  `European Union. Regulation (eu) 2022/1925 of the european parliament and of the council of 14 september 2022 on contestable and fair markets in the digital sector and amending directives (eu) 2019/1937 and (eu) 2020/1828 (digital markets act). <a href="https://eur-lex.europa.eu/eli/reg/2022/1925/oj" target="_blank" rel="noopener">https://eur-lex.europa.eu/eli/reg/2022/1925/oj</a>, 2022. OJ L 265, 12.10.2022, p. 1–66.`,
+
+  `Ribana Roscher, Bastian Bohn, Marco F. Duarte, and Jochen Garcke. Explainable machine learning for scientific insights and discoveries. <em>IEEE Access</em>, 8:42200–42216, 2020. doi: <a href="https://doi.org/10.1109/ACCESS.2020.2976199" target="_blank" rel="noopener">10.1109/ACCESS.2020.2976199</a>.`,
+
+  `Jacques A. Esterhuizen, Bryan R. Goldsmith, and Suljo Linic. Interpretable machine learning for knowledge generation in heterogeneous catalysis. <em>Nature Catalysis</em>, 5(3):175–184, Mar 2022. ISSN 2520-1158. doi: <a href="https://doi.org/10.1038/s41929-022-00744-z" target="_blank" rel="noopener">10.1038/s41929-022-00744-z</a>. URL <a href="https://doi.org/10.1038/s41929-022-00744-z" target="_blank" rel="noopener">https://doi.org/10.1038/s41929-022-00744-z</a>.`,
+
+  `Richard Dybowski. Interpretable machine learning as a tool for scientific discovery in chemistry. <em>New J. Chem.</em>, 44:20914–20920, 2020. doi: <a href="https://doi.org/10.1039/D0NJ02592E" target="_blank" rel="noopener">10.1039/D0NJ02592E</a>. URL <a href="http://dx.doi.org/10.1039/D0NJ02592E" target="_blank" rel="noopener">http://dx.doi.org/10.1039/D0NJ02592E</a>.`,
+
+  `Quinn Dickinson and Joel G. Meyer. Positional shap (poshap) for interpretation of machine learning models trained from biological sequences. <em>PLOS Computational Biology</em>, 18(1):e1009736, 2022. doi: <a href="https://doi.org/10.1371/journal.pcbi.1009736" target="_blank" rel="noopener">10.1371/journal.pcbi.1009736</a>. URL <a href="https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1009736" target="_blank" rel="noopener">https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1009736</a>.`,
+
+  `Mateusz Garbulowski, Klev Diamanti, Karolina Smolińska, Nicholas Baltzer, Patricia Stoll, Susanne Bornelöv, Aleksander Øhrn, Lars Feuk, and Jan Komorowski. R.rosetta: an interpretable machine learning framework. <em>BMC Bioinformatics</em>, 22(1):110, Mar 2021. ISSN 1471-2105. doi: <a href="https://doi.org/10.1186/s12859-021-04049-z" target="_blank" rel="noopener">10.1186/s12859-021-04049-z</a>. URL <a href="https://doi.org/10.1186/s12859-021-04049-z" target="_blank" rel="noopener">https://doi.org/10.1186/s12859-021-04049-z</a>.`,
+
+  `Chukwuebuka Joseph Ejiyi, Zhen Qin, Joan Amos, Makuachukwu Bennedith Ejiyi, Ann Nnani, Thomas Ugochukwu Ejiyi, Victor Kwaku Agbesi, Chidimma Diokpo, and Chidinma Okpara. A robust predictive diagnosis model for diabetes mellitus using shapley-incorporated machine learning algorithms. <em>Healthcare Analytics</em>, 3:100166, 2023. ISSN 2772-4425. doi: <a href="https://doi.org/10.1016/j.health.2023.100166" target="_blank" rel="noopener">https://doi.org/10.1016/j.health.2023.100166</a>. URL <a href="https://www.sciencedirect.com/science/article/pii/S2772442523000333" target="_blank" rel="noopener">https://www.sciencedirect.com/science/article/pii/S2772442523000333</a>.`,
+
+  `Liangliang Hu, Xiaolin Meng, Yilin Xie, Craig Hancock, George Ye, and Yan Bao. Examination of load-deformation characteristics of long-span bridges in harsh natural environments based on real-time updating artificial neural network. <em>Engineering Structures</em>, 308:118022, 2024. ISSN 0141-0296. doi: <a href="https://doi.org/10.1016/j.engstruct.2024.118022" target="_blank" rel="noopener">https://doi.org/10.1016/j.engstruct.2024.118022</a>. URL <a href="https://www.sciencedirect.com/science/article/pii/S0141029624005844" target="_blank" rel="noopener">https://www.sciencedirect.com/science/article/pii/S0141029624005844</a>.`,
+
+  `Qiming Fu, Tao Xu, Chenggong He, Daomiao Wang, Meiling Liu, and Chao Liu. Machine learning-assisted study of ren(x)c(6-x)-doped graphene as potential electrocatalysts for oxygen electrode reactions. <em>Langmuir</em>, 40(20):10726–10736, 2024. doi: <a href="https://doi.org/10.1021/acs.langmuir.4c00803" target="_blank" rel="noopener">10.1021/acs.langmuir.4c00803</a>. Epub 2024 May 8.`,
+
+  `Gian Maria Campedelli. Explainable machine learning for predicting homicide clearance in the united states. <em>Journal of Criminal Justice</em>, 79:101898, 2022. ISSN 0047-2352. doi: <a href="https://doi.org/10.1016/j.jcrimjus.2022.101898" target="_blank" rel="noopener">https://doi.org/10.1016/j.jcrimjus.2022.101898</a>. URL <a href="https://www.sciencedirect.com/science/article/pii/S0047235222000186" target="_blank" rel="noopener">https://www.sciencedirect.com/science/article/pii/S0047235222000186</a>.`,
+
+  `Xinyi Niu, Chengpeng Lu, Ying Zhang, Yong Zhang, Chengcheng Wu, Ebrima Saidy, Bo Liu, and Longcang Shu. Hysteresis response of groundwater depth on the influencing factors using an explainable learning model framework with shapley values. <em>Science of The Total Environment</em>, 904:166662, 2023. ISSN 0048-9697. doi: <a href="https://doi.org/10.1016/j.scitotenv.2023.166662" target="_blank" rel="noopener">https://doi.org/10.1016/j.scitotenv.2023.166662</a>. URL <a href="https://www.sciencedirect.com/science/article/pii/S0048969723052877" target="_blank" rel="noopener">https://www.sciencedirect.com/science/article/pii/S0048969723052877</a>.`,
+
+  `Andrés Cremades, Sergio Hoyas, Rahul Deshpande, Pedro Quintero, Martin Lellep, Will Junghoon Lee, Jason P. Monty, Nicholas Hutchins, Moritz Linkmann, Ivan Marusic, and Ricardo Vinuesa. Identifying regions of importance in wall-bounded turbulence through explainable deep learning. <em>Nature Communications</em>, 15(1):3864, May 2024. ISSN 2041-1723. doi: <a href="https://doi.org/10.1038/s41467-024-47954-6" target="_blank" rel="noopener">10.1038/s41467-024-47954-6</a>. URL <a href="https://doi.org/10.1038/s41467-024-47954-6" target="_blank" rel="noopener">https://doi.org/10.1038/s41467-024-47954-6</a>.`,
+
+  `Zhen Sun, João Santos, Elsa Caetano, and Catarina Oliveira. Interpreting cumulative displacement in a suspension bridge with a physics-based characterisation of environment and roadway/railway loads. <em>Journal of Civil Structural Health Monitoring</em>, 13(2):387–397, Mar 2023. ISSN 2190-5479. doi: <a href="https://doi.org/10.1007/s13349-022-00647-4" target="_blank" rel="noopener">10.1007/s13349-022-00647-4</a>. URL <a href="https://doi.org/10.1007/s13349-022-00647-4" target="_blank" rel="noopener">https://doi.org/10.1007/s13349-022-00647-4</a>.`,
+
+  `Shuo Wang, Tianzhuo Zhang, Ziheng Li, and Jinglan Hong. Exploring pollutant joint effects in disease through interpretable machine learning. <em>Journal of Hazardous Materials</em>, 467:133707, 2024. ISSN 0304-3894. doi: <a href="https://doi.org/10.1016/j.jhazmat.2024.133707" target="_blank" rel="noopener">https://doi.org/10.1016/j.jhazmat.2024.133707</a>. URL <a href="https://www.sciencedirect.com/science/article/pii/S0304389424002863" target="_blank" rel="noopener">https://www.sciencedirect.com/science/article/pii/S0304389424002863</a>.`,
+
+  `Zicheng Cao, Zekai Qiu, Feng Tang, Shiwen Liang, Yinghan Wang, Haoyu Long, Cai Chen, Bing Zhang, Chi Zhang, Yaqi Wang, Kang Tang, Jing Tang, Junhong Chen, Chunhui Yang, Yuzhe Xu, Yulin Yang, Shenglan Xiao, Dechao Tian, Guozhi Jiang, and Xiangjun Du. Drivers and forecasts of multiple waves of the coronavirus disease 2019 pandemic: A systematic analysis based on an interpretable machine learning framework. <em>Transboundary and Emerging Diseases</em>, 69(5):e1584–e1594, Sep 2022. doi: <a href="https://doi.org/10.1111/tbed.14492" target="_blank" rel="noopener">10.1111/tbed.14492</a>. URL <a href="https://doi.org/10.1111/tbed.14492" target="_blank" rel="noopener">https://doi.org/10.1111/tbed.14492</a>. Epub 2022 Mar 13.`,
+
+  `Xinyuan Cao, Jisi Huang, Kexin Du, Yawen Tian, Zhixin Hu, Zhu Luo, Jinlong Wang, and Yanbing Guo. Machine-learning-assisted descriptors identification for indoor formaldehyde oxidation catalysts. <em>Environmental Science &amp; Technology</em>, 58(19):8372–8379, 2024. doi: <a href="https://doi.org/10.1021/acs.est.4c01691" target="_blank" rel="noopener">10.1021/acs.est.4c01691</a>. Epub 2024 May 1.`,
+
+  `Ruikun Gou, Jinshu Chi, Jiangong Liu, Yunpeng Luo, Ankit Shekhar, Lidong Mo, and Guanghui Lin. Atmospheric water demand constrains net ecosystem production in subtropical mangrove forests. <em>Journal of Hydrology</em>, 630:130651, 2024. ISSN 0022-1694. doi: <a href="https://doi.org/10.1016/j.jhydrol.2024.130651" target="_blank" rel="noopener">https://doi.org/10.1016/j.jhydrol.2024.130651</a>. URL <a href="https://www.sciencedirect.com/science/article/pii/S0022169424000453" target="_blank" rel="noopener">https://www.sciencedirect.com/science/article/pii/S0022169424000453</a>.`,
+
+  `I. Elizabeth Kumar, Suresh Venkatasubramanian, Carlos Scheidegger, and Sorelle Friedler. Problems with shapley-value-based explanations as feature importance measures, 2020. URL <a href="https://arxiv.org/abs/2002.11097" target="_blank" rel="noopener">https://arxiv.org/abs/2002.11097</a>.`,
+
+  `Dominik Janzing, Lenon Minorics, and Patrick Blöbaum. Feature relevance quantification in explainable ai: A causal problem, 2019. URL <a href="https://arxiv.org/abs/1910.13413" target="_blank" rel="noopener">https://arxiv.org/abs/1910.13413</a>.`,
+
+  `Muhammad Faaiz Taufiq, Patrick Blöbaum, and Lenon Minorics. Manifold restricted interventional shapley values, 2023. URL <a href="https://arxiv.org/abs/2301.04041" target="_blank" rel="noopener">https://arxiv.org/abs/2301.04041</a>.`,
+
+  `Leland Gerson Neuberg. Causality: Models, reasoning, and inference, by judea pearl, cambridge university press, 2000. <em>Econometric Theory</em>, 19(4):675–685, 2003. doi: <a href="https://doi.org/10.1017/S0266466603004109" target="_blank" rel="noopener">10.1017/S0266466603004109</a>.`,
+
+  `Vladimir N. Vapnik. <em>Statistical Learning Theory</em>. Wiley-Interscience, 1998. ISBN 978-0-471-03003-4.`,
+
+  `European Medicines Agency and U.S. Food and Drug Administration. Guiding principles of good AI practice in drug development. Technical report, European Medicines Agency and U.S. Food and Drug Administration, January 2026. URL <a href="https://www.ema.europa.eu/en/documents/other/guiding-principles-good-ai-practice-drug-development_en.pdf" target="_blank" rel="noopener">https://www.ema.europa.eu/en/documents/other/guiding-principles-good-ai-practice-drug-development_en.pdf</a>. Principle 7: Model design and development practices.`,
+
+  `Victor Chang, Jozeene Bailey, Qianwen Ariel Xu, and Zhili Sun. Pima indians diabetes mellitus classification based on machine learning (ML) algorithms. <em>Neural Comput Appl</em>, pages 1–17, March 2022.`,
+
+  `Matthäus Kleindessner, Michele Donini, Chris Russell, and Muhammad Bilal Zafar. Efficient fair pca for fair representation learning. In <em>International Conference on Artificial Intelligence and Statistics</em>, pages 5250–5270. PMLR, 2023.`,
+
+  `Dylan Slack, Sophie Hilgard, Emily Jia, Sameer Singh, and Himabindu Lakkaraju. Fooling lime and shap: Adversarial attacks on post hoc explanation methods. In <em>Proceedings of the AAAI/ACM Conference on AI, Ethics, and Society</em>, AIES ’20, page 180–186, New York, NY, USA, 2020. Association for Computing Machinery. ISBN 9781450371100. doi: <a href="https://doi.org/10.1145/3375627.3375830" target="_blank" rel="noopener">10.1145/3375627.3375830</a>. URL <a href="https://doi.org/10.1145/3375627.3375830" target="_blank" rel="noopener">https://doi.org/10.1145/3375627.3375830</a>.`,
+
+  `Philipp Hacker. Sustainable ai regulation. <em>Common Market Law Review</em>, 61(2), 2024.`,
+
+  `Sandra Wachter. Limitations and Loopholes in the EU AI Act and AI Liability Directives: What This Means for the European Union, the United States, and Beyond. <em>Yale Journal of Law &amp; Technology</em>, 26(3), 2024. doi: <a href="https://doi.org/10.2139/ssrn.4924553" target="_blank" rel="noopener">10.2139/ssrn.4924553</a>. URL <a href="https://ssrn.com/abstract=4924553" target="_blank" rel="noopener">https://ssrn.com/abstract=4924553</a>. Available at SSRN: <a href="https://ssrn.com/abstract=4924553" target="_blank" rel="noopener">https://ssrn.com/abstract=4924553</a> or <a href="http://dx.doi.org/10.2139/ssrn.4924553" target="_blank" rel="noopener">http://dx.doi.org/10.2139/ssrn.4924553</a>.`,
+
+  `European Commission. Contents of the code of practice on generative ai. <a href="https://digital-strategy.ec.europa.eu/en/policies/contents-code-gpai" target="_blank" rel="noopener">https://digital-strategy.ec.europa.eu/en/policies/contents-code-gpai</a>, 2024. Accessed: 2025-09-10.`,
+
+  `European Court of Justice. Google LLC and Alphabet Inc v European Commission, 2024. URL <a href="https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:62022CJ0048" target="_blank" rel="noopener">https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:62022CJ0048</a>. Case C-48/22.`,
+
+  `General Court of the European Union (Ninth Chamber, Extended Composition). Google and Alphabet v. Commission (Google Shopping), 2021. URL <a href="https://curia.europa.eu/juris/document/document.jsf?text=&amp;docid=250881&amp;pageIndex=0&amp;doclang=en&amp;mode=lst&amp;dir=&amp;occ=first&amp;part=1&amp;cid=10134666" target="_blank" rel="noopener">https://curia.europa.eu/juris/document/document.jsf?text=&amp;docid=250881&amp;pageIndex=0&amp;doclang=en&amp;mode=lst&amp;dir=&amp;occ=first&amp;part=1&amp;cid=10134666</a>. Case T-612/17.`,
+
+  `U.S. Food and Drug Administration. Considerations for the use of artificial intelligence to support regulatory decision-making for drug and biological products. Draft guidance for industry and other interested parties, U.S. Food and Drug Administration, January 2025. URL <a href="https://www.fda.gov/media/184830/download" target="_blank" rel="noopener">https://www.fda.gov/media/184830/download</a>. Draft guidance; distributed for comment purposes only.`,
+
+  `U.S. Food and Drug Administration. Using artificial intelligence &amp; machine learning in the development of drug &amp; biological products. Discussion paper and request for feedback, U.S. Food and Drug Administration, February 2025. URL <a href="https://www.fda.gov/media/167973/download" target="_blank" rel="noopener">https://www.fda.gov/media/167973/download</a>. Originally published May 2023; revised February 2025.`,
+
+  `European Medicines Agency. Reflection paper on the use of artificial intelligence (AI) in the medicinal product lifecycle. Reflection Paper EMA/CHMP/CVMP/83833/2023, European Medicines Agency, September 2024. URL <a href="https://www.ema.europa.eu/en/documents/scientific-guideline/reflection-paper-use-artificial-intelligence-ai-medicinal-product-lifecycle_en.pdf" target="_blank" rel="noopener">https://www.ema.europa.eu/en/documents/scientific-guideline/reflection-paper-use-artificial-intelligence-ai-medicinal-product-lifecycle_en.pdf</a>.`,
+
+  `Ankur Taly and Kaz Sato. Monitoring feature attributions: How google saved one of the largest ml services in trouble, September 29 2021. URL <a href="https://cloud.google.com/blog/topics/developers-practitioners/monitoring-feature-attributions-how-google-saved-one-largest-ml-services-troubl" target="_blank" rel="noopener">https://cloud.google.com/blog/topics/developers-practitioners/monitoring-feature-attributions-how-google-saved-one-largest-ml-services-troubl</a> Google Cloud Blog.`,
+
+  `Jianlong Zhou and Fang Chen. <em>Human and Machine Learning: Visible, Explainable, Trustworthy and Transparent</em>. Springer Publishing Company, Incorporated, 1st edition, 2018. ISBN 3319904027.`,
+
+  `Luca Deck, Jakob Schoeffer, Maria De-Arteaga, and Niklas Kühl. A critical survey on fairness benefits of explainable ai. In <em>The 2024 ACM Conference on Fairness, Accountability, and Transparency</em>, FAccT ’24. ACM, June 2024. doi: <a href="https://doi.org/10.1145/3630106.3658990" target="_blank" rel="noopener">10.1145/3630106.3658990</a>. URL <a href="http://dx.doi.org/10.1145/3630106.3658990" target="_blank" rel="noopener">http://dx.doi.org/10.1145/3630106.3658990</a>.`,
+
+  `Andrea Saltelli, Marco Ratto, Stefano Tarantola, and Francesca Campolongo. Sensitivity analysis for chemical models. <em>Chemical Reviews</em>, 105(7):2811–2828, 2005. doi: <a href="https://doi.org/10.1021/cr040659d" target="_blank" rel="noopener">10.1021/cr040659d</a>. URL <a href="https://doi.org/10.1021/cr040659d" target="_blank" rel="noopener">https://doi.org/10.1021/cr040659d</a>. PMID: 16011325.`,
+
+  `H Rabitz, M Kramer, and D Dacol. Sensitivity analysis in chemical kinetics. <em>Annual Review of Physical Chemistry</em>, 34(Volume 34, 1983):419–461, 1983. ISSN 1545-1593. doi: <a href="https://doi.org/10.1146/annurev.pc.34.100183.002223" target="_blank" rel="noopener">https://doi.org/10.1146/annurev.pc.34.100183.002223</a>. URL <a href="https://www.annualreviews.org/content/journals/10.1146/annurev.pc.34.100183.002223" target="_blank" rel="noopener">https://www.annualreviews.org/content/journals/10.1146/annurev.pc.34.100183.002223</a>.`,
+
+  `Richard H. McCuen. The role of sensitivity analysis in hydrologic modeling. <em>Journal of Hydrology</em>, 18(1):37–53, 1973. ISSN 0022-1694. doi: <a href="https://doi.org/10.1016/0022-1694(73)90024-3" target="_blank" rel="noopener">https://doi.org/10.1016/0022-1694(73)90024-3</a>. URL <a href="https://www.sciencedirect.com/science/article/pii/0022169473900243" target="_blank" rel="noopener">https://www.sciencedirect.com/science/article/pii/0022169473900243</a>.`,
+
+  `Linda Lilburne and Stefano Tarantola. Sensitivity analysis of spatial models. <em>International Journal of Geographical Information Science</em>, 23(2):151–168, 2009. doi: <a href="https://doi.org/10.1080/13658810802094995" target="_blank" rel="noopener">10.1080/13658810802094995</a>. URL <a href="https://doi.org/10.1080/13658810802094995" target="_blank" rel="noopener">https://doi.org/10.1080/13658810802094995</a>.`,
+
+  `Hans B. Nielsen. Sensitivity analysis in linear systems (assem deif). <em>SIAM Review</em>, 31:706–707, 1989. doi: <a href="https://doi.org/10.1137/1031159" target="_blank" rel="noopener">10.1137/1031159</a>. URL <a href="https://doi.org/10.1137/1031159" target="_blank" rel="noopener">https://doi.org/10.1137/1031159</a>.`,
+
+  `Richard Meyes, Melanie Lu, Constantin Waubert de Puiseau, and Tobias Meisen. Ablation studies in artificial neural networks. <em>CoRR</em>, abs/1901.08644, 2019. URL <a href="http://arxiv.org/abs/1901.08644" target="_blank" rel="noopener">http://arxiv.org/abs/1901.08644</a>.`,
+
+  `B. Pegourie, J.-M. Picchiottino, H.-W. Drawin, A. Geraud, and M. Chatelier. Pellet ablation studies on tore supra. <em>Nuclear Fusion</em>, 33(4):591, apr 1993. doi: <a href="https://doi.org/10.1088/0029-5515/33/4/I06" target="_blank" rel="noopener">10.1088/0029-5515/33/4/I06</a>. URL <a href="https://dx.doi.org/10.1088/0029-5515/33/4/I06" target="_blank" rel="noopener">https://dx.doi.org/10.1088/0029-5515/33/4/I06</a>.`,
+
+  `Michael Keidar, Iain D. Boyd, Anthony Williams, and Richard Beyer. Ablation study in a capillary sustained discharge. <em>IEEE Transactions on Magnetics</em>, 43(1):308–312, 2007. doi: <a href="https://doi.org/10.1109/TMAG.2006.887672" target="_blank" rel="noopener">10.1109/TMAG.2006.887672</a>.`,
+
+  `Arnon Rosenthal. The gdnf protein familygene ablation studies reveal what they really do and how. <em>Neuron</em>, 22(2):201–203, 1999. ISSN 0896-6273. doi: <a href="https://doi.org/10.1016/S0896-6273(00)81077-6" target="_blank" rel="noopener">https://doi.org/10.1016/S0896-6273(00)81077-6</a>. URL <a href="https://www.sciencedirect.com/science/article/pii/S0896627300810776" target="_blank" rel="noopener">https://www.sciencedirect.com/science/article/pii/S0896627300810776</a>.`,
+
+  `Elisabeth A. Murray. What have ablation studies told us about the neural substrates of stimulus memory? <em>Seminars in Neuroscience</em>, 8(1):13–22, 1996. ISSN 1044-5765. doi: <a href="https://doi.org/10.1006/smns.1996.0003" target="_blank" rel="noopener">https://doi.org/10.1006/smns.1996.0003</a>. URL <a href="https://www.sciencedirect.com/science/article/pii/S1044576596900032" target="_blank" rel="noopener">https://www.sciencedirect.com/science/article/pii/S1044576596900032</a>.`,
+
+  `Been Kim, Martin Wattenberg, Justin Gilmer, Carrie Cai, James Wexler, Fernanda Viegas, and Rory sayres. Interpretability beyond feature attribution: Quantitative testing with concept activation vectors (TCAV). In Jennifer Dy and Andreas Krause, editors, <em>Proceedings of the 35th International Conference on Machine Learning</em>, volume 80 of Proceedings of Machine Learning Research, pages 2668–2677. PMLR, 10–15 Jul 2018. URL <a href="https://proceedings.mlr.press/v80/kim18d.html" target="_blank" rel="noopener">https://proceedings.mlr.press/v80/kim18d.html</a>.`,
+
+  `Rishabh Agarwal, Levi Melnick, Nicholas Frosst, Xuezhou Zhang, Ben Lengerich, Rich Caruana, and Geoffrey E Hinton. Neural additive models: Interpretable machine learning with neural nets. <em>Advances in neural information processing systems</em>, 34:4699–4711, 2021.`,
+
+  `Chirag Agarwal, Satyapriya Krishna, Eshika Saxena, Martin Pawelczyk, Nari Johnson, Isha Puri, Marinka Zitnik, and Himabindu Lakkaraju. Openxai: towards a transparent evaluation of post hoc model explanations. In <em>Proceedings of the 36th International Conference on Neural Information Processing Systems</em>, NIPS ’22, Red Hook, NY, USA, 2024. Curran Associates Inc. ISBN 9781713871088.`,
+
+  `Sandra Wachter, Brent Mittelstadt, and Luciano Floridi. Why a right to explanation of automated decision-making does not exist in the general data protection regulation. <em>International data privacy law</em>, 7(2):76–99, 2017.`,
+
+  `Andrew D Mitchell, Dominic Let, and Lingxi Tang. Ai regulation and the protection of source code. <em>International Journal of Law and Information Technology</em>, 31(4):283–301, 2023.`,
+
+  `David Hartmann, José Renato Laranjeira de Pereira, Chiara Streitbörger, and Bettina Berendt. Addressing the regulatory gap: moving towards an eu ai audit ecosystem beyond the ai act by including civil society. <em>AI and Ethics</em>, pages 1–22, 2024.`,
+
+  `Stephen Casper, Carson Ezell, Charlotte Siegmann, Noam Kolt, Taylor Lynn Curtis, Benjamin Bucknall, Andreas Haupt, Kevin Wei, Jérémy Scheurer, Marius Hobbhahn, et al. Black-box access is insufficient for rigorous ai audits. In <em>The 2024 ACM Conference on Fairness, Accountability, and Transparency</em>, pages 2254–2272, 2024.`,
+
+  `Sandra Wachter, Brent Mittelstadt, and Chris Russell. Why fairness cannot be automated: Bridging the gap between eu non-discrimination law and ai. <em>Computer Law &amp; Security Review</em>, 41:105567, 2021.`,
+
+  `Sandra Wachter. The theory of artificial immutability: Protecting algorithmic groups under anti-discrimination law. <em>Tul. L. Rev.</em>, 97:149, 2022.`,
+
+  `European Union. Regulation (eu) 2022/2065 of the european parliament and of the council of 19 october 2022 on a single market for digital services and amending directive 2000/31/ec (digital services act). <em>Official Journal of the European Union</em>, 10 2022. URL <a href="https://eur-lex.europa.eu/eli/reg/2022/2065/oj" target="_blank" rel="noopener">https://eur-lex.europa.eu/eli/reg/2022/2065/oj</a>. OJ L 277, 27.10.2022, p. 1–102.`,
+
+  `United States District Court for the District of Columbia. United States of America et al. v. Google LLC, 2024. Case pending.`,
+
+  `Benjamin Warner, Antoine Chaffin, Benjamin Clavié, Orion Weller, Oskar Hallström, Said Taghadouini, Alexis Gallagher, Raja Biswas, Faisal Ladhak, Tom Aarsen, Nathan Cooper, Griffin Adams, Jeremy Howard, and Iacopo Poli. Smarter, better, faster, longer: A modern bidirectional encoder for fast, memory efficient, and long context finetuning and inference, 2024. URL <a href="https://arxiv.org/abs/2412.13663" target="_blank" rel="noopener">https://arxiv.org/abs/2412.13663</a>.`,
+
+  `Takaya Saito and Marc Rehmsmeier. The precision-recall plot is more informative than the ROC plot when evaluating binary classifiers on imbalanced datasets. <em>PLoS One</em>, 10(3):e0118432, March 2015.`,
+
+  `Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova. BERT: Pre-training of deep bidirectional transformers for language understanding. In Jill Burstein, Christy Doran, and Thamar Solorio, editors, <em>Proceedings of the 2019 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies, Volume 1 (Long and Short Papers)</em>, pages 4171–4186, Minneapolis, Minnesota, June 2019. Association for Computational Linguistics. doi: <a href="https://doi.org/10.18653/v1/N19-1423" target="_blank" rel="noopener">10.18653/v1/N19-1423</a>. URL <a href="https://aclanthology.org/N19-1423/" target="_blank" rel="noopener">https://aclanthology.org/N19-1423/</a>.`,
+
+  `Jeff Larson, Surya Mattu, Lauren Kirchner, and Julia Angwin. How we analyzed the compas recidivism algorithm, May 2016. URL <a href="https://www.propublica.org/article/how-we-analyzed-the-compas-recidivism-algorithm" target="_blank" rel="noopener">https://www.propublica.org/article/how-we-analyzed-the-compas-recidivism-algorithm</a>.`,
+
+  `Michael Redmond. Communities and Crime. <em>UCI Machine Learning Repository</em>, 2002. DOI: <a href="https://doi.org/10.24432/C53W3X" target="_blank" rel="noopener">https://doi.org/10.24432/C53W3X</a>.`,
+
+  `Hans Hofmann. Statlog (German Credit Data). <em>UCI Machine Learning Repository</em>, 1994. DOI: <a href="https://doi.org/10.24432/C5NC77" target="_blank" rel="noopener">https://doi.org/10.24432/C5NC77</a>.`,
+
+  `Yuji Ikeda. yuzie007/mpltern: 1.0.4. <em>Zenodo</em>, 2024. URL <a href="https://doi.org/10.5281/zenodo.11068993" target="_blank" rel="noopener">https://doi.org/10.5281/zenodo.11068993</a>. Version 1.0.4.`,
+
+  `J. D. Hunter. Matplotlib: A 2d graphics environment. <em>Computing in Science &amp; Engineering</em>, 9(3):90–95, 2007. doi: <a href="https://doi.org/10.1109/MCSE.2007.55" target="_blank" rel="noopener">10.1109/MCSE.2007.55</a>.`,
+];
+---
+
+<section class="section" id="references">
+  <h2>References</h2>
+  <ol class="references">
+    {refs.map((ref, i) => (
+      <li id={`ref-${i + 1}`}><span set:html={ref} /></li>
+    ))}
+  </ol>
+</section>

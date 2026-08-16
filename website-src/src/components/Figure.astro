@@ -1,0 +1,17 @@
+---
+interface Props {
+  id?: string;
+  label: string; // e.g. "Figure 1"
+  caption: string; // full caption after the label, as HTML
+}
+
+const { id, label, caption } = Astro.props;
+---
+
+<figure class="paper-figure" {id}>
+  <slot />
+  <figcaption>
+    <span class="caption-label">{label}:</span>{" "}
+    <span set:html={caption} />
+  </figcaption>
+</figure>

@@ -1,0 +1,59 @@
+---
+const rot = `<span class="rot">RoT</span>`;
+---
+
+<section class="section" id="appendix-c">
+  <h2><span class="sec-num">C</span> XAI for Regulation and Auditing</h2>
+
+  <p>
+    Enforcement of existing AI regulation often falters due to a lack of
+    evidence, stemming from weak or missing requirements for transparency and
+    model access for regulators, third-party auditors, and researchers
+    [81–83]. Gathering sufficient evidence of potentially illegal model
+    behaviour is highly difficult without full API access that would allow
+    regulators to feed the model data to evaluate its responses or oversee
+    model outputs holistically [84–86]. By working without model call access
+    and requiring only observations of prior model outputs or predictions,
+    <span class="rot">RoT</span> can bypass significant barriers to regulatory enforceability created
+    by trade secrecy and confidentiality. <span class="rot">RoT</span> thus democratizes access to
+    explaining and auditing AI systems. This is crucial because strong
+    provisions enabling access or auditing by third parties (e.g., civil
+    society organizations, vetted researchers) are uncommon in AI regulation,
+    with Article 40 of the EU Digital Services Act being a rare exception
+    [58, 87].
+  </p>
+
+  <p>
+    While Article 74(13) grants market surveillance authorities access to the
+    source code of a high-risk AI system under a limited set of circumstances
+    <a class="footnote-ref" href="#fn6">6</a>, Article 74(12) grants market
+    surveillance authorities access to the training, validation, and testing
+    datasets to carry out investigations into these systems. Importantly, this
+    is limited to dataset access, and normally does not include full model
+    access or enable regulators to feed new data to a model to check its
+    responses <a class="footnote-ref" href="#fn7">7</a>. <span class="rot">RoT</span> offers a clear
+    advantage over other methods in this regard because it can compute accurate
+    explanations using only these datasets, while others require full API
+    access or training a mimic model.
+  </p>
+
+  <p>
+    <span class="rot">RoT</span> can also be used to identify anti-competitive practices and prevent
+    self-preferencing. By explaining model predictions and recommendations,
+    <span class="rot">RoT</span> can be used to infer “how” a digital service makes certain
+    recommendations or “why” it behaves in a certain way. Competition law,
+    however, does not always require establishing causality. A recent case
+    against Google in the United States has shown, for example, that proving
+    the mere existence of anti-competitive conditions is sufficient to show the
+    law has been breached [88]. In this context, even if specific instances of
+    this behaviour in a production environment (e.g., actual transactions with
+    customers) cannot be shown due to a lack of access to model outputs, <span class="rot">RoT</span>
+    can demonstrate that a model displays anti-competitive behaviour. <span class="rot">RoT</span> can
+    help demonstrate that model behaviour is likely to contravene the
+    competition law prohibitions, and thus assist in the enforcement of
+    competition law. Unlike measuring the sensitivity of mimic models, <span class="rot">RoT</span>
+    makes no causal assumptions and thus its ability to predict behaviour of
+    models directly makes it a stronger tool to demonstrate potentially
+    discriminatory behaviour.
+  </p>
+</section>

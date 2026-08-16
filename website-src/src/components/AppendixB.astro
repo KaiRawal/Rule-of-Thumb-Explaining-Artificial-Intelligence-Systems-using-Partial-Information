@@ -1,0 +1,210 @@
+---
+import Equation from "./Equation.astro";
+
+const rot = `<span class="rot">RoT</span>`;
+---
+
+<section class="section" id="appendix-b">
+  <h2><span class="sec-num">B</span> RoT Implementation Details</h2>
+
+  <p>
+    Recall our formulation from <a href="#eq2">Equation 2</a>. In all
+    experiments, we treat ℓ as the log loss, and F as the sigmoid function,
+    arriving at an objective similar to logistic regression. We consider three
+    variants of the importance function f<sub>θj</sub>(x<sub>j</sub>).
+  </p>
+
+  <p>The linear form</p>
+
+  <Equation
+    id="eq-s1"
+    label="S1"
+    tex="f_{\theta_j}(x_j) = a_j(x_j + b_j)"
+  />
+
+  <p>A more general additive form consisting of a linear form plus a mixture of Gaussians</p>
+
+  <Equation
+    id="eq-s2"
+    label="S2"
+    tex="f_{\theta_j}(x_j) = a_j(x_j + b_j) + \sum_{i < I} S_{i,j}\, e^{-\frac{(x_j - \mu_{i,j})^2}{\sigma_{i,j}}}"
+  />
+
+  <p>
+    While we explored the use of other additive models including polynomial
+    kernels and the double exponentiated form proposed in [79], the mixture of
+    Gaussians combined with a linear term, showed better stability, and
+    robustness to extreme values.
+  </p>
+
+  <p>
+    And finally, for explaining the behaviour of text-based classifiers, such
+    as ChatGPT for zero-shot classification, we use a linear form shared over
+    all tokens
+  </p>
+
+  <Equation
+    id="eq-s3"
+    label="S3"
+    tex="f_{\theta_j}(x_j) = a \cdot x_j + b"
+  />
+
+  <p>
+    Here x<sub>j</sub> is now a vector representing the text embedding taken
+    from a model such as BERT, and a and b are common parameters shared over all
+    token locations j ∈ J. Based on this, we provide two canonical
+    implementations of <span class="rot">RoT</span>. One uses dropout on the features and a simple
+    linear model to learn classifier logits or regression outputs using either
+    cross entropy or mean squared error loss, and the other uses text
+    embeddings, performing dropout on both embedding features and tokens, to
+    explain zero shot classification tasks.
+  </p>
+
+  <p>
+    Our experiments were performed on a MacBook with 24 GB memory and an Apple
+    M4 Pro Processor. All the code used for our experiments will be made
+    public. We also plan to make <span class="rot">RoT</span> available for the community as an
+    open-source software package. We make use of existing implementations of
+    explainers such as SHAP [8] and LIME [1], other open sourced data and
+    models [10, 13, 17, 20], and evaluation benchmarks and code [56, 80]
+    previously released by the community.
+  </p>
+
+  <h3><span class="sec-num">B.1</span> Derivation</h3>
+
+  <p>
+    We wish to explain the behavior of a model C(·), over an empiric data
+    distribution X. Given a data-point, x ∈ X , we use x<sub>j</sub> to refer
+    to the j<sup>th</sup> component of the feature vector of x. We define our
+    explanations as a set of functions, similarly indexed by j, and refer to
+    f<sub>j</sub>(x<sub>j</sub>) as the importance of x<sub>j</sub>. Given an
+    arbitrary subset of features J ⊆ J over a data-point x, we wish to be able
+    make predictions about the model response C(x) using only the sum of
+    importance weights Σ<sub>j∈J</sub> f<sub>j</sub>(x<sub>j</sub>)
+  </p>
+
+  <p>
+    In this way, we wish to be able to make a prediction about the model
+    response C(x) using incomplete information about the feature vector of x,
+    where only j ∈ J of the feature values are known. The f<sub>j</sub>(x<sub>j</sub>)
+    individually serve as feature importances, and when summed are used to
+    predict the model output.
+  </p>
+
+  <h4>B.1.1 Formulating Explanations from Incomplete Information</h4>
+
+  <p>
+    We give a general formulation suitable both for modelling discrete
+    decisions using a logistic regression approximation, and for modelling
+    continuous regression tasks using a linear regression approximation. In
+    practice, these can be replaced with any additive model.
+  </p>
+
+  <p>
+    The functions f<sub>j</sub> are parameterized by weights θ<sub>j</sub> and
+    the model is approximated by a function F of their sum and a global bias
+    term G. Recall that we want to find the optimal set of additive functions f
+    such that for any data point x ∈ X and arbitrary subset of features J we can
+    approximate C(x).
+  </p>
+
+  <Equation
+    id="eq-s4"
+    label="S4"
+    tex="C(x) \approx F\left( \sum_{j \in J} f_{\theta_j}(x_j) + G \right) \quad \forall J \in \mathcal{P}(\mathbb{J})"
+  />
+
+  <p>
+    As mentioned above, we use the linear and logistic approximations of C(·),
+    in which f<sub>θj</sub>(x<sub>j</sub>) = a<sub>j</sub>x<sub>j</sub> + b<sub>j</sub>.
+    In the case of linear regression F is the identity function, whereas for
+    logistic regression F is the logistic function σ.
+  </p>
+
+  <p>For regression models, this yields:</p>
+
+  <Equation
+    id="eq-s5"
+    label="S5"
+    tex="C(x) \approx \sum_{j \in J} (a_j x_j + b_j) + G \quad \forall J \in \mathcal{P}(\mathbb{J})"
+  />
+
+  <p>and for classification this yields:</p>
+
+  <Equation
+    id="eq-s6"
+    label="S6"
+    tex="C(x) \approx \sigma\left( \sum_{j \in J} (a_j x_j + b_j) + G \right) \quad \forall J \in \mathcal{P}(\mathbb{J})"
+  />
+
+  <p>
+    For regression models, we minimise the mean squared error, further
+    simplifying <a href="#eq-s5">equation S5</a>. The per feature bias term
+    b<sub>j</sub> can disregarded if the mean of every feature j is 0, and the
+    global bias term becomes equal to the mean model response C(x).
+  </p>
+
+  <p>
+    For classification models, we maximize the likelihood by marginalising
+    over a distribution of randomly sampled features. We seek the values of
+    θ<sub>j</sub> that minimize the expected loss L[·, ·] (typically
+    cross-entropy error) over all subsets of features J ⊆ J and data-points x ∈
+    X.
+  </p>
+
+  <Equation
+    id="eq-s7"
+    label="S7"
+    tex="\min \sum_{J \subseteq \mathbb{J}} \left( p^{|J|}(1-p)^{(|\mathbb{J}|-|J|)} \cdot \sum_{x \in X} \mathbb{L}\left[ C(x), \sigma\left( \sum_{j \in J} f_{\theta_j}(x_j) + G \right) \right] \right)"
+  />
+
+  <p>
+    Like the formulation of SHAP, this objective is exponentially large with
+    respect to the feature space. However, a key difference that allows us
+    solve it effectively is that the number of function calls to C is equal to
+    the number of data points |X|, and completely independent of the feature
+    space J. By commuting this is equivalent to
+  </p>
+
+  <Equation
+    id="eq-s8"
+    label="S8"
+    tex="\min \sum_{x \in X} \sum_{J \subseteq \mathbb{J}} \left( p^{|J|}(1-p)^{(|\mathbb{J}|-|J|)} \cdot \mathbb{L}\left[ C(x), \sigma\left( \sum_{j \in J} f_{\theta_j}(x_j) + G \right) \right] \right)"
+  />
+
+  <p>
+    Upon careful inspection, this is equivalent to performing dropout with
+    probability p [14] on the initial approximation model σ(Σ<sub>j∈J</sub>
+    f<sub>θj</sub>(x<sub>j</sub>) + G). This allows us to directly find the
+    weights θ<sub>j</sub> (recall we defined f<sub>θj</sub> = a<sub>j</sub>x<sub>j</sub>
+    + b<sub>j</sub>) and G using stochastic optimization by treating this as a
+    regression problem regulated by dropout. Implementation of the method is
+    straightforward, with the only subtlety to be aware of is that the weights
+    and biases should be zero-initialized to avoid problems with vanishing
+    gradients in the logistic regression loss.
+  </p>
+
+  <h4>B.1.2 Uniqueness and Stability</h4>
+
+  <p>
+    Each component of the objective defined in <a href="#eq-s8">equation (S8)</a>
+    is convex. As such, if for every estimated variable there exists a strictly
+    convex component containing that variable, the problem as a whole is
+    strictly convex. Therefore, the overall objective has a unique minimum
+    provided the individual functions f<sub>θj</sub>(·) are well-posed and
+    strictly convex with each function having a single minimum associated with
+    it.
+  </p>
+
+  <h4>B.1.3 From Approximation Model Weights to Interpretable Feature Attributions</h4>
+
+  <p>
+    The optimization procedure returns a set of functions f<sub>θj</sub> that
+    then need to be applied to each feature. The response f<sub>θj</sub>(x<sub>j</sub>)
+    can be directly interpreted as a signed measure of the importance of feature
+    j on data-point x. For logistic regression, the sum Σ<sub>j∈J</sub>
+    f<sub>θj</sub>(x<sub>j</sub>) can be directly interpreted as probability in
+    logit space of the classifier response C(x); while for linear regression the
+    same sum is an estimate of the model prediction C(x).
+  </p>
+</section>

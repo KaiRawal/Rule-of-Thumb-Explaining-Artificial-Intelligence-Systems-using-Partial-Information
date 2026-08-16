@@ -1,0 +1,595 @@
+---
+import Figure from "./Figure.astro";
+import Table from "./Table.astro";
+
+const rot = `<span class="rot">RoT</span>`;
+const red = `<span class="red">red</span>`;
+const green = `<span class="green">green</span>`;
+const pink = `<span class="magenta">pink</span>`;
+const teal = `<span class="teal">green</span>`;
+
+const resultsUrl =
+  "https://kairawal.github.io/Rule-of-Thumb-Explaining-Artificial-Intelligence-Systems-using-Partial-Information/JudicialCaseOutcomePrediction/Code/results.html";
+---
+
+<!-- ============ SECTION 3 : EXPERIMENTS ============ -->
+<section class="section" id="s3">
+  <h2><span class="sec-num">3.</span> Experiments</h2>
+
+  <p>
+    Explanations obtained through sensitivity-based XAI techniques often serve
+    as an aid for users and developers in understanding and debugging model
+    behaviour. However, they fall short in key emerging application areas: zero
+    shot classification with LLMs, auditing black-box AI, and scientific
+    discovery using AI. <span class="rot">RoT</span> confers key advantages here: it can be used even
+    if models are slow, expensive, accessible only via API, or inaccessible for
+    additional inferences entirely. It can generate model explanations using
+    input and non-input features, allowing explanations to supplement inputs
+    with other data to explain model behaviour. Finally, <span class="rot">RoT</span> makes no causal
+    assumptions and is invulnerable to adversarial attacks that make other
+    explainers ill-suited to proposing scientific hypotheses or auditing
+    black-box systems.
+  </p>
+
+  <p>
+    Compared to SHAP, <span class="rot">RoT</span> reveals how informative it is to know on average,
+    that a feature takes a certain value, while SHAP reveals the average change
+    that occurs upon altering a feature to a certain value from its mean. This
+    is valuable because it allows us to visualise <span class="rot">RoT</span> explanations using the
+    same familiar plots as SHAP explanations (eg. the force-plots in{" "}
+    <a href="#fig3">Figure 3</a>).
+    This relationship makes SHAP a natural basis for experimental comparisons
+    with <span class="rot">RoT</span>.
+  </p>
+</section>
+
+<!-- ============ SECTION 3.1 : LLMS ============ -->
+<section class="section" id="s3-1">
+  <h3><span class="sec-num">3.1</span> Model Evaluation and Zero-Shot Classification with LLMs</h3>
+
+  <p>
+    LLMs are often used for zero-shot classification when there is no labelled
+    dataset to train a classifier model. For each datapoint, an LLM is prompted
+    to output a classification. Since there are no target labels to compare
+    predictions with, typical model performance metrics such as accuracy,
+    precision or recall cannot be readily computed. XAI offers a complementary
+    path to performance evaluation, allowing us to inspect and verify that the
+    “correct” features are predictive of the model’s behaviour.
+  </p>
+
+  <p>
+    A key challenge is that new predictions can be difficult to obtain for
+    arbitrarily modified model inputs. When using commercial models, this
+    manifests as increased costs (by default, SHAP requires 500 additional API
+    calls to explain a single API prediction, while LIME requires 5000). Even
+    with an open source model, this causes explanations to be prohibitively slow
+    to compute. By contrast <span class="rot">RoT</span> does not require additional API calls for
+    explanation. To improve <span class="rot">RoT</span>’s predictive power on text, we generate per
+    token embeddings and treat these as features, performing dropout at the
+    token level.
+  </p>
+
+  <Figure
+    id="fig4"
+    label="Figure 4"
+    caption={`<span class="caption-lead">Token level explanations for zero-shot text classification with LLMs.</span> A judicial appeal is rejected by an AI system (fine-tuned RoBERTa LLM)[17] making zero-shot predictions. This prediction is explained by ${rot} and SHAP, with more important text segments highlighted with a deeper colour. Human annotation of the segments is indicated in bold, and aligns better with ${rot} than with SHAP. We present abridged texts here, with unabridged results from ${rot}, SHAP, LIME, and Integrated Gradients presented in Figures S2, S3, S4, S5, and S6.`}
+  >
+    <div class="fig-grid cols-2">
+      <div class="fig-item">
+        <img src="figures/fig4/rot_abridged.svg" alt="A datapoint with text segments highlighted as per RoT importances" loading="lazy" />
+        <div class="subcap">(a) A datapoint with text segments highlighted as per <span class="rot">RoT</span> importances</div>
+      </div>
+      <div class="fig-item">
+        <img src="figures/fig4/shap_abridged.svg" alt="The same datapoint with segments highlighted as per SHAP importances" loading="lazy" />
+        <div class="subcap">(b) The same datapoint with segments highlighted as per SHAP importances</div>
+      </div>
+    </div>
+  </Figure>
+
+  <Table
+    id="tbl1"
+    label="Table 1"
+    caption={`<span class="caption-lead">Measuring alignment between human annotations and token explanations.</span> For legal case outcomes predicted by an LLM[17], binary annotations indicate which text segments from the judgement are important. Token importance explanations from an explainer can be considered to “predict” these annotations, which we evaluate using the area under the receiver-operating-characteristic curve, weighted by the length per evaluated text segment. ${rot} and SHAP explanations are the most aligned with human annotations.`}
+  >
+    <table class="paper-table">
+      <thead>
+        <tr>
+          <th class="l"></th>
+          <th><span class="rot">RoT</span></th>
+          <th>SHAP (default 500 samples)</th>
+          <th>Integrated Gradients</th>
+          <th>LIME (default 5000 samples)</th>
+          <th>Random</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="l rowlabel">Avg. wAUROC</td>
+          <td><strong><em>0.77</em></strong></td>
+          <td>0.74</td>
+          <td>0.65</td>
+          <td>0.62</td>
+          <td>0.47</td>
+        </tr>
+      </tbody>
+    </table>
+  </Table>
+
+  <p>
+    We replicate three uses of LLMs for zero-shot classification: the use of
+    commercial LLM APIs to filter resumes [10], the use of API based LLMs to
+    classify movie reviews [18, 19], and the use of a fine-tuned language model
+    to predict the outcomes of judicial appeals from a court summary[17].
+    Examples of explanations from the resume filtering task can be seen in{" "}
+    <a href="#fig2">Figure 2</a>. A word-cloud constructed from token-level
+    importances across the corpus is visualised in <a href="#fig5">Figure 5</a>.
+    Since this experiment was conducted
+    entirely via APIs, no other explainers can be used to provide baseline
+    comparisons. We run into the same problem with our movie review sentiment
+    classification experiment, but we are able to compare <span class="rot">RoT</span> generated
+    explanations against “ground-truth” token importances from human
+    annotators. This provides us with a quantitative measure of the agreement
+    between humans explaining movie review sentiments and <span class="rot">RoT</span> explaining an
+    APIs classification of the same sentiments. For Judicial case outcome
+    prediction, we take advantage of access to the model weights to compare{" "}
+    <span class="rot">RoT</span> explanations with other explainers, and visualise the agreement
+    competing explanations have with human annotations in <a href="#fig4">Figure
+    4</a>. Overall, we
+    find <span class="rot">RoT</span> and SHAP explanations to be better aligned with human annotators,
+    and <span class="rot">RoT</span> explanations fastest to compute.
+  </p>
+
+  <h4>3.1.1 Explaining Judicial Case Predictions from a Fine-Tuned RoBERTa Model</h4>
+
+  <p>
+    To test <span class="rot">RoT</span> explanations on LLMs, we study an AI system[17] to predict
+    appeal outcomes in Indian courts. <a href="#fig4">Figure 4</a> presents an
+    abridged example of explanations from one prediction. The data includes annotation labels for
+    individual segments in each case. These indicate which portions of the text
+    were found important to the judgement by human annotators[17], allowing us
+    to measure explanation quality<a class="footnote-ref" href="#fn4">4</a> by
+    computing the area under the reciever operating characteristic (AUROC)
+    between <span class="rot">RoT</span> explanation importances and known ground-truth importances
+    per text segment. As a fine-tuned RoBERTa classifier is used here, we are
+    able to use other explainers, and <a href="#tbl1">Table 1</a> presents AUROC
+    scores from different explainers. A detailed analysis of program runtimes is
+    provided in <a href="#fig9">Figure 9</a>, but it is worth noting that <span class="rot">RoT</span>
+    is the only explainer able to produce results in reasonable time on
+    consumer hardware. Details about data preparation, explanation generation,
+    and weighted average AUROC evaluation can be found in{" "}
+    <a href="#appendix-d">Appendix D.2</a>, and individual case explanations
+    can be perused at:{" "}
+    <a class="url" href={resultsUrl} target="_blank" rel="noopener">
+      {resultsUrl}
+    </a>
+    .
+  </p>
+
+  <Figure
+    id="fig5"
+    label="Figure 5"
+    caption={`<span class="caption-lead">Word-cloud summary of token importances for zero-shot resume classification.</span> A zero-shot resume filter system uses the GPT-4.1-nano LLM API to find suitable candidates for an information technology (IT) role. ${rot} explanations indicate the importance of individual text tokens, which we visualise using an importance-weighted word cloud. Alongside IT workers which pass the filter, our corpus contains resumes of bankers, accountants, teachers, and others which our filter rejects. Tokens which increase the likelihood of making a positive prediction are in ${green}, and those that decrease the likelihood are in ${red}.`}
+  >
+    <div class="fig-item">
+      <img src="figures/fig5/wordcloud.svg" alt="Word-cloud summary of token importances for zero-shot resume classification" loading="lazy" />
+    </div>
+  </Figure>
+
+  <h4>3.1.2 Explaining Movie Review Classifications from an LLM API</h4>
+
+  <p>
+    We conduct a similar experiment with zero-shot movie review sentiment
+    classification, using an AI system built upon OpenAI’s GPT-4.1-nano LLM,
+    accessible only via API. When compared with ground truth importance
+    annotations[18, 19] for review sentiments, <span class="rot">RoT</span> achieves a weighted AUROC
+    of 0.72, while a random baseline only achieves 0.50. Gradient based
+    explainers (Integrated Gradients) cannot be compared, as access to
+    GPT-4.1-nano weights is restricted, and perturbation based explainers
+    (LIME, SHAP) are infeasible to apply even at this modest scale. This
+    showcases a unique <span class="rot">RoT</span> ability, where we can explain discrete decisions
+    without either access to its weights, ors without making additional API
+    calls, simply by looking at predictions already made by the AI. Additional
+    details are in <a href="#appendix-d">Appendix D.3</a>.
+  </p>
+
+  <h4>3.1.3 Explaining Resume Filtering from Proprietary LLMs</h4>
+
+  <p>
+    In addition to classifying movie reviews, we replicated a zero-shot resume
+    classification system to filter candidates for information-technology (IT)
+    jobs using the GPT-4.1-nano API [10]. <span class="rot">RoT</span> was then used to generate
+    explanations identifying which parts of the resume text were important to
+    selecting candidates as suitable for an IT position. We augment our
+    text-based features with three attributes – race, gender, and political
+    orientation, utilising <span class="rot">RoT</span>’s unique ability to produce explanations using
+    non-input features. We verify findings from the original study indicating
+    that, on this dataset, GPT ascribes negligible importance to race, gender,
+    and political orientation<a class="footnote-ref" href="#fn5">5</a> when
+    making hiring decisions. We evaluate the system with a corpus of resumes
+    containing both IT workers and other occupations. The word-cloud in{" "}
+    <a href="#fig5">Figure 5</a> presents the text identified as predictive of
+    selection and rejection
+    across the resume corpus, and <a href="#fig2">Figure 2</a> shows examples of
+    an IT worker’s and a teacher’s resume, with tokens highlighted according to
+    the <span class="rot">RoT</span>{" "} importances. Additional data and implementation details can be
+    found in <a href="#appendix-d">Appendix D.4</a>.
+  </p>
+</section>
+
+<!-- ============ SECTION 3.2 : AUDITING ============ -->
+<section class="section" id="s3-2">
+  <h3><span class="sec-num">3.2</span> Auditing Proprietary Black-Box AI Systems</h3>
+
+  <p>
+    We replicate an audit of Amazon’s e-commerce recommendation system
+    conducted by The Markup [20]. Lacking access to Amazon’s AI system, we adopt
+    the standard practice[21–24] of using a dataset of scraped listings from
+    Amazon to train a mimic AI that predicts product rankings. We then explain
+    mimic predictions using SHAP and LIME, and find these to vary significantly
+    depending on the choice of mimic. This ambiguity is missing from competing{" "}
+    <span class="rot">RoT</span> explanations, which explain the AI recommendation system directly
+    without using any mimic AI. Our analysis using <span class="rot">RoT</span> is also able to surface
+    insights missed by mimic based explanations.
+  </p>
+
+  <Figure
+    id="fig6"
+    label="Figure 6"
+    caption={`<span class="caption-lead">Auditing Amazon’s proprietary recommendation system through mimic models (Table 2), and directly with ${rot}.</span> We visualize explanations via their absolute feature importances, summed over all datapoints. We also indicate the proportion of the importance sum where the feature was the first (${teal} in green) or second (${pink} in pink) most important for each datapoint. With SHAP, Markup’s mimic model shows brand and product reviews as important features <strong>(a)</strong>. But the default Random Forest mimic model shows different feature importances (<strong>b</strong>), demonstrating that sensitivity based explainers produce different explanations for different mimics. This undermines the veracity of the audit. By contrast, ${rot} (<strong>c</strong>) does not need any mimic models or access to the proprietary model. Extended results are in Figures S8, S9, S10 and S11.`}
+  >
+    <div class="fig-grid cols-3">
+      <div class="fig-item">
+        <img src="figures/fig6/markup_bar.svg" alt="Explanations from The Markup's Random Forest mimic model" loading="lazy" />
+        <div class="subcap">(a) Explanations from The Markup’s Random Forest mimic model. Using SHAP, they report “brand is amazon” and “product reviews” to be important</div>
+      </div>
+      <div class="fig-item">
+        <img src="figures/fig6/rf_bar.svg" alt="Explanations from the scikit-learn default Random Forest mimic model" loading="lazy" />
+        <div class="subcap">(b) Explanations from the scikit-learn default Random Forest mimic model differ, but continue to indicate the importance of “brand is amazon”</div>
+      </div>
+      <div class="fig-item">
+        <img src="figures/fig6/rot_bar.svg" alt="RoT importances obtained without mimic models" loading="lazy" />
+        <div class="subcap">(c) <span class="rot">RoT</span> importances obtained without mimic models: “brand is amazon” and “sold by amazon” are important, “product reviews” is unimportant</div>
+      </div>
+    </div>
+  </Figure>
+
+  <Table
+    id="tbl2"
+    label="Table 2"
+    caption={`<span class="caption-lead">Model accuracies for different mimic models.</span> Amazon’s product recommendation system is not publicly accessible, making audits difficult. Different models are trained to mimic Amazon predictions, enabling audits by providing query-able interfaces for explainers. We train Random Forest models with hyperparameters from The Markup’s audit or from scikit-learn defaults, and various Logistic Regression models. They all have similar accuracies, forming a Rashomon set of models that make similar predictions.`}
+  >
+    <table class="paper-table">
+      <thead>
+        <tr>
+          <th class="l"></th>
+          <th>RF (Markup)</th>
+          <th>RF (Default)</th>
+          <th>LogReg</th>
+          <th>LogReg (L1)</th>
+          <th>LogReg (L2)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="l rowlabel">Test Accuracy</td>
+          <td>0.69</td>
+          <td>0.69</td>
+          <td>0.71</td>
+          <td><strong><em>0.72</em></strong></td>
+          <td>0.69</td>
+        </tr>
+      </tbody>
+    </table>
+  </Table>
+
+  <p>
+    When explaining a proprietary AI system, restrictions can prevent access to
+    model weights as well as the ability to query outputs for synthetically
+    perturbed inputs. This usually disqualifies sensitivity based explainers,
+    but a common workaround is to collect input-output pairs from real-world
+    deployments of the AI system, and use this dataset to build a “mimic” AI
+    system. With unrestricted access to the mimic, predictions can be obtained
+    on new synthetically-perturbed inputs, allowing typical post-hoc
+    explanations such as those from SHAP or LIME to be computed[21–24]. This is
+    distinct from XAI that consists of an interpretable “glass-box” surrogate
+    model, which approximates and AI system holistically as a global
+    explanation (different from local feature importance explanations) itself.
+    Building a mimic AI system and then using it to compute post-hoc feature
+    importance explanations is a distinct explanation category that involves
+    two potential sources of error: the overall approximation of the AI system
+    by the mimic AI system, and the local approximation of the mimic using
+    sensitivity analysis, like SHAP.
+  </p>
+
+  <p>
+    Mimics can however suffer from the “Rashomon effect” where they can make
+    predictions identical to the original AI system, but through different
+    internal mechanisms [25–27], yielding different local sensitivity and
+    consequently different explanations [28, 29]. In our audit experiment, the
+    SHAP or LIME explanations from TheMarkup’s mimic AI (<a href="#fig6">Figure
+    6</a> panel a) reveal the most sensitive input feature to be whether the
+    product brand is Amazon (“brand is amazon”), followed by “product reviews”.
+    However, switching to a different, equally performant mimic AI (<a href="#fig6">Figure 6</a> panel b)
+    alters these feature importances. We find many equally performant (see
+    <a href="#tbl2">Table 2</a>) possible mimics in the Rashomon set of roughly
+    equally performant AI systems, which seem to have different internal
+    decision mechanisms (see <a href="#tbl-s6">Table S6</a>).
+  </p>
+
+  <p>
+    This ‘different local behaviour but equivalent performance’ casts doubt on
+    the mimic approach. An audit using a particular mimic can be undermined by
+    adversarially selecting a different mimic. Further, AI audit results can be
+    contested because insights from any explanation can be attributed to the
+    choice of mimic rather than the underlying AI system. By contrast, <span class="rot">RoT</span>{" "}
+    explanations (<a href="#fig6">Figure 6</a> panel c) can be computed without
+    access to the original AI system or the ability to obtain outputs for new
+    inputs. This
+    makes <span class="rot">RoT</span> valuable for enforcing regulations which do not grant access to
+    third-party AI systems or source code. For example under Article 74(12) of
+    the EU AI Act[30], regulators are granted access to observe AI outputs on
+    fixed input data, but not the ability to obtain new predictions on arbitrary
+    inputs.
+  </p>
+
+  <p>
+    Like other explainers, <span class="rot">RoT</span> also uncovers “brand is amazon” to be the most
+    important feature. However, critically, it also shows “sold by amazon” to
+    be an important feature, something that remained hidden in preceding mimic
+    based analysis. This is a new insight signalling potentially
+    self-preferencing behaviour where the Amazon platform does not just promote
+    its own brands, but also third party product sold directly by Amazon over
+    the same product sold by third-party merchants. This finding is harder to
+    undermine because the explanation is independent of idiosyncrasies arising
+    from the choice of mimic. As such, <span class="rot">RoT</span> explanations can be useful in
+    identifying potentially self-preferencing practices in regulatory contexts
+    such as the EU Digital Markets Act, where establishing causal links is not
+    strictly necessary[31].
+  </p>
+</section>
+
+<!-- ============ SECTION 3.3 : SCIENTIFIC DISCOVERY ============ -->
+<section class="section" id="s3-3">
+  <h3><span class="sec-num">3.3</span> Scientific Discovery using XAI</h3>
+
+  <p>
+    We consider a diabetes prediction scenario where XAI needs to award low
+    feature importance scores to unimportant features, and recidivism and loan
+    approval scenarios where XAI needs to award high importance scores to
+    important features in the presence of misleading alternatives. In both
+    situations, <span class="rot">RoT</span> is good at hypothesis generation because it correctly
+    identifies the unimportant and important input features. These explanations
+    are being sought not to explain the behaviour of a specific AI system, but
+    to understand the underlying data it was trained on. XAI has been advocated
+    as a means of scientific discovery [32–36] in diverse fields like
+    medicine[37], engineering[38], chemistry[39], and many more [40–47]
+  </p>
+
+  <p>
+    Upon analyzing 1151 research articles at the intersection of XAI and
+    science, we found 4.9% of them used explanations of AI systems as a means
+    of proposing novel scientific hypotheses. Of these, 70% used SHAP. We
+    detail the methodology behind these statistics in Appendix D.6. XAI use in
+    scientific discovery suffers the same challenges as AI auditing – like
+    mimics, AI systems trained to replicate scientific phenomena are not
+    guaranteed to faithfully duplicate underlying causal mechanisms. This can
+    be problematic when using SHAP, because sensitivity analysis generates
+    explanations by making predictions on synthetic, out-of-distribution
+    datapoints, which may include physically implausible values. The behaviour
+    of the AI system on non-realistic datapoints could be anything, and
+    consequently the feature importances could be arbitrary [48–50]. By
+    contrast, <span class="rot">RoT</span> importances are inspired by feature “predictiveness” rather
+    than sensitivity, overcoming these limitations without implicitly
+    introducing harder problems such as learning causal models [51] or density
+    estimation [52].
+  </p>
+
+  <p>
+    <span class="rot">RoT</span> also satisfies leading AI regulations better, and its advantage over
+    explainability methods such as SHAP and LIME can even inform (future) best
+    practices in drug discovery. Specifically, the European Medicines Agency
+    (EMA) and US Food and Drug Administration (FDA) recently published joint
+    guidance noting a set of principles whereby interpretability and
+    explainability are enumerated as best model design and development
+    practices[53]. The principles do not mandate specific XAI methods, but the
+    guidance makes clear that transparency, reliability and accountability are
+    key to acceptable deployment.
+  </p>
+
+  <h4>3.3.1 Correctly Identifying Uninformative Features</h4>
+
+  <p>
+    If an explainer indicates that a specific feature impacts a phenomenon of
+    interest, but that feature is extraneous to the phenomenon, then the
+    explainer is poorly suited for scientific discovery. But sensitivity based
+    explainers like SHAP and LIME consider any input feature important if
+    applying any perturbations to it leads to changes in the AI-modeled output
+    phenomenon[48], even if the changes are not meaningful. Uninformative
+    features can inadvertently seem important this way.
+  </p>
+
+  <Figure
+    id="fig7"
+    label="Figure 7"
+    caption={`<span class="caption-lead">${rot} explanations do not erroneously find unimportant features to be important.</span> An AI system for diabetes prediction is trained on “Pima Indians data”[13] with a synthetic transformation such that age is uncorrelated with diabetes. For this transformed data, XAI should ideally consider age to be unimportant. Swarmplots display feature importances across the dataset. While ${rot} correctly ascribes negligible importance to age, sensitivity based explainers SHAP and LIME find it to be somewhat important. When using XAI for scientific discovery, ${rot} thus provides clear benefits over SHAP and LIME.`}
+  >
+    <div class="fig-grid cols-3">
+      <div class="fig-item">
+        <img src="figures/fig7/rot_swarm.svg" alt="RoT finds age to be unimportant" loading="lazy" />
+        <div class="subcap">(a) <span class="rot">RoT</span> finds age to be unimportant</div>
+      </div>
+      <div class="fig-item">
+        <img src="figures/fig7/shap_swarm.svg" alt="SHAP finds age to be somewhat important" loading="lazy" />
+        <div class="subcap">(b) SHAP finds age to be somewhat important</div>
+      </div>
+      <div class="fig-item">
+        <img src="figures/fig7/lime_swarm.svg" alt="LIME finds age to be somewhat important" loading="lazy" />
+        <div class="subcap">(c) LIME finds age to be somewhat important</div>
+      </div>
+    </div>
+  </Figure>
+
+  <p>
+    We consider the same diabetes prediction task as in <a href="#fig3">Figure 3</a>,
+    using a dataset specially collected to study the disease [13]. Using a predictive
+    AI system in such a manner is one way to study diabetes [54]. However, for
+    our experiment, we manually transform the dataset using FairPCA[55] to
+    ensure that the “age” input feature is statistically uncorrelated with the
+    “diabetes” target feature being predicted. Since age has been deliberately
+    rendered uninformative, an XAI technique useful for scientific discovery
+    should correctly identify that it does not affect diabetes.
+  </p>
+
+  <p>
+    <a href="#fig7">Figure 7</a> displays feature importances from <span class="rot">RoT</span>, SHAP,
+    and LIME on transformed diabetes data. <span class="rot">RoT</span> is the only explainer to consider age
+    unimportant. SHAP and LIME both lead to spurious hypotheses that indicate
+    the importance of age in diabetes prediction. However, if our interest is
+    in learning about the laws and relations that govern the data and phenomenon
+    of diabetes, <span class="rot">RoT</span> is the better method because it correctly identifies age
+    as unpredictive. Model details and our use of FairPCA[55] to ensure
+    statistical independence between age and diabetes are detailed in{" "}
+    <a href="#appendix-d">Appendix D.7</a>.
+  </p>
+
+  <h4>3.3.2 Identifying Important Features in the presence of Misleading Features</h4>
+
+  <p>
+    We have seen that explainers can be vulnerable to arbitrary
+    out-of-distribution behaviour from an AI system. Adversarial attacks have
+    been proposed to exploit this vulnerability by modifying AI systems to
+    deliberately poison out-of-distribution outputs [56]. This effectively
+    presents different behaviour to SHAP or LIME than to real-world inputs,
+    masking the actual importances of “sensitive” features and manipulating
+    explainers into selecting misleading “foil” features as highly important
+    instead. In black-box AI audits, adversial
+  </p>
+
+  <Figure
+    id="fig8"
+    label="Figure 8"
+    caption={`<span class="caption-lead">${rot} explanations are immune to manipulation from certain adversarial attacks.</span> The adversarial attack misleads explainers into ascribing importance to spurious “foil” features when the underlying AI system actually makes predictions using a “sensitive” demographic feature. We plot the distribution of feature importances across the “sensitive”, “foil”, and other features, and find that both SHAP and LIME are misled by the adversary, but ${rot} correctly ascribes importance only to the “sensitive” feature.`}
+  >
+    <div class="fig-grid cols-2">
+      <div class="fig-item">
+        <img src="figures/fig8/shap_rot_triangle.svg" alt="Distribution of feature importances from SHAP and RoT explanations across sensitive, foil or other features for an adversarial model" loading="lazy" />
+        <div class="subcap">(a) Distribution of feature importances from SHAP and <span class="rot">RoT</span> explanations across “sensitive”, “foil” or other features for an adversarial model</div>
+      </div>
+      <div class="fig-item">
+        <img src="figures/fig8/lime_rot_triangle.svg" alt="Distribution of feature importances from LIME and RoT explanations across sensitive, foil or other features for an adversarial model" loading="lazy" />
+        <div class="subcap">(b) Distribution of feature importances from LIME and <span class="rot">RoT</span> explanations across “sensitive”, “foil” or other features for an adversarial model</div>
+      </div>
+    </div>
+  </Figure>
+
+  <p>
+    attacks cause “fairwashing” by allowing malicious actors to deliberately
+    hide AI systems with discriminatory behaviour behind benign-looking
+    explanations [56]. For scientific discovery, the same thing can cause
+    candidate hypotheses generated using XAI to be misleading.
+  </p>
+
+  <p>
+    To verify that <span class="rot">RoT</span> does not generate such spurious explanations, we
+    replicate adversarial AI systems for credit-scoring and criminal justice,
+    which deliberately hide the importance of an important “sensitive” feature
+    by introducing one or more misleading “foil” features. We find that this is
+    ineffective at misleading <span class="rot">RoT</span>, which is able to correctly identify the
+    sensitive features (race for recidivism prediction, and gender for loan
+    approvals) as important and the foil features (simulated, extraneous
+    features) as unimportant. In <a href="#fig8">Figure 8</a> we show the
+    distribution of SHAP, LIME, and <span class="rot">RoT</span> importances over three feature
+    categories: sensitive, adversarial, and other, from AI systems subjected to
+    an adversarial attack [56]. Details about the datasets used, model
+    behaviours introduced, “sensitive” input features masked and adversarially
+    misleading “foil” features introduced are available in{" "}
+    <a href="#appendix-d">Appendix D.8</a>.
+  </p>
+
+  <p>
+    We report detailed statistics about the proportion of explanations that
+    identified the sensitive feature as most important (success), or the foil
+    feature (adversarial failure) or other features (non-adversarial failure) in
+    <a href="#tbl-s7">Table S7</a>. Across 10 experiments, for LIME or SHAP the
+    rate of recovering
+    the sensitive feature as most important does not exceed 5% except once,
+    where adversarial failures (foil feature is most important) still outnumber
+    success (sensitive feature is most important). <span class="rot">RoT</span> has a success rate
+    always greater than 89%, and in 6 of the 10 experiments <span class="rot">RoT</span> shows a
+    perfect 100% recovery rate, always correctly identifying the sensitive
+    feature to be the most important.
+  </p>
+</section>
+
+<!-- ============ SECTION 3.4 : COMPUTATIONAL EFFICIENCY ============ -->
+<section class="section" id="s3-4">
+  <h3><span class="sec-num">3.4</span> Computational Efficiency and Environmental Impacts</h3>
+
+  <p>
+    Of all the experiments listed so far, generating <span class="rot">RoT</span>, SHAP, LIME, and
+    Integrated Gradients explanations for Judicial Case Outcome Prediction with
+    a finetuned LLM was the largest in terms of dataset size and computations
+    involved for prediction. For this experiment, generating the{" "}
+    <em>first</em> <span class="rot">RoT</span> explanation took 1160 seconds, and each additional
+    explanation took less than 0.1 milliseconds. By contrast, the{" "}
+    <em>average</em> time taken for each SHAP explanation was 13 million times
+    longer at 1320 seconds. This was without GPU acceleration, to simulate
+    consumer hardware conditions. In practice, it is impractical to compute
+    SHAP or LIME explanations for LLM predictions, except if only a handful of
+    datapoints need explaining. Gradient methods are quicker, but require
+    access to model weights when most commercial LLMs can only be accessed via
+    API. <span class="rot">RoT</span> is the first explainer that can actually be deployed in
+    practice, bringing feature importance XAI to LLMs.
+  </p>
+
+  <Figure
+    id="fig9"
+    label="Figure 9"
+    caption={`<span class="caption-lead">Comparing runtimes for ${rot} and other explainers from the Judicial Case Outcome Prediction Experiment.</span> While the first ${rot} explanation takes time, additional explanations are virtually instantaneous, unlike SHAP, LIME, or Integrated Gradients. The time-complexity of SHAP thus appears linear in number of cases, while ${rot} appears to be constant, and <em>13 million RoT explanations</em> can be computed <em>for each additional SHAP explanation</em>, after the first. Even the 7 fastest SHAP explanations take as long as all 101 ${rot} explanations.`}
+  >
+    <div class="fig-grid cols-2">
+      <div class="fig-item">
+        <img src="figures/fig9/unsorted_runtimes.svg" alt="Explanation runtimes for Judicial Case Outcome Prediction with LLMs" loading="lazy" />
+        <div class="subcap">(a) Explanation Runtimes: Judicial Case Outcome Prediction with LLMs</div>
+      </div>
+      <div class="fig-item">
+        <img src="figures/fig9/sorted_runtimes_cumulative.svg" alt="Cumulative explanation runtimes (quickest first) for case prediction" loading="lazy" />
+        <div class="subcap">(b) Cumulative Explanation Runtimes (Quickest First): Case Prediction</div>
+      </div>
+    </div>
+  </Figure>
+
+  <p>
+    <span class="rot">RoT</span> was also found to be orders of magnitude faster than SHAP and LIME in
+    our benchmark XAI comparison, detailed in <a href="#appendix-d">Appendix
+    D.9</a>, which we document in <a href="#tbl-s4">Tables S4</a> and{" "}
+    <a href="#tbl-s5">S5</a>. This increase in computational efficency,
+    evidenced by
+    faster program running times, is a direct result of <span class="rot">RoT</span>’s unique
+    formulation that does not require obtaining additional predictions for each
+    explanation. Local feature importance explainers often function by
+    collecting data about an AI system’s behaviour and then fitting an
+    interpretable model. Both SHAP and LIME need to fit a new interpretable
+    model for each prediction they explain. This requires data collection by
+    making arbitrarily time-consuming calls to the AI system for each additional
+    explanation. By contrast, <span class="rot">RoT</span> uses dropout to fit a single interpretable
+    ensemble on the entire unperturbed dataset, and each explanation is
+    generated using per-feature importance scores from this model. Since this
+    inference is quicker than continuous training for each explanation, this
+    makes <span class="rot">RoT</span> extremely fast once fit. When explaining predictions from large
+    AI systems such as computationally intensive LLMs, the efficiency gains
+    from <span class="rot">RoT</span> would translate directly to reduced environmental impacts.
+  </p>
+
+  <div class="footnotes" id="fn-block-2">
+    <p class="fn-title">Footnotes</p>
+    <p id="fn4">
+      4. Quality here refers only to alignment with the judgement of law
+      students, not necessarily to better explanations
+    </p>
+    <p id="fn5">
+      5. This was evaluated as per[10] by artificially varying names and
+      political orientation on otherwise static resumes
+    </p>
+  </div>
+</section>

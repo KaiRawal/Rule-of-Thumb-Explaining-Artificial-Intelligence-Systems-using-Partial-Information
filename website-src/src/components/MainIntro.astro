@@ -1,0 +1,348 @@
+---
+import Figure from "./Figure.astro";
+import Equation from "./Equation.astro";
+
+const rot = `<span class="rot">RoT</span>`;
+const red = `<span class="red">red</span>`;
+const blue = `<span class="blue">blue</span>`;
+const green = `<span class="green">green</span>`;
+
+const resultsUrl =
+  "https://kairawal.github.io/Rule-of-Thumb-Explaining-Artificial-Intelligence-Systems-using-Partial-Information/JudicialCaseOutcomePrediction/Code/results.html";
+---
+
+<!-- ============ SECTION 1 : INTRODUCTION ============ -->
+<section class="section" id="s1">
+  <h2><span class="sec-num">1.</span> Introduction</h2>
+
+  <p>
+    Artificial intelligence (AI) in the form of large language models has
+    become ubiquitous. One of the key components that has made it disruptive
+    and widespread is its ability to perform zero-shot tasks. Given an
+    applicant’s resume, it can say if they are a good fit for a job, or
+    identify an animal in a photo. But does it work? As it stands, the only way
+    to find out if a large language model (LLM) can perform a task, is to label
+    a significant subset of data, and measure how consistent the LLM is with
+    these labels. This data labeling process substantially decreases the
+    disruptive nature of AI. While the AI itself may be zero-shot, the process
+    of deciding if we should deploy it is not. Explainable AI (XAI) has long
+    been promised as a tool to help with this kind of deployment decision.
+    Better understanding of how, and in some cases, why AIs make decisions can
+    increase confidence in deployment and help users identify and correct
+    errors [1, 2].
+  </p>
+
+  <Figure
+    id="fig1"
+    label="Figure 1"
+    caption={`<span class="caption-lead">Examples of local feature importances for zero-shot image classification performed via the OpenAI GPT-4o-mini API.</span> The model is prompted to perform zero-shot classification of pet images into labels ‘Cat’ and ‘Dog’ from a public dataset[3]. ${rot} is orchestrated to produce positive importances for input features indicative of ‘Cat’, highlighted ${red}, and negative importances for features indicative of ‘Dog’, highlighted ${blue}. ${rot} explanations can be computed without access to model weights, and correctly handle cases ((c) and (f)) where GPT-4o-mini disagrees with the provided labels. Here the explanation indicates that supporting regions for both classes can be found in (c), while no regions significantly support either class in (f).`}
+  >
+    <div class="fig-grid cols-3">
+      <div class="fig-item">
+        <img src="figures/fig1/saliency_2_c.png" alt="RoT explanation for GPT-4o-mini classification label ‘Cat’" loading="lazy" />
+        <div class="subcap">(a) <span class="rot">RoT</span> explanation for GPT-4o-mini classification label ‘Cat’</div>
+      </div>
+      <div class="fig-item">
+        <img src="figures/fig1/saliency_6_d.png" alt="RoT explanation for GPT-4o-mini classification label ‘Dog’" loading="lazy" />
+        <div class="subcap">(b) <span class="rot">RoT</span> explanation for GPT-4o-mini classification label ‘Dog’</div>
+      </div>
+      <div class="fig-item">
+        <img src="figures/fig1/saliency_1450_c.png" alt="RoT explanation for an image with both classes" loading="lazy" />
+        <div class="subcap">(c) <span class="rot">RoT</span> explanation for an image with both classes</div>
+      </div>
+      <div class="fig-item">
+        <img src="figures/fig1/saliency_224_c.png" alt="RoT explanation for GPT-4o-mini classification label ‘Cat’" loading="lazy" />
+        <div class="subcap">(d) <span class="rot">RoT</span> explanation for GPT-4o-mini classification label ‘Cat’</div>
+      </div>
+      <div class="fig-item">
+        <img src="figures/fig1/saliency_117_d.png" alt="RoT explanation for GPT-4o-mini classification label ‘Dog’" loading="lazy" />
+        <div class="subcap">(e) <span class="rot">RoT</span> explanation for GPT-4o-mini classification label ‘Dog’</div>
+      </div>
+      <div class="fig-item">
+        <img src="figures/fig1/saliency_1773_d.png" alt="RoT explanation for an image with neither class" loading="lazy" />
+        <div class="subcap">(f) <span class="rot">RoT</span> explanation for an image with neither class</div>
+      </div>
+    </div>
+  </Figure>
+
+  <p>
+    However, precisely when you would expect XAI to be making a resurgence, it
+    is nowhere to be seen. In no small part, this is because of fundamental
+    limitations of the methods. Existing Explainable AI methods try to either
+    peer inside the algorithmic black-box and use access to the internals of
+    models (grad-cam [4], integrated gradients [5], counterfactuals [6], or
+    mechanistic interpretability [7]) which is inapplicable to many widely used
+    closed source LLMs that only allow access via an application programming
+    interface (API), or are combinatorially enumerative, and rely on passing a
+    large amount of synthetic data to the model (SHAP [8], LIME [1],
+    Counterfactual explanations [6] or Recourse [9]), which is either
+    prohibitively expensive or simply infeasible.
+  </p>
+
+  <p>
+    Feature importance explanations, such as those from LIME or SHAP, are
+    post-hoc explanations of individual predictions in the form of a signed
+    vector of scores, denoting the importance of each input feature to the
+    prediction<a class="footnote-ref" href="#fn1">1</a>. Prior techniques have
+    been variants of sensitivity analysis, operationalising the intuition that
+    important input features are those which, upon synthetic perturbation,
+    cause the greatest changes in model outputs. We focus on post-hoc, local
+    (per-datapoint) feature importance explanations because they are a popular
+    and easy to use form of XAI, do not require retraining AI systems, and can
+    be implemented separately from the predictions they seek to explain.
+  </p>
+</section>
+
+<!-- ============ SECTION 2 : RULE OF THUMB ============ -->
+<section class="section" id="s2">
+  <h2><span class="sec-num">2.</span> Rule-of-Thumb: Explanations for Emerging XAI Applications</h2>
+
+  <p>
+    We propose <span class="smallcaps">“Rule-of-Thumb”</span> (<span class="rot">RoT</span>), a novel
+    form of XAI that considers important inputs to be those that are most
+    predictive of the outputs of an AI system. Rather than formulating XAI in
+    terms of how altering an input value would alter the system output, we ask
+    how knowledge of particular feature values should alter our predictions of
+    the AI system’s behaviour.
+  </p>
+
+  <Figure
+    id="fig2"
+    label="Figure 2"
+    caption={`<span class="caption-lead">Resume summaries [10] from an IT-worker (Ebony Robinson, top) and a biology teacher (Matthew Walsh, bottom), that respectively pass and fail our AI filter.</span> The zero-shot resume classification system [10] uses the GPT-4.1-nano API to find suitable candidates for an information technology (IT) role. ${rot} explanations indicate the predictive value of individual text tokens, visualised here by using deeper colour for greater importances. Extra information passed to ${rot} but found to be relatively unimportant, such as race, gender, and political preferences is not displayed. Tokens with positive contributions are ${green}, and with negative contributions are ${red}.`}
+  >
+    <div class="fig-item">
+      <img src="figures/fig2/resume60.png" alt="Resume summary of Ebony Robinson highlighted with RoT importances" loading="lazy" />
+    </div>
+    <hr class="fig-resume-rule" />
+    <div class="fig-item">
+      <img src="figures/fig2/resume215.png" alt="Resume summary of Matthew Walsh highlighted with RoT importances" loading="lazy" />
+    </div>
+  </Figure>
+
+  <p>
+    The outputs from <span class="rot">RoT</span> are standard feature importance explanations, which
+    can be analysed using existing visualisations such as pixel or token level
+    saliency maps that highlight positive or negative contributions towards an
+    output (<a href="#fig1">Figures 1</a> and <a href="#fig2">2</a>). These
+    figures show the unique ability to use{" "}
+    <span class="rot">RoT</span> even when model access is available only via API, where other
+    explainers are unviable<a class="footnote-ref" href="#fn2">2</a>.
+  </p>
+
+  <Figure
+    id="fig3"
+    label="Figure 3"
+    caption={`<span class="caption-lead">Examples of local feature importance explanations from a Random Forest diabetes prediction system.</span> The AI is trained on the Pima dataset [13] and for a datapoint with feature values: glucose level = 99, age = 30, BMI = 34, etc, predicts a diabetes probability of 0.235. ${rot} and SHAP explain this differently, but glucose is the most important input feature for both. Standard force plots visualise how individual feature importances contribute to the prediction.`}
+  >
+    <div class="fig-grid cols-2">
+      <div class="fig-item">
+        <img src="figures/fig3/rot_force.svg" alt="Rule of Thumb (RoT) force plot explanation" loading="lazy" />
+        <div class="subcap">
+          (a) <span class="smallcaps">Rule of Thumb</span> (<span class="rot">RoT</span>) explanation for a datapoint. Glucose and age (<span class="blue">in blue</span>) contribute most to reducing the predicted probability
+        </div>
+      </div>
+      <div class="fig-item">
+        <img src="figures/fig3/shap_force.svg" alt="SHAP force plot explanation" loading="lazy" />
+        <div class="subcap">
+          (b) <span class="smallcaps">SHAP</span> explanation for the same datapoint. Glucose (<span class="blue">in blue</span>) is still most important in reducing output probability, but here age (<span class="red">in red</span>) increases it
+        </div>
+      </div>
+    </div>
+  </Figure>
+
+  <p>
+    For tabular data where model access is common, we are able to compare with
+    explainers like SHAP and LIME using standard force-plots for a single
+    datapoint (<a href="#fig3">Figure 3</a>) or swarmplots for a collection of
+    datapoints (<a href="#fig7">Figure 7</a>).
+  </p>
+
+  <p>
+    In these latter comparisons, we note that applying sensitivity analysis
+    implicitly requires several nontrivial assumptions: <em>(i)</em> that it is
+    possible to query the AI system with new datapoints; <em>(ii)</em> the
+    system responds similarly to synthetically perturbed data in the same way
+    it does to real-world data, and <em>(iii)</em> The outputs of a system are
+    continuous, and typically vary when a limited number of features are
+    changed<a class="footnote-ref" href="#fn3">3</a>. <span class="rot">RoT</span> makes none of these
+    assumptions, conferring specific advantages in the following three emerging
+    XAI application areas:
+  </p>
+
+  <p class="para-item">
+    <strong class="lead">1. Explaining Zero-shot Classification with LLMs:</strong>{" "}
+    Classification with LLMs presents two practical challenges. First, weights
+    and gradients are inaccessible for closed systems accessed via API, and
+    second, even when the AI system is open-source, producing each explanation
+    requires computing many additional LLM inferences, making explanations too
+    cumbersome and slow to compute. We experiment with a movie sentiment
+    prediction task and a judicial case outcome prediction task to reflect each
+    of these settings. In both cases, we find <span class="rot">RoT</span> explanations are aligned
+    with expected explanations produced by human annotators. We also find <span class="rot">RoT</span>{" "}
+    feasible to compute quickly on consumer hardware, and as <span class="rot">RoT</span> explanations
+    do not require the training a model for each datapoint explained, our
+    computational benefits increase with the number of data points explained.
+    When explaining an open-weight LLM, asymptotically, 13 million new <span class="rot">RoT</span>{" "}
+    explanations can be computed in the time taken for a single additional SHAP
+    explanation. We also conduct an additional experiment filtering resume
+    texts, where we demonstrate the unique <span class="rot">RoT</span> ability to explain predictions
+    in terms of non-input features.
+  </p>
+
+  <p class="para-item">
+    <strong class="lead">2. Auditing Proprietary Models:</strong> Auditing AI
+    systems such as e-commerce recommendation engines can be challenging
+    because access to the underlying AI is often restricted. A standard
+    workaround is to first construct an additional mimic model to replicate the
+    AI system, and then explain the mimic model in turn as a proxy for the
+    restricted AI system itself. We go on to show that explanations from this
+    commonly employed workaround can be contested by varying the mimic model
+    used; whereas <span class="rot">RoT</span> directly provides explanations without depending on
+    mimic models.
+  </p>
+
+  <p class="para-item">
+    <strong class="lead">3. Scientific Discovery using XAI:</strong> We
+    identify an emerging strategy to generate scientific hypotheses, which
+    first collects data about a phenomenon of interest, then trains an AI
+    system using the data, and finally explains its predictions in order to
+    provide insights into the phenomenon itself. Using sensitivity analysis
+    based explainers here is challenging because sometimes they generate
+    incorrect hypotheses. We analyse datasets about diabetes diagnoses,
+    criminal justice, and lending; comparing hypotheses from <span class="rot">RoT</span>, SHAP, and
+    LIME explanations. Through a carefully constructed scenario where a
+    specific input feature is unpredictive of model behaviour, and another
+    where a specific input feature is predictive, we demonstrate that only{" "}
+    <span class="rot">RoT</span> explanations correctly identify these features as unimportant and
+    important respectively.
+  </p>
+</section>
+
+<!-- ============ SECTION 2.1 : FORMULATION ============ -->
+<section class="section" id="s2-1">
+  <h3><span class="sec-num">2.1</span> Formulation</h3>
+
+  <p>
+    We wish to determine which features are most informative in estimating a
+    given prediction from an AI system. Using additive functions that model the
+    AI system outputs from individual features, we can both estimate the
+    prediction and determine the relative importance of each feature value.
+  </p>
+
+  <p>
+    We make some simplifying assumptions to answer this efficiently. Given a
+    model <span class="mono">C(·)</span> defined over features{" "}
+    <span class="mono">J</span>, and dataset <span class="mono">X</span>, we
+    want to find the optimal set of additive functions such that for any subset
+    of features <span class="mono">J ⊆ J</span> and datapoint{" "}
+    <span class="mono">x ∈ X</span> we estimate{" "}
+    <span class="mono">C(x)</span> using their sum.
+  </p>
+
+  <Equation
+    id="eq1"
+    label="1"
+    tex="C(x) \approx F\left( \sum_{j \in J} f_{\theta_j}(x_j) + G \right) \quad \forall J \in \mathcal{P}(\mathbb{J})"
+  />
+
+  <p>
+    where <span class="mono">F</span> is a sigmoid function (for classification)
+    or an identity function (for regression),{" "}
+    <span class="mono">f</span><sub>θj</sub><span class="mono">(xj)</span> is a
+    learnt function representing the information provided by knowing that the{" "}
+    <span class="mono">j</span><sup>th</sup> feature takes value{" "}
+    <span class="mono">xj</span>, and <span class="mono">G</span> a global bias
+    term that indicates what prediction should be made without knowing anything
+    about the datapoint <span class="mono">x</span>. We refer to{" "}
+    <span class="mono">f</span><sub>θj</sub><span class="mono">(xj)</span> as the
+    importance of a feature <span class="mono">j</span> taking value{" "}
+    <span class="mono">xj</span>. This corresponds to how much a prediction of{" "}
+    <span class="mono">C(x)</span> should update, on average, after discovering
+    this information.
+  </p>
+
+  <p>
+    Given a random subset of features selected using uniform probability{" "}
+    <span class="mono">p</span>, we can approximate <span class="mono">C(x)</span>{" "}
+    as a the sum of importances. This idea of always having a rough estimate
+    given any amount of limited information gives rise to the name{" "}
+    <em>Rule of Thumb</em>. To find the optimal weights{" "}
+    <span class="mono">θj ∀j ∈ J</span> for our model, we minimize the following
+    objective <span class="mono">L</span>.
+  </p>
+
+  <Equation
+    id="eq2"
+    label="2"
+    tex="\min_{\theta} \mathcal{L} \;=\; \min_{\theta} \textcolor{#b5003c}{\underbrace{\textcolor{black}{\sum_{J \subseteq \mathbb{J}}}}_{\substack{\text{all subsets}\\\text{of features}}}} \; \textcolor{#b5003c}{\overbrace{\textcolor{black}{\sum_{x \in X}}}^{\text{all datapoints}}} \; \Bigl( \textcolor{#b5003c}{\underbrace{\textcolor{black}{p^{|J|}(1-p)^{(|\mathbb{J}|-|J|)}}}_{\substack{\text{probability of selecting}\\\text{feature subset }J}}} \; \cdot \; \textcolor{#b5003c}{\overbrace{\textcolor{black}{\ell\Bigl[ C(x),\; F\Bigl( \sum_{j \in J} f_{\theta_j}(x_j) + G \Bigr) \Bigr]}}^{\substack{\text{loss between }C(x)\text{ and the estimate}\\\text{using only features in }J}}} \Bigr)"
+  />
+
+  <p>
+    Here the term <span class="mono">ℓ[C(x), F(∑</span><sub>j∈J</sub>
+    <span class="mono">f</span><sub>θj</sub><span class="mono">(xj) + G)]</span>{" "}
+    is a standard training loss such as log loss or squared error that
+    penalizes mispredictions of <span class="mono">C(x)</span>. This loss is not
+    only marginalized over all datapoints, as is common in standard machine
+    learning, but also all possible masks of the data. Although computing{" "}
+    <span class="mono">L</span> exactly is expensive and requires computing the
+    standard loss over the entire dataset <span class="mono">2</span>
+    <sup>|J|</sup> times, it can be efficiently optimized using dropout[14]
+    applied to the feature importances <span class="mono">f</span>
+    <sub>θj</sub><span class="mono">(xj)</span>. Using dropout, the training time
+    for fitting is almost the same as fitting the simple additive form of{" "}
+    <a href="#eq1">equation (1)</a> that does not consider subsets of features.
+    After fitting the model, the feature <span class="mono">j</span> with the
+    largest absolute
+    value <span class="mono">|f</span><sub>θj</sub>
+    <span class="mono">(xj)|</span> is the one that should most change our
+    confidence in the prediction, and can be considered the most important
+    input feature.
+  </p>
+
+  <p class="para-item">
+    <strong class="lead">Comparison with existing methods</strong>
+  </p>
+
+  <p>
+    Gradient-based methods[4, 11, 12] are computationally efficient but require
+    direct access to model weights, which are often restricted. With LLMs ,it
+    is common to provide access only via API access. Gradient-based approaches
+    cannot be applied to any model that only offers API access.
+  </p>
+
+  <p>
+    Sensitivity-based approaches LIME and SHAP optimise a per-datapoint
+    objective. While <span class="rot">RoT</span> masks information and fits one model for the entire
+    dataset, these approaches peturb datapoints and fit one linear model per
+    datapoint. This creates substantial differences in applicability – not only
+    is sensitivity analysis badly suited for analyzing opaque AI systems that
+    only return yes/no decisions (such as those provided by an LLM API), but it
+    also requires many times (typically 500 for SHAP to 5000 for LIME) more
+    inferences or API calls to explain each prediction. Finally, by definition,
+    sensitivity analysis can explain AI systems only in terms of their inputs.{" "}
+    <span class="rot">RoT</span> can utilise non-input features by fitting on extended datasets if
+    required. This enables explaining model predictions using external models
+    such as MobileNet[15] or BERT[16] to generate more informative
+    explanations. See <a href="#appendix-a">Appendix A</a> for additional
+    details situating <span class="rot">RoT</span> with respect to prior XAI approaches.
+  </p>
+
+  <div class="footnotes" id="fn-block-1">
+    <p class="fn-title">Footnotes</p>
+    <p id="fn1">
+      1. LIME and SHAP have together been cited over 100,000 times, and are the
+      most common XAI used in practice.
+    </p>
+    <p id="fn2">
+      2. Sensitivity analysis via perturbation [1, 8] requires prohibitively
+      expensive API calls for many synthetically perturbed datapoints, whereas
+      sensitivity analysis using gradient based methods [4, 5, 11, 12] requires
+      access to weights
+    </p>
+    <p id="fn3">
+      3. This is particularly problematic when modern AI systems answer yes/no
+      questions e.g. “Is this a picture of a cat?”
+    </p>
+  </div>
+</section>

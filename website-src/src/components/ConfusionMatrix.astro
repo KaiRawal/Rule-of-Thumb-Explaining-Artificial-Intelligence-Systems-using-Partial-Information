@@ -1,0 +1,41 @@
+---
+// Mini confusion matrix for adversarial-attack appendix tables (Tables S8-S12).
+// `color` applies to the "rank 1" (first) column cell: g=success, r=adversarial
+// failure, b=non-adversarial failure -- matching the paper's colouring.
+interface MatrixRow {
+  label: string;
+  values: [string, string, string];
+  color?: "g" | "r" | "b";
+}
+
+interface Props {
+  title: string;
+  rows: MatrixRow[];
+}
+
+const { title, rows } = Astro.props;
+---
+
+<div class="conf-block">
+  <p class="conf-title">{title}</p>
+  <table class="paper-table">
+    <thead>
+      <tr>
+        <th class="l"></th>
+        <th>1</th>
+        <th>2</th>
+        <th>3</th>
+      </tr>
+    </thead>
+    <tbody>
+      {rows.map((row) => (
+        <tr>
+          <td class="l rowlabel">{row.label}</td>
+          <td class:list={[row.color]}>{row.values[0]}</td>
+          <td>{row.values[1]}</td>
+          <td>{row.values[2]}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>

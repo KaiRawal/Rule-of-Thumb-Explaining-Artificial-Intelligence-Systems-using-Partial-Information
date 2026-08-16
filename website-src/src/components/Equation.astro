@@ -1,0 +1,22 @@
+---
+import katex from "katex";
+
+interface Props {
+  tex: string;
+  id?: string;
+  label?: string;
+  display?: boolean;
+}
+
+const { tex, id, label, display = true } = Astro.props;
+const html = katex.renderToString(tex, {
+  displayMode: display,
+  throwOnError: false,
+  strict: false,
+});
+---
+
+<div class={`equation${display ? "" : " small"}`} {id}>
+  <span set:html={html} />
+  {label && <span class="eq-num">({label})</span>}
+</div>
