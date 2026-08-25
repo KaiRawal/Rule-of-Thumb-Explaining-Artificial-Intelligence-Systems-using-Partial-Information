@@ -6,9 +6,6 @@ features build on, then new functionality.
 
 ## API / correctness
 
-1. Move `mins` / `maxs` from class attributes of `RoT` to instance attributes
-   set in `__init__`. Unfitted models currently share the class-level ±inf
-   defaults across instances.
 2. Use stable tie-breaking in `get_order`: `np.argsort` currently uses
    unstable quicksort, so equal-importance units rank nondeterministically.
 3. Expose hard-coded training hyperparameters as arguments: pretrain phase
@@ -85,6 +82,9 @@ features build on, then new functionality.
 
 ## Changelog
 
+- **v0.2.2** — `mins` / `maxs` are now instance attributes set in `RoT.__init__`
+  (±inf defaults) instead of class attributes, so unfitted models no longer
+  share state across instances.
 - **v0.2.1** — reveal curves default to whole units (token per step for text,
   pixel per step for images); `granularity="element"` restores per-element
   curves.

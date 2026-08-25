@@ -62,3 +62,17 @@ def test_stochastic_importance_dropout():
     model = RoT(2, (3,), dropout_rate=0.5)
     imp = model.stochastic_importance(x)
     assert tuple(imp.shape) == (16, 2, 3)
+
+
+def test_mins_maxs_are_instance_attributes():
+    model_a = RoT(2, (3,))
+    model_b = RoT(2, (3,))
+    assert model_a.mins == -np.inf
+    assert model_a.maxs == np.inf
+
+    # mutating one instance must not leak into others or the class
+    model_a.fit_project(-1.0, 1.0)
+    assert model_b.mins == -np.inf
+    assert model_b.maxs == np.inf
+    assert not hasattr(RoT, "mins")
+    assert not hasattr(RoT, "maxs")

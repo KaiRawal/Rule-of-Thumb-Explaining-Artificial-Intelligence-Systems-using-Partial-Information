@@ -30,13 +30,12 @@ class RoT(torch.nn.Module):
         self.training_loss = None
         self.use_BCE_loss = use_BCE_loss
         self.swa_model = None
+        self.mins = -np.inf
+        self.maxs = np.inf
 
     def forward(self, x):
         "Warning. Forward should only be used at eval, at training use stochastic importance"
         return self.importance(x)
-
-    mins = -np.inf
-    maxs = np.inf
 
     def _set_swa_model(self, model):
         # Bypass ``nn.Module.__setattr__`` so the SWA copy is NOT registered as
