@@ -121,15 +121,21 @@ class TextRuleOfThumb:
         )
 
     def get_explanation(self, x_numpy, attention_mask=None, lengths=None) -> np.ndarray:
-        """Return per-token importances for class 1, shape ``[N, tokens]``.
+        """Return signed per-token importances, comparable to SHAP values.
 
+        For binary tasks (``n_classes == 2``) the result has shape
+        ``[N, tokens]`` and holds the class-1 ("positive class")
+        contributions summed over embedding dimensions: positive values are
+        evidence toward class 1, negative toward class 0. For
+        ``n_classes > 2`` the full per-class importances are returned with
+        shape ``[N, n_classes, tokens]``; the class axis is never collapsed.
         Padded tokens receive exactly zero importance when a mask/lengths is
         supplied.
         """
         x = torch.from_numpy(x_numpy)
         mask = _as_token_mask(lengths if attention_mask is None else attention_mask, x.shape[1])
         imp = self._explainer_model.importance(x, mask=mask).detach().numpy()
-        imp = imp[:, 1, :, :].sum(axis=2)
-        imp = imp.reshape(imp.shape[0], -1)
-        return imp
+        if self._explainer_model.classes == 2:
+            imp = imp[:, 1]
+        return imp.sum(axis=-1)
 

@@ -56,6 +56,57 @@ def test_ordering_pipeline(tabular_data):
     assert metric.shape == (6,)
 
 
+def test_score_ordering_multiclass_accuracy_and_confusion():
+    rng = np.random.RandomState(2)
+    x = torch.from_numpy(rng.randn(24, 5).astype(np.float32))
+    y3 = (x[:, 0] > 0).long() + (x[:, 1] > 0).long()  # labels in {0, 1, 2}
+    model = RoT(3, (5,))
+    model.fit(x, y3, epochs=4, batch_size=8, lr=0.05)
+
+    order = model.get_order(x)
+    acc = model.score_ordering(x, y3, order)
+
+    pred = model.ordered_predict(x, order)
+    expected = torch.stack(
+        [(pred[:, j] == y3)[pred[:, j] != -1].float().mean() for j in range(pred.shape[1])]
+    )
+    assert acc.shape == (pred.shape[1],)
+    assert torch.allclose(acc, expected)
+
+    confusion = model.score_ordering(x, y3, order, return_confusion=True)
+    assert confusion.shape == (pred.shape[1], 3, 3)
+    # rows sum to the number of still-active samples at each step
+    assert torch.equal(confusion.sum((1, 2)), (pred != -1).float().sum(0))
+    # spot-check one step against a manual tally (rows = truth, cols = prediction)
+    manual = torch.zeros(3, 3, dtype=torch.long)
+    sel = pred[:, 2] != -1
+    for t, p in zip(y3[sel].tolist(), pred[sel, 2].tolist()):
+        manual[t, p] += 1
+    assert torch.equal(confusion[2], manual)
+
+
+def test_score_ordering_binary_default_matches_count_metric(tabular_data):
+    x, y = tabular_data
+    model = RoT(2, (5,))
+    model.fit(torch.from_numpy(x), y, epochs=4, batch_size=32, lr=0.05)
+    order = model.get_order(torch.from_numpy(x))
+    default = model.score_ordering(torch.from_numpy(x), y, order)
+    counts = model.score_ordering(
+        torch.from_numpy(x), y, order, metric=lambda tp, fp, fn, tn: (tp + tn) / (tp + fp + fn + tn)
+    )
+    assert torch.allclose(default, counts)
+
+
+def test_score_ordering_confusion_conflicts_with_custom_metric(tabular_data):
+    x, y = tabular_data
+    model = RoT(2, (5,))
+    order = model.get_order(torch.from_numpy(x))
+    with pytest.raises(ValueError):
+        model.score_ordering(
+            torch.from_numpy(x), y, order, metric=lambda tp, fp, fn, tn: tp, return_confusion=True
+        )
+
+
 def test_stochastic_importance_dropout():
     torch.manual_seed(0)
     x = torch.randn(16, 3)

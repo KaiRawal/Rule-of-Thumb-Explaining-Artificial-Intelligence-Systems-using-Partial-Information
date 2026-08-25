@@ -80,6 +80,7 @@ labels = np.array([1, 0, 1, 0], dtype=np.int64)      # e.g. LLM predictions per 
 rot = TextRuleOfThumb(y_outputs=labels, x_inputs=x.numpy(), lengths=lengths)
 token_importances = rot.get_explanation(x.numpy(), lengths=lengths)
 # signed, shape [N, max_tokens]: positive = evidence toward class 1; padded tokens score exactly 0
+# (for n_classes > 2 the output is per-class instead: [N, n_classes, max_tokens])
 ```
 
 Already have a rectangular batch and your own mask? Pass it directly as
@@ -153,7 +154,10 @@ together. Pass `granularity="element"` to `get_order`, `ordered_predict` and
 `score_ordering` for the finer per-element curves (the value must match how
 the order was produced). Use `include_padded=True` on `ordered_predict` /
 `score_ordering` to retain the full rectangular curve including constant
-trailing steps.
+trailing steps. `score_ordering` defaults to per-step accuracy (valid for any
+number of classes); pass `return_confusion=True` for per-step K×K confusion
+counts (rows = true label, columns = predicted class), or `metric=` for a
+custom callable over the binary counts `(tp, fp, fn, tn)`.
 
 ## Limitations
 
@@ -162,7 +166,9 @@ trailing steps.
 - Reveal-curve granularity must match between `get_order` and
   `ordered_predict` / `score_ordering` (no auto-detection of the order's
   granularity).
-- Binary classification only for now (`classes=2` hard-coded); see `ToDo.md`.
+- Custom reveal-curve metrics (`metric=`) are defined over binary counts
+  (`tp, fp, fn, tn`); use them only where that view is meaningful. The default
+  accuracy metric and `return_confusion=True` work for any number of classes.
 
 See `ToDo.md` for the full list and `tests/test_masks.py` for pinned
 behaviour.

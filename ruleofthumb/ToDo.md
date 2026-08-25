@@ -6,14 +6,6 @@ features build on, then new functionality.
 
 ## API / correctness
 
-6. Generalise explanation outputs to multiclass with SHAP-style signed
-   semantics (builds on item 5): the text wrapper must follow the tabular
-   v0.2.7 fix — signed class-1 explanations for binary tasks, full per-class
-   output for K > 2; no magnitude collapses (abs-sum) anywhere in explanation
-   paths (abs-over-classes remains only as `get_order`'s internal ranking
-   heuristic). `score_ordering`: accuracy default plus an optional per-step
-   K×K confusion matrix (`return_confusion=`). No reduction API — class-axis
-   collapsing is not part of the public surface.
 7. Add a `device=` parameter (CPU default, CUDA optional): tensors are
    currently created without an explicit device, so fitting cannot use a GPU.
 8. Unify the tabular/text explainer wrappers behind one facade with the
@@ -75,6 +67,12 @@ features build on, then new functionality.
 
 ## Changelog
 
+- **v0.2.8** — multiclass generalisation: `TextRuleOfThumb.get_explanation`
+  follows the tabular semantics (signed class-1 `[N, tokens]` for binary,
+  full per-class `[N, n_classes, tokens]` for K > 2); `score_ordering`
+  defaults to per-step accuracy for any number of classes and accepts
+  `return_confusion=True` for per-step K×K confusion counts (rows = true
+  label); custom binary-count `metric=` callables are retained.
 - **v0.2.7** — tabular `RuleOfThumb.get_explanation` returns signed,
   SHAP-comparable importances: class-1 contributions for binary tasks
   (additive with the class-1 bias), full per-class output for K > 2; unused

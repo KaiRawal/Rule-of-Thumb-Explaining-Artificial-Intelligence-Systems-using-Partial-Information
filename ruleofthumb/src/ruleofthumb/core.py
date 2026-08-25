@@ -266,22 +266,45 @@ class RoT(torch.nn.Module):
         order[cols >= counts[:, None]] = -1
         return order.reshape(old_shape)
 
-    def score_ordering(self, points, labels, order, metric=None, include_padded=False, granularity="unit"):
-        """Fidelity metric at each incremental-reveal step.
+    def score_ordering(
+        self, points, labels, order, metric=None, include_padded=False, granularity="unit", return_confusion=False
+    ):
+        """Fidelity at each incremental-reveal step.
 
         ``granularity`` must match how ``order`` was produced (see
         :meth:`get_order`). Steps where no sample reveals a real feature are
         trimmed. Per-step metrics aggregate only samples that still have real
         features left, so denominators can shrink along the curve when reveal
         lengths differ.
+
+        By default the per-step metric is plain accuracy ``(pred == label)``,
+        valid for any number of classes. ``return_confusion=True`` returns the
+        per-step ``K x K`` confusion counts instead (rows = true label,
+        columns = predicted class). ``metric=`` accepts a custom callable of
+        the binary counts ``(tp, fp, fn, tn)`` — meaningful mainly for binary
+        tasks — and cannot be combined with ``return_confusion=True``.
         """
-        if metric is None:
-            metric = lambda tp, fp, fn, tn: (tp + tn) / (tp + fp + fn + tn)
+        if metric is not None and return_confusion:
+            raise ValueError("return_confusion=True cannot be combined with a custom metric")
         pred = self.ordered_predict(points, order, include_padded=include_padded, granularity=granularity)
+        labels = torch.as_tensor(labels)
+        valid = pred != -1
+        active = valid.any(0)
+        steps = int(active.nonzero().max()) + 1 if bool(active.any()) else 0
+        if return_confusion:
+            confusion = torch.zeros(steps, self.classes, self.classes, dtype=torch.long)
+            for j in range(steps):
+                sel = valid[:, j].nonzero(as_tuple=False).flatten()
+                confusion[j].index_put_(
+                    (labels[sel], pred[sel, j]), torch.ones(len(sel), dtype=torch.long), accumulate=True
+                )
+            return confusion
+        if metric is None:
+            correct = ((pred == labels[:, None]) & valid).float().sum(0)
+            denom = valid.float().sum(0)[:steps].clamp(min=1)
+            return correct[:steps] / denom
         tp = ((pred == 1).float() * (labels == 1).float()[:, None]).sum(0)
         tn = ((pred == 0).float() * (labels == 0).float()[:, None]).sum(0)
         fp = ((pred == 1).float() * (labels == 0).float()[:, None]).sum(0)
         fn = ((pred == 0).float() * (labels == 1).float()[:, None]).sum(0)
-        denom = tp + tn + fp + fn
-        last = int((denom > 0).nonzero().max()) if bool((denom > 0).any()) else 0
-        return metric(tp[: last + 1], fp[: last + 1], fn[: last + 1], tn[: last + 1])
+        return metric(tp[:steps], fp[:steps], fn[:steps], tn[:steps])

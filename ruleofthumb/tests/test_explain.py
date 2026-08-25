@@ -130,7 +130,7 @@ def test_tabular_wrapper_n_classes(tabular_data):
     assert exp.shape == (64, 3, 5)
 
 
-def test_text_wrapper_n_classes(text_data):
+def test_text_wrapper_multiclass_per_class_output(text_data):
     from ruleofthumb import TextRuleOfThumb
 
     x, lengths, _ = text_data
@@ -138,11 +138,15 @@ def test_text_wrapper_n_classes(text_data):
     rot = TextRuleOfThumb(y3, x, epochs=4, batch_size=16, learning_rate=0.01, lengths=lengths, n_classes=3)
     assert rot._explainer_model.classes == 3
     exp = rot.get_explanation(x, lengths=lengths)
-    assert exp.shape == (32, 6)
+    # K > 2: full per-class output, class axis not collapsed
+    assert exp.shape == (32, 3, 6)
+    for k in range(3):
+        assert (exp[:, k, :] != 0).any()
+        assert (exp[:, k, :] > 0).any() and (exp[:, k, :] < 0).any()
 
 
 def test_package_exports():
     import ruleofthumb
 
-    assert ruleofthumb.__version__ == "0.2.7"
+    assert ruleofthumb.__version__ == "0.2.8"
     assert hasattr(ruleofthumb, "RoT")
