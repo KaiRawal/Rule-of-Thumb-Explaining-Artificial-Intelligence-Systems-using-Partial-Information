@@ -17,26 +17,45 @@ These are not semantic changes, but note them for reproducibility:
   `torch.min(torch.max(...))`, but also accepts the scalar class defaults
   (`mins=-inf, maxs=inf`), which modern torch rejects as `max()` operands.
 
-## Mixed-length inputs — preserved by design (do NOT "fix" silently)
+## v1 cleanup deviations (2026-08)
 
-Decision (maintainer): ruleofthumb keeps the original rectangular-batch-only
-behaviour. The items below are **documented limitations**, pinned by
-`tests/test_limitations.py`:
+Simplifications applied on top of the faithful port; behaviour of the kept
+APIs is unchanged:
 
-1. **Rectangular batches only, for both text and images.** Ragged token
-   sequences or mixed-size image batches are not supported; callers must pad
-   to a common shape themselves.
-2. **Text padding sentinel is all `-1` embeddings.**
-   `RoT_text.importance` masks tokens whose embeddings sum to
-   `-embedding_dim`: `mask = (points.sum(dim=2) != -points.shape[2])`. Any
-   other fill value is treated as real data (see the characterisation test).
-   No `attention_mask` / `pad_value` parameter exists.
-3. **Length normalisation is heuristic.** Text score/loss normalisation counts
-   non-zero importance rows (`modified_length = T - zero_rows`) rather than
-   using a true sequence length.
-4. **Image weights are spatially shared and size-agnostic**, so one fitted
-   `RoT_image` can score any `(C, H, W)` sample individually — but batches
-   must share `H, W`.
+- **`ruleofthumb.models` removed.** The module (`Linear_regression`,
+  `per_point_NAM/RBF/poly`, `RoT_additive`, `rand_order`) was dead code: no
+  experiment ever instantiated it and nothing in the package consumed it (see
+  the additive-models entry below).
+- **PEP8 class renames, no aliases:** `RoT_image` → `RoTImage`,
+  `RoT_text` → `RoTText`. Breaking change.
+- **Dead parameters removed:** the never-used `scheduler` argument of
+  `RoT.training_loop`; `RoT_text.continue_fit` / `use_sgd`.
+- **Dead code removed:** a stray debug `print()` in `RoT_image.fit_project`,
+  commented-out blocks and an unused `response_mean` computation in
+  `RoT_text.loss`, and an unused `SWALR` import in `core.py`.
+
+## Mixed-length inputs — FIXED in v0.2.0 (2026-08)
+
+The items below were preserved as documented limitations in v0.1 and are now
+**fixed** by the mask-first redesign (breaking change; see README
+"Migrating from v0.1 sentinel padding"). Pinned by `tests/test_masks.py`:
+
+1. ~~Rectangular batches only, for both text and images.~~ Ragged text is
+   handled by `ruleofthumb.text.pad_sequences` + validity masks; mixed-size
+   images by `ruleofthumb.image.pad_images` + masks, or per-sample looping.
+2. ~~Text padding sentinel is all `-1` embeddings.~~ Sentinel inference was
+   removed entirely: masks are explicit (`mask` / `attention_mask` / `lengths`
+   parameters) and no fill value has special meaning.
+   `ruleofthumb.text.sentinel_mask` migrates legacy `-1`-padded arrays.
+3. ~~Length normalisation is heuristic.~~ Text scores now normalise by true
+   token counts taken from the mask/lengths.
+4. Image weights remain spatially shared and size-agnostic: one fitted model
+   scores any `(C, H, W)` sample individually (no padding needed), and padded
+   batches are supported via validity masks.
+
+Note: `get_order` / `ordered_predict` / `score_ordering` are mask-aware;
+reveal steps operate at feature-element granularity (tokens x embedding dims
+for text, channels x pixels for images), matching v0.1 semantics.
 
 ## Other known hard-coded limitations (not yet fixed)
 
@@ -74,8 +93,18 @@ behaviour. The items below are **documented limitations**, pinned by
     reduction parameter (currently duplicated in `explain.py` as
     `RuleOfThumb` + `TextRuleOfThumb`).
 15. Port embedding-extraction utilities (`gen_token_embeddings.py`,
-    `03_gen_embeddings.py`) into `ruleofthumb.embed` ([llm] extra).
+    `03_gen_embeddings.py`) into `ruleofthumb.embed`.
 16. Port plotting utilities (`viz.py`, `word_clouds.py`, saliency overlays from
-    `ExplanationExampleRemote/run.py`) into `ruleofthumb.plot` ([viz] extra).
+    `ExplanationExampleRemote/run.py`) into `ruleofthumb.plot`.
 17. Bitstring/partial-information sampling scripts are *not* needed per design
     decision (RoT operates per token); do not port them.
+18. **Bring back the ability to use non-linear additive functions within the
+    RoT framework.** This was the original thesis behind code removed in the
+    v1 cleanup: `RoT_additive` combined per-feature non-linear shape functions
+    (`per_point_NAM`, `per_point_RBF`, `per_point_poly`) with the linear RoT
+    importance, with helpers `Linear_regression` and `rand_order`. It was
+    never exercised by any published experiment (the only usage is a drafted,
+    unapplied patch in `OpenXAIBenchmark/CODE/patch.diff`). If the skipped
+    experiments are revived, port these into `ruleofthumb.models` with tests,
+    starting from any legacy copy, e.g. `AdversarialAttack/rot_class.py`
+    (lines ~200–268).

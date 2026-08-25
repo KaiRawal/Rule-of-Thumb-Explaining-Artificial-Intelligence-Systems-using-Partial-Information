@@ -4,10 +4,10 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ruleofthumb"
-version = "0.1.0"
+version = "0.2.0"
 description = "Rule of Thumb: explaining AI systems using partial information"
 readme = "README.md"
-license = { file = "../LICENSE" }
+license = "MIT"
 authors = [{ name = "RoT authors" }]
 requires-python = ">=3.9"
 keywords = ["explainability", "interpretability", "machine-learning", "rule-of-thumb"]
@@ -21,21 +21,15 @@ classifiers = [
 dependencies = [
     "numpy>=1.21",
     "torch>=1.13",
-]
-
-[project.optional-dependencies]
-viz = [
+    "torchvision>=0.14",
+    "transformers>=4.30",
     "matplotlib>=3.5",
     "seaborn>=0.12",
     "wordcloud>=1.9",
-]
-llm = [
-    "transformers>=4.30",
-]
-vision = [
-    "torchvision>=0.14",
     "Pillow>=9.0",
 ]
+
+[project.optional-dependencies]
 dev = [
     "pytest>=7.0",
     "ruff>=0.4",

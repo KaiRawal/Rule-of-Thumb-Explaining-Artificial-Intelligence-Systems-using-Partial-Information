@@ -62,22 +62,3 @@ def test_stochastic_importance_dropout():
     model = RoT(2, (3,), dropout_rate=0.5)
     imp = model.stochastic_importance(x)
     assert tuple(imp.shape) == (16, 2, 3)
-
-
-def test_linear_regression_projects_b_to_zero():
-    from ruleofthumb.models import Linear_regression
-
-    model = Linear_regression(2, (4,))
-    model.b.data += 1.0
-    model.project()
-    assert torch.allclose(model.b.data, torch.zeros_like(model.b.data))
-
-
-def test_rand_order_is_permutation():
-    from ruleofthumb.models import rand_order
-
-    points = torch.randn(8, 4)
-    order = rand_order(points)
-    assert order.shape == points.shape
-    for row in order:
-        assert sorted(row.tolist()) == list(range(4))

@@ -2,7 +2,17 @@
 
 from ruleofthumb.core import RoT
 from ruleofthumb.explain import RuleOfThumb, TextRuleOfThumb
+from ruleofthumb.image import pad_images
+from ruleofthumb.text import pad_sequences, sentinel_mask
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
-__all__ = ["RoT", "RuleOfThumb", "TextRuleOfThumb", "__version__"]
+__all__ = [
+    "RoT",
+    "RuleOfThumb",
+    "TextRuleOfThumb",
+    "__version__",
+    "pad_images",
+    "pad_sequences",
+    "sentinel_mask",
+]
