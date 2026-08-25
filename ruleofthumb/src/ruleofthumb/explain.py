@@ -41,9 +41,12 @@ class RuleOfThumb:
         weight_decay=0.01,
         seed=None,
         n_classes=2,
+        device=None,
     ) -> None:
         y_preds = y_outputs.flatten()
-        self._explainer_model = RoT(n_classes, (x_inputs.shape[1],), dropout_rate=dropout_rate)
+        self._explainer_model = RoT(
+            n_classes, (x_inputs.shape[1],), dropout_rate=dropout_rate, device=device
+        )
         xx = torch.from_numpy(x_inputs)
         yy = torch.from_numpy(y_preds)
         self._explainer_model.fit(
@@ -69,8 +72,8 @@ class RuleOfThumb:
         For ``n_classes > 2`` the full per-class importances are returned
         with shape ``[N, n_classes, d]``; the class axis is never collapsed.
         """
-        x = torch.from_numpy(x_numpy)
-        imp = self._explainer_model.importance(x).detach().numpy()
+        x = torch.from_numpy(x_numpy).to(self._explainer_model.device)
+        imp = self._explainer_model.importance(x).detach().cpu().numpy()
         if self._explainer_model.classes == 2:
             imp = imp[:, 1, :]
         return imp
@@ -100,10 +103,15 @@ class TextRuleOfThumb:
         l1_penalty=0.01,
         seed=None,
         n_classes=2,
+        device=None,
     ) -> None:
         y_preds = y_outputs.flatten()
         self._explainer_model = RoTText(
-            n_classes, (x_inputs.shape[1], x_inputs.shape[2]), dropout_rate=dropout_rate, l1_penalty=l1_penalty
+            n_classes,
+            (x_inputs.shape[1], x_inputs.shape[2]),
+            dropout_rate=dropout_rate,
+            l1_penalty=l1_penalty,
+            device=device,
         )
         mask = _as_token_mask(lengths if attention_mask is None else attention_mask, x_inputs.shape[1])
         xx = torch.from_numpy(x_inputs)
@@ -132,9 +140,9 @@ class TextRuleOfThumb:
         Padded tokens receive exactly zero importance when a mask/lengths is
         supplied.
         """
-        x = torch.from_numpy(x_numpy)
+        x = torch.from_numpy(x_numpy).to(self._explainer_model.device)
         mask = _as_token_mask(lengths if attention_mask is None else attention_mask, x.shape[1])
-        imp = self._explainer_model.importance(x, mask=mask).detach().numpy()
+        imp = self._explainer_model.importance(x, mask=mask).detach().cpu().numpy()
         if self._explainer_model.classes == 2:
             imp = imp[:, 1]
         return imp.sum(axis=-1)

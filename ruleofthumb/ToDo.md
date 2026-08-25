@@ -6,8 +6,6 @@ features build on, then new functionality.
 
 ## API / correctness
 
-7. Add a `device=` parameter (CPU default, CUDA optional): tensors are
-   currently created without an explicit device, so fitting cannot use a GPU.
 8. Unify the tabular/text explainer wrappers behind one facade with the
    shared signed-explanation semantics; add the missing image wrapper. This
    is the prerequisite for the native-ingestion and plotting items below —
@@ -67,6 +65,12 @@ features build on, then new functionality.
 
 ## Changelog
 
+- **v0.2.9** — `device=` parameter on all three RoT models and both explainer
+  wrappers (`None` auto-detects cuda > mps > cpu; default cpu otherwise).
+  Fit and inference move inputs to the model's device; raw-model methods
+  return tensors on the model's device while `get_order` ranks host-side,
+  `score_ordering` returns CPU tensors, and wrapper `get_explanation` still
+  returns numpy arrays.
 - **v0.2.8** — multiclass generalisation: `TextRuleOfThumb.get_explanation`
   follows the tabular semantics (signed class-1 `[N, tokens]` for binary,
   full per-class `[N, n_classes, tokens]` for K > 2); `score_ordering`

@@ -49,23 +49,30 @@ class RoTImage(RoT):
     fit bounds and scores.
     """
 
-    def __init__(self, classes, sample_shape, dropout_rate=0.5, use_BCE_loss=False):
-        super().__init__(classes, sample_shape, dropout_rate, use_BCE_loss, no_a_b=True)
-        self.a = nn.Parameter(torch.zeros((classes, sample_shape[0]), requires_grad=True))
-        self.b = nn.Parameter(torch.zeros((classes, sample_shape[0]), requires_grad=True))
+    def __init__(self, classes, sample_shape, dropout_rate=0.5, use_BCE_loss=False, device=None):
+        super().__init__(classes, sample_shape, dropout_rate, use_BCE_loss, no_a_b=True, device=device)
+        self.a = nn.Parameter(torch.zeros((classes, sample_shape[0]), requires_grad=True, device=self.device))
+        self.b = nn.Parameter(torch.zeros((classes, sample_shape[0]), requires_grad=True, device=self.device))
         self.weights = (self.a, self.b, self.g)
 
     def importance(self, points, mask=None):
         # Convolutional form.
         # Treat all spatial locations given by last two axis the same
+        points = torch.as_tensor(points, device=self.device)
+        if mask is not None:
+            mask = torch.as_tensor(mask, device=self.device)
         imp = self.a[None, :, :, None, None] * (points[:, None] + self.b[None, :, :, None, None])
         if mask is None:
             return imp
         return imp * mask.unsqueeze(1).unsqueeze(1).to(imp.dtype)
 
     def stochastic_importance(self, points, mask=None):
+        if mask is not None:
+            mask = torch.as_tensor(mask, device=self.device)
         imp = self.importance(points, mask=mask)
-        keep = (torch.rand(points.shape[0], *points.shape[2:]) > self.dropout_rate).float()
+        keep = (
+            torch.rand(points.shape[0], *points.shape[2:], device=self.device) > self.dropout_rate
+        ).float()
         if mask is not None:
             keep = keep * mask.to(keep.dtype)
         return keep.unsqueeze(1).unsqueeze(1) * imp
@@ -88,6 +95,10 @@ class RoTImage(RoT):
     ):
         assert points.shape[0] == classifier_response.shape[0]
         assert points.shape[1] == self.a.shape[1]
+        points = torch.as_tensor(points, device=self.device)
+        classifier_response = torch.as_tensor(classifier_response, device=self.device)
+        if mask is not None:
+            mask = torch.as_tensor(mask, device=self.device)
         if seed is not None:
             torch.manual_seed(seed)
         if mask is None:

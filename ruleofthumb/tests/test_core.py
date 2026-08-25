@@ -3,6 +3,7 @@ import pytest
 import torch
 
 from ruleofthumb.core import RoT
+from ruleofthumb.image import RoTImage
 
 
 @pytest.fixture
@@ -23,7 +24,7 @@ def test_fit_reduces_loss_and_predicts(tabular_data):
 
     score = model.score(torch.from_numpy(x))
     assert score.shape == (64, 2)
-    pred = model.predict(torch.from_numpy(x))
+    pred = model.predict(torch.from_numpy(x)).cpu()
     assert pred.shape == (64,)
     accuracy = (pred == y).float().mean().item()
     assert accuracy > 0.7  # the rule is trivially learnable
@@ -66,7 +67,7 @@ def test_score_ordering_multiclass_accuracy_and_confusion():
     order = model.get_order(x)
     acc = model.score_ordering(x, y3, order)
 
-    pred = model.ordered_predict(x, order)
+    pred = model.ordered_predict(x, order).cpu()
     expected = torch.stack(
         [(pred[:, j] == y3)[pred[:, j] != -1].float().mean() for j in range(pred.shape[1])]
     )
@@ -105,6 +106,31 @@ def test_score_ordering_confusion_conflicts_with_custom_metric(tabular_data):
         model.score_ordering(
             torch.from_numpy(x), y, order, metric=lambda tp, fp, fn, tn: tp, return_confusion=True
         )
+
+
+def test_device_resolution_defaults_to_available_backend():
+    from ruleofthumb.core import _resolve_device
+
+    assert _resolve_device("cpu") == torch.device("cpu")
+    dev = _resolve_device(None)
+    assert dev.type in {"cpu", "cuda", "mps"}
+
+
+def test_device_parameter_cpu_plumbing(tabular_data):
+    x, y = tabular_data
+    model = RoT(2, (5,), device="cpu")
+    assert model.a.device.type == "cpu"
+    assert model.g.device.type == "cpu"
+
+    model.fit(x, y, epochs=4, batch_size=32, lr=0.05)
+    order = model.get_order(x)
+    pred = model.ordered_predict(torch.from_numpy(x), order)
+    assert pred.device.type == "cpu"
+    metric = model.score_ordering(torch.from_numpy(x), y, order)
+    assert metric.shape == (6,)
+
+    image_model = RoTImage(2, (3,), device="cpu")
+    assert image_model.a.device.type == "cpu"
 
 
 def test_stochastic_importance_dropout():

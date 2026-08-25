@@ -12,13 +12,25 @@ from torch import nn
 from torch.optim.swa_utils import AveragedModel
 
 
+def _resolve_device(device=None):
+    """Resolve a ``device`` argument; ``None`` auto-detects cuda > mps > cpu."""
+    if device is not None:
+        return torch.device(device)
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    if getattr(torch.backends, "mps", None) is not None and torch.backends.mps.is_available():
+        return torch.device("mps")
+    return torch.device("cpu")
+
+
 class RoT(torch.nn.Module):
-    def __init__(self, classes, sample_shape, dropout_rate=0.5, use_BCE_loss=False, no_a_b=False):
+    def __init__(self, classes, sample_shape, dropout_rate=0.5, use_BCE_loss=False, no_a_b=False, device=None):
         super().__init__()
+        self.device = _resolve_device(device)
         if not no_a_b:
-            self.a = nn.Parameter(torch.zeros((classes,) + sample_shape, requires_grad=True))
-            self.b = nn.Parameter(torch.zeros((classes,) + sample_shape, requires_grad=True))
-        self.g = nn.Parameter(torch.zeros(classes, requires_grad=True))
+            self.a = nn.Parameter(torch.zeros((classes,) + sample_shape, requires_grad=True, device=self.device))
+            self.b = nn.Parameter(torch.zeros((classes,) + sample_shape, requires_grad=True, device=self.device))
+        self.g = nn.Parameter(torch.zeros(classes, requires_grad=True, device=self.device))
         self.classes = classes
         if use_BCE_loss is False:
             self.objective = torch.nn.CrossEntropyLoss(reduction="sum")
@@ -51,13 +63,16 @@ class RoT(torch.nn.Module):
         positions receive zero importance. The tabular variant has no padding
         concept and ignores the argument; text/image subclasses interpret it
         as ``(N, tokens)`` / ``(N, H, W)`` validity masks respectively.
+
+        Inputs may live on any device; they are moved to the model's device.
         """
+        points = torch.as_tensor(points, device=self.device)
         return self.a[None] * (points[:, None] + self.b[None])
 
     def stochastic_importance(self, points, mask=None):
         imp = self.importance(points, mask=mask)
         mask_shape = (points.shape[0],) + tuple(imp.shape[2:])
-        keep = (torch.rand(mask_shape) > self.dropout_rate).float()
+        keep = (torch.rand(mask_shape, device=self.device) > self.dropout_rate).float()
         return keep[:, None] * imp
 
     def pretrain_loss(self, points, classifier_response):
@@ -100,9 +115,13 @@ class RoT(torch.nn.Module):
             torch.manual_seed(seed)
         self.training_loss = np.zeros(epochs)
         burn_in = epochs // 10 + 1 if swa_burn_in is None else swa_burn_in
+        points = torch.as_tensor(points, device=self.device)
+        classifier_response = torch.as_tensor(classifier_response, device=self.device)
+        if mask is not None:
+            mask = torch.as_tensor(mask, device=self.device)
         features = points
         for e in range(epochs):
-            shuff = torch.randperm(classifier_response.shape[0])
+            shuff = torch.randperm(classifier_response.shape[0], device=self.device)
             for i in range(points.shape[0] // batch_size + 1):
                 upper = min(points.shape[0], batch_size * (i + 1))
                 lower = batch_size * i
@@ -135,6 +154,8 @@ class RoT(torch.nn.Module):
     ):
         assert points.shape[0] == classifier_response.shape[0]
         assert points.shape[1] == self.a.shape[1]
+        points = torch.as_tensor(points, device=self.device)
+        classifier_response = torch.as_tensor(classifier_response, device=self.device)
         if seed is not None:
             torch.manual_seed(seed)
         self.fit_project(-points.max(0)[0], -points.min(0)[0])
@@ -206,8 +227,8 @@ class RoT(torch.nn.Module):
             kept = np.flatnonzero((flat_order != -1).any(axis=0))
         reveal_counts = (flat_order != -1).sum(axis=1)
 
-        pred = torch.full((n, len(kept) + 1), -1, dtype=int)
-        acc = torch.zeros(n, self.classes)
+        pred = torch.full((n, len(kept) + 1), -1, dtype=int, device=self.device)
+        acc = torch.zeros(n, self.classes, device=self.device)
         acc += self.g[None].detach()
         pred[:, 0] = acc.argmax(1)
 
@@ -215,9 +236,10 @@ class RoT(torch.nn.Module):
             idx = flat_order[:, i]
             valid = idx != -1
             if valid.any():
-                contribution = torch.zeros(n, self.classes)
-                contribution[torch.from_numpy(valid)] = flat_imp[
-                    torch.from_numpy(valid.nonzero()[0]), torch.from_numpy(idx[valid])
+                contribution = torch.zeros(n, self.classes, device=self.device)
+                contribution[torch.from_numpy(valid).to(self.device)] = flat_imp[
+                    torch.from_numpy(valid.nonzero()[0]).to(self.device),
+                    torch.from_numpy(idx[valid]).to(self.device),
                 ]
                 acc = acc + contribution
             pred[:, j + 1] = acc.argmax(1)
@@ -225,7 +247,7 @@ class RoT(torch.nn.Module):
         if not include_padded:
             cols = np.arange(pred.shape[1])[None, :]
             exhausted = cols > np.asarray(reveal_counts)[:, None]
-            pred[torch.from_numpy(exhausted)] = -1
+            pred[torch.from_numpy(exhausted).to(self.device)] = -1
         return pred
 
     def get_order(self, points, mask=None, granularity="unit"):
@@ -238,8 +260,10 @@ class RoT(torch.nn.Module):
         With a validity ``mask``, padded positions are ranked last and
         reported as ``-1`` in the returned order; real positions form a
         permutation prefix per sample.
+
+        Ranking happens on the host: the returned order is a numpy array.
         """
-        imp = self.importance(points, mask=mask).detach()
+        imp = self.importance(points, mask=mask).detach().cpu()
         if granularity == "unit":
             imp = self._reduce_to_units(imp)
         elif granularity != "element":
@@ -283,11 +307,14 @@ class RoT(torch.nn.Module):
         columns = predicted class). ``metric=`` accepts a custom callable of
         the binary counts ``(tp, fp, fn, tn)`` — meaningful mainly for binary
         tasks — and cannot be combined with ``return_confusion=True``.
+
+        Scoring runs on the host: inputs may live on any device and the
+        returned tensors are CPU.
         """
         if metric is not None and return_confusion:
             raise ValueError("return_confusion=True cannot be combined with a custom metric")
-        pred = self.ordered_predict(points, order, include_padded=include_padded, granularity=granularity)
-        labels = torch.as_tensor(labels)
+        pred = self.ordered_predict(points, order, include_padded=include_padded, granularity=granularity).cpu()
+        labels = torch.as_tensor(labels).cpu()
         valid = pred != -1
         active = valid.any(0)
         steps = int(active.nonzero().max()) + 1 if bool(active.any()) else 0

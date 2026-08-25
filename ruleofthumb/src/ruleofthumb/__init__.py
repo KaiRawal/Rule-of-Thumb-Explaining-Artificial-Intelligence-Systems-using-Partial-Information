@@ -5,7 +5,7 @@ from ruleofthumb.explain import RuleOfThumb, TextRuleOfThumb
 from ruleofthumb.image import pad_images
 from ruleofthumb.text import pad_sequences, sentinel_mask
 
-__version__ = "0.2.8"
+__version__ = "0.2.9"
 
 __all__ = [
     "RoT",

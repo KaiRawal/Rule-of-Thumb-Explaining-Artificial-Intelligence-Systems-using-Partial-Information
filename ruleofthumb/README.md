@@ -119,6 +119,19 @@ Hello-world examples on dummy data — no downloads or GPUs needed:
 - `examples/02_text_quickstart.ipynb`
 - `examples/03_image_quickstart.ipynb`
 
+## Devices
+
+All three RoT models and both explainer wrappers accept `device=`. The
+default (`device=None`) auto-detects the best available backend
+(CUDA → MPS → CPU). Fit and inference move inputs to the model's device
+automatically; raw-model methods (`score`, `importance`, ...) return tensors
+on the model's device, while the wrappers' `get_explanation` always returns
+host-side numpy arrays.
+
+```python
+rot = RuleOfThumb(y_outputs=labels, x_inputs=X, device="cuda")  # or "mps", "cpu", ...
+```
+
 ## Migrating from v0.1 sentinel padding
 
 v0.2 removed the implicit `-1` sentinel: **no fill value has special meaning

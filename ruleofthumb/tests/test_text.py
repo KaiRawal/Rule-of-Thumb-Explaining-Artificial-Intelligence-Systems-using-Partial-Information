@@ -61,11 +61,13 @@ def test_score_normalises_by_true_length(padded_text_data):
     torch.nn.init.normal_(model.b, std=1.0)
 
     xt = torch.from_numpy(x)
-    score = model.score(xt, mask=mask)
+    score = model.score(xt, mask=mask).cpu()
 
-    imp = model.a[None, :, None, :] * (xt[:, None] + model.b[None, :, None, :])
+    # manual reference computed on CPU with host-side copies of the weights
+    a, b, g = model.a.detach().cpu(), model.b.detach().cpu(), model.g.detach().cpu()
+    imp = a[None, :, None, :] * (xt[:, None] + b[None, :, None, :])
     expected_sum = imp[:, :, :4, :].sum(dim=(2, 3))  # only the 4 real tokens
-    expected = expected_sum / 4 + model.g[None, :]
+    expected = expected_sum / 4 + g[None, :]
     assert torch.allclose(score, expected)
 
 

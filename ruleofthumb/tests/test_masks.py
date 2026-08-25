@@ -51,15 +51,16 @@ def test_v01_sentinel_scores_reproduce_with_explicit_mask(legacy_sentinel_text):
     torch.nn.init.normal_(model.b, std=1.0)
 
     mask = sentinel_mask(x)
-    score = model.score(x, mask=mask)
+    score = model.score(x, mask=mask).cpu()
 
     # v0.1 formula: mean over non-padded tokens of per-token importance sums,
-    # summed over embedding dims, plus g.
-    imp = model.a[None, :, None, :] * (x[:, None] + model.b[None, :, None, :])
-    expected = imp[:, :, :4, :].sum(dim=(2, 3)) / 4 + model.g[None, :]
+    # summed over embedding dims, plus g (computed on CPU with host-side weights).
+    a, b, g = model.a.detach().cpu(), model.b.detach().cpu(), model.g.detach().cpu()
+    imp = a[None, :, None, :] * (x[:, None] + b[None, :, None, :])
+    expected = imp[:, :, :4, :].sum(dim=(2, 3)) / 4 + g[None, :]
     assert torch.allclose(score, expected)
     # without the mask, padded tokens would leak into the score (v0.1 quirk gone)
-    assert not torch.allclose(score, model.score(x))
+    assert not torch.allclose(score, model.score(x).cpu())
 
 
 def test_image_mixed_sizes_fit_and_reveal():

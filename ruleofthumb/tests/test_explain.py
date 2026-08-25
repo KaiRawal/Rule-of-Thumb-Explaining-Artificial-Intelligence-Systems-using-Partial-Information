@@ -43,8 +43,8 @@ def test_tabular_wrapper_signed_explanations(tabular_data):
     # additive decomposition: sum of contributions + class-1 bias = score
     import torch
 
-    score1 = rot._explainer_model.score(torch.from_numpy(x))[:, 1].detach().numpy()
-    bias1 = rot._explainer_model.g[1].detach().numpy()
+    score1 = rot._explainer_model.score(torch.from_numpy(x))[:, 1].detach().cpu().numpy()
+    bias1 = rot._explainer_model.g[1].detach().cpu().numpy()
     assert np.allclose(exp.sum(1) + bias1, score1, atol=1e-4)
 
 
@@ -145,8 +145,23 @@ def test_text_wrapper_multiclass_per_class_output(text_data):
         assert (exp[:, k, :] > 0).any() and (exp[:, k, :] < 0).any()
 
 
+def test_wrappers_accept_device(tabular_data, text_data):
+    from ruleofthumb import RuleOfThumb, TextRuleOfThumb
+
+    x, y = tabular_data
+    rot = RuleOfThumb(y, x, epochs=4, batch_size=32, learning_rate=0.05, device="cpu")
+    assert rot._explainer_model.a.device.type == "cpu"
+    assert rot.get_explanation(x).shape == (64, 5)
+
+    tx, lengths, ty = text_data
+    rot_text = TextRuleOfThumb(
+        ty, tx, epochs=4, batch_size=16, learning_rate=0.01, lengths=lengths, device="cpu"
+    )
+    assert rot_text.get_explanation(tx, lengths=lengths).shape == (32, 6)
+
+
 def test_package_exports():
     import ruleofthumb
 
-    assert ruleofthumb.__version__ == "0.2.8"
+    assert ruleofthumb.__version__ == "0.2.9"
     assert hasattr(ruleofthumb, "RoT")

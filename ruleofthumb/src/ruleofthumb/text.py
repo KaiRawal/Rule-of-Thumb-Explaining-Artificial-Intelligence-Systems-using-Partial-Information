@@ -62,32 +62,43 @@ class RoTText(RoT):
     every token is treated as real data.
     """
 
-    def __init__(self, classes, sample_shape, dropout_rate=0.5, use_BCE_loss=False, l1_penalty=0.01):
-        super().__init__(classes, sample_shape, dropout_rate, use_BCE_loss, no_a_b=True)
-        self.a = nn.Parameter(torch.zeros((classes, sample_shape[1]), requires_grad=True))
-        self.b = nn.Parameter(torch.zeros((classes, sample_shape[1]), requires_grad=True))
+    def __init__(self, classes, sample_shape, dropout_rate=0.5, use_BCE_loss=False, l1_penalty=0.01, device=None):
+        super().__init__(classes, sample_shape, dropout_rate, use_BCE_loss, no_a_b=True, device=device)
+        self.a = nn.Parameter(torch.zeros((classes, sample_shape[1]), requires_grad=True, device=self.device))
+        self.b = nn.Parameter(torch.zeros((classes, sample_shape[1]), requires_grad=True, device=self.device))
         self.weights = (self.a, self.b, self.g)
         self.l1_penalty = l1_penalty
 
     def importance(self, points, mask=None):
+        points = torch.as_tensor(points, device=self.device)
+        if mask is not None:
+            mask = torch.as_tensor(mask, device=self.device)
         imp = self.a[None, :, None, :] * (points[:, None] + self.b[None, :, None, :])
         if mask is None:
             return imp
         return mask[:, None, :, None].to(imp.dtype) * imp
 
     def stochastic_importance(self, points, mask=None):
+        if mask is not None:
+            mask = torch.as_tensor(mask, device=self.device)
         imp = self.importance(points, mask=mask)
         token_dim = 1
-        keep = (torch.rand(points.shape[0], points.shape[token_dim]) > self.dropout_rate).float()
+        keep = (
+            torch.rand(points.shape[0], points.shape[token_dim], device=self.device) > self.dropout_rate
+        ).float()
         if mask is not None:
             keep = keep * mask.to(keep.dtype)
         return keep[:, None, :, None] * imp
 
     def score(self, points, mask=None):
+        if mask is not None:
+            mask = torch.as_tensor(mask, device=self.device)
         imp = self.importance(points, mask=mask).detach()
         response_sum = imp.sum(dim=2)
         if mask is None:
-            length = torch.full(response_sum.shape[:1], points.shape[1], dtype=response_sum.dtype)
+            length = torch.full(
+                response_sum.shape[:1], points.shape[1], dtype=response_sum.dtype, device=self.device
+            )
         else:
             length = mask.to(response_sum.dtype).sum(1)
         response_mean = response_sum / length.clamp(min=1)[:, None, None]
@@ -129,6 +140,10 @@ class RoTText(RoT):
         # Unlike the tabular ``RoT.fit``: no projection of ``b`` onto the data
         # range, zero initialisation instead of mean-centering, as in the
         # original text-experiment copies.
+        points = torch.as_tensor(points, device=self.device)
+        classifier_response = torch.as_tensor(classifier_response, device=self.device)
+        if mask is not None:
+            mask = torch.as_tensor(mask, device=self.device)
         if seed is not None:
             torch.manual_seed(seed)
         with torch.no_grad():
