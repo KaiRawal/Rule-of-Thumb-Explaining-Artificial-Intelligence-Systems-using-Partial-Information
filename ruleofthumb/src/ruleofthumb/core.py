@@ -145,22 +145,42 @@ class RoT(torch.nn.Module):
         score = self.score(points, mask=mask)
         return score.argmax(1)
 
-    def ordered_predict(self, points, order, include_padded=False):
-        """Predict after revealing features best-first according to ``order``.
+    def _reduce_to_units(self, imp):
+        """Collapse per-element importances to reveal-pipeline units.
 
-        ``order`` may contain ``-1`` entries marking padded positions (as
-        produced by :meth:`get_order` with a mask). With
+        Input and output are signed importance tensors of shape
+        ``(N, classes, *sample_shape)`` -> ``(N, classes, *unit_shape)``.
+        The tabular variant is a no-op (unit == feature element); text
+        aggregates over embedding dims, images over channels.
+        """
+        return imp
+
+    def ordered_predict(self, points, order, include_padded=False, granularity="unit"):
+        """Predict after revealing units best-first according to ``order``.
+
+        ``granularity`` must match how ``order`` was produced by
+        :meth:`get_order`: ``"unit"`` (default) reveals whole tokens (text) /
+        pixels (images) per step; ``"element"`` reveals individual feature
+        elements. There is no auto-detection — mixing them silently misaligns.
+
+        ``order`` may contain ``-1`` entries marking padded positions. With
         ``include_padded=False`` (default) reveal steps where every sample has
         exhausted its real features are dropped, and each sample's predictions
         past its own reveal end are filled with ``-1``; the result spans
-        ``max_true_features + 1`` steps. ``include_padded=True`` keeps every
+        ``max_true_units + 1`` steps. ``include_padded=True`` keeps every
         step of the rectangular input order.
         """
-        imp = self.importance(points).detach()  # .numpy()
+        imp = self.importance(points).detach()
         n = imp.shape[0]
+        if granularity == "unit":
+            imp = self._reduce_to_units(imp)
+        elif granularity != "element":
+            raise ValueError(f"unknown granularity: {granularity!r}")
         positions = int(prod(imp.shape[2:]))
 
-        flat_order = order.reshape(n, -1)
+        flat_imp = imp.reshape(n, self.classes, positions).permute(0, 2, 1)
+
+        flat_order = np.asarray(order).reshape(n, -1)
         assert flat_order.min() >= -1
         assert flat_order.max() <= positions - 1
 
@@ -175,14 +195,13 @@ class RoT(torch.nn.Module):
         acc += self.g[None].detach()
         pred[:, 0] = acc.argmax(1)
 
-        imp = imp.reshape(n, self.classes, -1).permute(0, 2, 1)  # n x position x classes
         for j, i in enumerate(kept):
             idx = flat_order[:, i]
             valid = idx != -1
             if valid.any():
                 contribution = torch.zeros(n, self.classes)
-                contribution[torch.from_numpy(valid)] = imp[
-                    torch.from_numpy(np.arange(n)[valid]), torch.from_numpy(idx[valid])
+                contribution[torch.from_numpy(valid)] = flat_imp[
+                    torch.from_numpy(valid.nonzero()[0]), torch.from_numpy(idx[valid])
                 ]
                 acc = acc + contribution
             pred[:, j + 1] = acc.argmax(1)
@@ -193,26 +212,33 @@ class RoT(torch.nn.Module):
             pred[torch.from_numpy(exhausted)] = -1
         return pred
 
-    def get_order(self, points, mask=None):
-        """Rank feature positions by absolute importance, most important first.
+    def get_order(self, points, mask=None, granularity="unit"):
+        """Rank reveal units by absolute importance, most important first.
 
-        With a validity ``mask`` ((N, \\*sample_shape)), padded positions are
-        ranked last and reported as ``-1`` in the returned order; real
-        positions form a permutation prefix per sample.
+        With ``granularity="unit"`` (default) one unit is a token (text),
+        pixel (image) or feature (tabular); with ``granularity="element"``
+        every individual feature element is ranked separately.
+
+        With a validity ``mask``, padded positions are ranked last and
+        reported as ``-1`` in the returned order; real positions form a
+        permutation prefix per sample.
         """
-        imp = self.importance(points, mask=mask).detach().numpy()
-        imp = np.abs(imp).sum(1)
+        imp = self.importance(points, mask=mask).detach()
+        if granularity == "unit":
+            imp = self._reduce_to_units(imp)
+        elif granularity != "element":
+            raise ValueError(f"unknown granularity: {granularity!r}")
+        imp = np.abs(imp.numpy()).sum(1)  # abs-sum over classes: n x *unit_shape
         old_shape = imp.shape
         imp = imp.reshape(imp.shape[0], -1)
+        flat_mask = None
         if mask is not None:
-            # A unit-level mask ((N, tokens) or (N, H, W)) expands to one
-            # boolean per flattened feature element when each unit carries
-            # multiple features (e.g. embedding dims).
             flat_mask = np.asarray(mask.reshape(mask.shape[0], -1)).astype(bool)
             repeat, remainder = divmod(imp.shape[1], flat_mask.shape[1])
             if remainder:
                 raise ValueError("mask does not align with the input feature shape")
             if repeat > 1:
+                # element granularity: expand unit-level mask to elements
                 flat_mask = np.repeat(flat_mask, repeat, axis=1)
             imp = np.where(flat_mask, imp, -np.inf)
             counts = flat_mask.sum(axis=1)
@@ -223,16 +249,18 @@ class RoT(torch.nn.Module):
         order[cols >= counts[:, None]] = -1
         return order.reshape(old_shape)
 
-    def score_ordering(self, points, labels, order, metric=None, include_padded=False):
+    def score_ordering(self, points, labels, order, metric=None, include_padded=False, granularity="unit"):
         """Fidelity metric at each incremental-reveal step.
 
-        Steps where no sample reveals a real feature are trimmed. Per-step
-        metrics aggregate only samples that still have real features left, so
-        denominators can shrink along the curve when reveal lengths differ.
+        ``granularity`` must match how ``order`` was produced (see
+        :meth:`get_order`). Steps where no sample reveals a real feature are
+        trimmed. Per-step metrics aggregate only samples that still have real
+        features left, so denominators can shrink along the curve when reveal
+        lengths differ.
         """
         if metric is None:
             metric = lambda tp, fp, fn, tn: (tp + tn) / (tp + fp + fn + tn)
-        pred = self.ordered_predict(points, order, include_padded=include_padded)
+        pred = self.ordered_predict(points, order, include_padded=include_padded, granularity=granularity)
         tp = ((pred == 1).float() * (labels == 1).float()[:, None]).sum(0)
         tn = ((pred == 0).float() * (labels == 0).float()[:, None]).sum(0)
         fp = ((pred == 1).float() * (labels == 0).float()[:, None]).sum(0)

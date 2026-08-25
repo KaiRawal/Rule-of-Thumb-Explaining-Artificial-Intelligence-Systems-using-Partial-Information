@@ -110,6 +110,10 @@ class RoTText(RoT):
         )
         return base_loss + l1_loss
 
+    def _reduce_to_units(self, imp):
+        """Reveal units are tokens: aggregate signed importance over embedding dims."""
+        return imp.sum(dim=-1)
+
     def fit(self, points, classifier_response, epochs, batch_size, lr=1e-4, mask=None):
         # Unlike the tabular ``RoT.fit``: no projection of ``b`` onto the data
         # range, zero initialisation instead of mean-centering, as in the

@@ -147,7 +147,11 @@ no longer masked implicitly.
 The incremental-reveal pipeline (`get_order` / `ordered_predict` /
 `score_ordering`) is mask-aware: padded feature positions are ranked last and
 reported as `-1`, and by default reveal curves stop after each sample's real
-features are exhausted. Pass `include_padded=True` to `ordered_predict` /
+features are exhausted. By default one reveal step covers a whole **token**
+(text) or **pixel** (image) — its embedding dims / channels are revealed
+together. Pass `granularity="element"` to `get_order`, `ordered_predict` and
+`score_ordering` for the finer per-element curves (the value must match how
+the order was produced). Use `include_padded=True` on `ordered_predict` /
 `score_ordering` to retain the full rectangular curve including constant
 trailing steps.
 
@@ -155,9 +159,9 @@ trailing steps.
 
 - **Rectangular batches.** Inputs are stored as rectangular tensors; use
   `pad_sequences` / `pad_images` plus masks for ragged or mixed-size data.
-- The incremental-reveal pipeline operates at feature-element granularity
-  (tokens x embedding dims for text; channels x pixels for images), as in the
-  original research code.
+- Reveal-curve granularity must match between `get_order` and
+  `ordered_predict` / `score_ordering` (no auto-detection of the order's
+  granularity).
 - Binary classification only for now (`classes=2` hard-coded); see `ToDo.md`.
 
 See `ToDo.md` for the full list and `tests/test_masks.py` for pinned
@@ -165,6 +169,6 @@ behaviour.
 
 ## Status
 
-v0.2.0 is a cleaned structural port of the original experiment code with
+v0.2.1 is a cleaned structural port of the original experiment code with
 explicit, generalised padding support; known limitations and planned
 follow-ups are tracked in `ToDo.md`.

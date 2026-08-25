@@ -70,6 +70,10 @@ class RoTImage(RoT):
             keep = keep * mask.to(keep.dtype)
         return keep.unsqueeze(1).unsqueeze(1) * imp
 
+    def _reduce_to_units(self, imp):
+        """Reveal units are pixels: aggregate signed importance over channels."""
+        return imp.sum(dim=2)
+
     def fit(self, points, classifier_response, epochs, batch_size, lr=1e-4, mask=None):
         assert points.shape[0] == classifier_response.shape[0]
         assert points.shape[1] == self.a.shape[1]
