@@ -68,7 +68,7 @@ ruleofthumb/
 │   ├── core.py             # RoT base class
 │   ├── text.py             # RoTText, pad_sequences, sentinel_mask, lengths_to_mask
 │   ├── image.py            # RoTImage, pad_images
-│   ├── explain.py          # RuleOfThumb (tabular), TextRuleOfThumb wrappers
+│   ├── explain.py          # Explainer facade + fit / fit_tabular / fit_text / fit_image factories
 │   └── __init__.py         # exports + __version__
 ├── tests/                  # pytest suite (test_masks.py pins mask/reveal behaviour)
 └── examples/               # hello-world quickstart notebooks (dummy data)

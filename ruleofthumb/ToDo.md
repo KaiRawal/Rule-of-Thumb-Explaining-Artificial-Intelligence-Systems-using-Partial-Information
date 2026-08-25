@@ -6,11 +6,6 @@ features build on, then new functionality.
 
 ## API / correctness
 
-8. Unify the tabular/text explainer wrappers behind one facade with the
-   shared signed-explanation semantics; add the missing image wrapper. This
-   is the prerequisite for the native-ingestion and plotting items below —
-   build them on the facade, not the legacy-shaped wrappers.
-
 ## New functionality
 
 9. `ruleofthumb.embed`: embedding-extraction utilities for tokenising and
@@ -65,6 +60,14 @@ features build on, then new functionality.
 
 ## Changelog
 
+- **v0.2.10** — unified explainer facade (breaking): the `RuleOfThumb` /
+  `TextRuleOfThumb` wrapper classes are replaced by the public `Explainer`
+  class plus `fit` / `fit_tabular` / `fit_text` / `fit_image` factories
+  (`fit` auto-detects the modality from input ndim). Adds the previously
+  missing image wrapper (signed per-pixel explanations, channels summed,
+  `(N, H, W)` masks) and public delegating reveal-pipeline methods
+  (`get_order`, `ordered_predict`, `score_ordering`, `score`, `predict`);
+  raw models are unchanged.
 - **v0.2.9** — `device=` parameter on all three RoT models and both explainer
   wrappers (`None` auto-detects cuda > mps > cpu; default cpu otherwise).
   Fit and inference move inputs to the model's device; raw-model methods

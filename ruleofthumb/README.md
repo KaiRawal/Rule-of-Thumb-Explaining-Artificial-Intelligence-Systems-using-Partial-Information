@@ -11,12 +11,15 @@ predictions.
 This package consolidates the three research variants of RoT into one
 installable library:
 
-- **Tabular** (`ruleofthumb.explain.RuleOfThumb`): vector inputs, one
-  importance weight per feature.
-- **Text / LLM embeddings** (`ruleofthumb.text.RoTText`): token-by-embedding
+- **Tabular** (`ruleofthumb.fit_tabular`): vector inputs, one importance
+  weight per feature.
+- **Text / LLM embeddings** (`ruleofthumb.fit_text`): token-by-embedding
   inputs with padding masks and length-normalised scores.
-- **Images** (`ruleofthumb.image.RoTImage`): importance shared across spatial
+- **Images** (`ruleofthumb.fit_image`): importance shared across spatial
   locations of CNN feature maps.
+
+`ruleofthumb.fit` auto-detects the modality from the input shape; all
+factories return a fitted `Explainer`.
 
 ## Install
 
@@ -47,29 +50,29 @@ pytest
 
 ### Tabular data
 
-Wrap any black-box model's outputs on your training inputs; the wrapper fits
+Wrap any black-box model's outputs on your training inputs; the explainer fits
 the surrogate and returns per-feature importances.
 
 ```python
 import numpy as np
-from ruleofthumb import RuleOfThumb
+import ruleofthumb
 
 X_train = np.random.rand(1000, 4).astype(np.float32)
 black_box_probs = (X_train[:, 0] > 0.5).astype(np.int64)  # e.g. model.predict(X_train)
 
-rot = RuleOfThumb(y_outputs=black_box_probs, x_inputs=X_train)
-importances = rot.get_explanation(X_train)  # signed, shape [N, d]; positive = evidence toward class 1
+exp = ruleofthumb.fit(y_outputs=black_box_probs, x_inputs=X_train)   # or fit_tabular(...)
+importances = exp.get_explanation(X_train)  # signed, shape [N, d]; positive = evidence toward class 1
 ```
 
 ### Text / token embeddings
 
 Inputs are `(N, tokens, embedding)` float arrays. Padding is explicit: pass a
-validity mask (`True` = real token) or per-sample lengths. The wrapper accepts
+validity mask (`True` = real token) or per-sample lengths. The explainer accepts
 HuggingFace `attention_mask` tensors directly.
 
 ```python
 import numpy as np
-from ruleofthumb import TextRuleOfThumb
+import ruleofthumb
 from ruleofthumb.text import pad_sequences
 
 # Ragged inputs? Pad them — any fill value works, the mask carries the truth:
@@ -77,14 +80,15 @@ sequences = [np.random.rand(t, 384).astype(np.float32) for t in (20, 14, 17, 9)]
 x, lengths = pad_sequences(sequences)                # x: (4, 20, 384)
 labels = np.array([1, 0, 1, 0], dtype=np.int64)      # e.g. LLM predictions per text
 
-rot = TextRuleOfThumb(y_outputs=labels, x_inputs=x.numpy(), lengths=lengths)
-token_importances = rot.get_explanation(x.numpy(), lengths=lengths)
+exp = ruleofthumb.fit_text(y_outputs=labels, x_inputs=x.numpy(), lengths=lengths)
+token_importances = exp.get_explanation(x.numpy(), lengths=lengths)
 # signed, shape [N, max_tokens]: positive = evidence toward class 1; padded tokens score exactly 0
 # (for n_classes > 2 the output is per-class instead: [N, n_classes, max_tokens])
 ```
 
 Already have a rectangular batch and your own mask? Pass it directly as
-`attention_mask=...` to the constructor and `get_explanation`.
+`attention_mask=...` (or a plain boolean `mask=`) to `fit_text` /
+`get_explanation`.
 
 ### Images
 
@@ -94,19 +98,22 @@ spatial locations. Mixed-size batches are supported two ways:
 ```python
 import numpy as np
 import torch
-from ruleofthumb.image import RoTImage, pad_images
+import ruleofthumb
+from ruleofthumb.image import pad_images
 
 images = [np.random.rand(3, h, w).astype(np.float32) for h, w in [(32, 32), (28, 40)]]
 labels = torch.randint(0, 2, (2,))
 
-# Option A: pad into one batch and pass the validity mask
+# Option A: pad into one batch, pass the validity mask, use the explainer
 x, mask = pad_images(images)                          # x: (2, 3, 32, 40); mask: (2, 32, 40)
-model = RoTImage(classes=2, sample_shape=(3,))
-model.fit(x, labels, epochs=50, batch_size=2, lr=0.01, mask=mask)
-imp = model.importance(x, mask=mask)                  # padded pixels get zero importance
+exp = ruleofthumb.fit_image(y_outputs=labels, x_inputs=x.numpy(), mask=mask.numpy())
+imp = exp.get_explanation(x.numpy(), mask=mask.numpy())  # signed, shape [N, H, W]; padded pixels score exactly 0
 
-# Option B: loop over unpadded samples one at a time (weights are size-agnostic,
-# so no padding or mask is needed per sample)
+# Option B: loop over unpadded samples one at a time with the raw model
+# (weights are size-agnostic, so no padding or mask is needed per sample)
+from ruleofthumb.image import RoTImage
+model = RoTImage(classes=2, sample_shape=(3,))
+model.fit(torch.from_numpy(x), labels, epochs=50, batch_size=2, lr=0.01, mask=mask)
 for img in images:
     single_imp = model.importance(torch.from_numpy(img[None]))
 ```
@@ -129,7 +136,7 @@ on the model's device, while the wrappers' `get_explanation` always returns
 host-side numpy arrays.
 
 ```python
-rot = RuleOfThumb(y_outputs=labels, x_inputs=X, device="cuda")  # or "mps", "cpu", ...
+exp = ruleofthumb.fit(y_outputs=labels, x_inputs=X, device="cuda")  # or "mps", "cpu", ...
 ```
 
 ## Migrating from v0.1 sentinel padding
@@ -154,6 +161,33 @@ exp = rot.get_explanation(x, lengths=lengths)
 from ruleofthumb.text import sentinel_mask
 mask = sentinel_mask(x_old)                          # True where tokens are real
 ```
+
+Without a mask every position is treated as real data — padded positions are
+no longer masked implicitly.
+
+## Migrating from the v0.2.x wrapper classes
+
+v0.2.10 replaced the `RuleOfThumb` / `TextRuleOfThumb` wrapper classes with
+one facade: the `Explainer` class plus `fit` / `fit_tabular` / `fit_text` /
+`fit_image` factories. Training arguments are unchanged; construction moves
+from constructors to factories:
+
+```python
+# v0.2.x
+from ruleofthumb import RuleOfThumb, TextRuleOfThumb
+rot = RuleOfThumb(y_outputs=y, x_inputs=X)
+rot = TextRuleOfThumb(y_outputs=y, x_inputs=x, lengths=lengths)
+
+# v0.2.10+
+import ruleofthumb
+exp = ruleofthumb.fit(y_outputs=y, x_inputs=X)                    # modality auto-detected
+exp = ruleofthumb.fit_text(y_outputs=y, x_inputs=x, lengths=lengths)
+```
+
+The fitted explainer exposes the same `get_explanation` semantics, plus
+delegating `get_order` / `ordered_predict` / `score_ordering` / `score` /
+`predict` methods (previously reached via the private `_explainer_model`
+attribute). The raw models (`RoT`, `RoTText`, `RoTImage`) are unchanged.
 
 Without a mask every position is treated as real data — padded positions are
 no longer masked implicitly.
