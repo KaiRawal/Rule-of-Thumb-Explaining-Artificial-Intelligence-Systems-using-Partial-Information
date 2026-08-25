@@ -87,8 +87,30 @@ def test_wrapper_seed_reproducibility(text_data):
     assert np.allclose(exp_a, exp_b)
 
 
+def test_tabular_wrapper_n_classes(tabular_data):
+    from ruleofthumb import RuleOfThumb
+
+    x, _ = tabular_data
+    y3 = (x[:, 0] > 0).astype(np.int64) + (x[:, 1] > 0).astype(np.int64)  # labels in {0, 1, 2}
+    rot = RuleOfThumb(y3, x, epochs=4, batch_size=32, learning_rate=0.05, n_classes=3)
+    assert rot._explainer_model.classes == 3
+    exp = rot.get_explanation(x)
+    assert exp.shape == (64, 5)
+
+
+def test_text_wrapper_n_classes(text_data):
+    from ruleofthumb import TextRuleOfThumb
+
+    x, lengths, _ = text_data
+    y3 = (x[:, 0, 0] > 0).astype(np.int64) + (x[:, 1, 1] > 0).astype(np.int64)  # labels in {0, 1, 2}
+    rot = TextRuleOfThumb(y3, x, epochs=4, batch_size=16, learning_rate=0.01, lengths=lengths, n_classes=3)
+    assert rot._explainer_model.classes == 3
+    exp = rot.get_explanation(x, lengths=lengths)
+    assert exp.shape == (32, 6)
+
+
 def test_package_exports():
     import ruleofthumb
 
-    assert ruleofthumb.__version__ == "0.2.5"
+    assert ruleofthumb.__version__ == "0.2.6"
     assert hasattr(ruleofthumb, "RoT")

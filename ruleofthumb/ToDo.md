@@ -6,8 +6,6 @@ features build on, then new functionality.
 
 ## API / correctness
 
-5. Add an `n_classes` parameter (currently `classes=2` hard-coded in the
-   explainer wrappers and models).
 6. Generalise binary reductions to multiclass (builds on item 5): the text
    wrapper's default explanation uses class-1 only, and `score_ordering`
    computes binary confusion counts. Expose reduction options (`abs_sum`,
@@ -73,6 +71,8 @@ features build on, then new functionality.
 
 ## Changelog
 
+- **v0.2.6** — the tabular/text explainer wrappers accept `n_classes=` (default
+  2, previously hard-coded) and pass it through to the underlying models.
 - **v0.2.5** — reproducible seeding: `training_loop` and all three `fit`
   methods accept `seed=` (covering batch shuffling and dropout draws; fits
   seed once up front so the whole fit is one deterministic stream), and the

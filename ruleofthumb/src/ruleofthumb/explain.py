@@ -6,7 +6,7 @@ Port of the ``RuleOfThumb`` wrappers from the original experiment code:
 - ``TextRuleOfThumb``: text/LLM-embedding wrapper
   (``MovieReviewSentiments/Code/rule_of_thumb.py``).
 
-Both hard-code two output classes; see ``ToDo.md``.
+Both wrap models whose class count is configurable via ``n_classes``.
 """
 
 import numpy as np
@@ -40,9 +40,10 @@ class RuleOfThumb:
         pretrain_epochs=5,
         weight_decay=0.01,
         seed=None,
+        n_classes=2,
     ) -> None:
         y_preds = y_outputs.flatten()
-        self._explainer_model = RoT(2, (x_inputs.shape[1],), dropout_rate=dropout_rate)
+        self._explainer_model = RoT(n_classes, (x_inputs.shape[1],), dropout_rate=dropout_rate)
         xx = torch.from_numpy(x_inputs)
         yy = torch.from_numpy(y_preds)
         self._explainer_model.fit(
@@ -88,10 +89,11 @@ class TextRuleOfThumb:
         weight_decay=0.01,
         l1_penalty=0.01,
         seed=None,
+        n_classes=2,
     ) -> None:
         y_preds = y_outputs.flatten()
         self._explainer_model = RoTText(
-            2, (x_inputs.shape[1], x_inputs.shape[2]), dropout_rate=dropout_rate, l1_penalty=l1_penalty
+            n_classes, (x_inputs.shape[1], x_inputs.shape[2]), dropout_rate=dropout_rate, l1_penalty=l1_penalty
         )
         mask = _as_token_mask(lengths if attention_mask is None else attention_mask, x_inputs.shape[1])
         xx = torch.from_numpy(x_inputs)
