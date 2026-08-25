@@ -58,11 +58,21 @@ class RuleOfThumb:
         )
 
     def get_explanation(self, x_numpy) -> np.ndarray:
-        """Return per-feature importances of shape ``[N, d]``."""
+        """Return signed per-feature importances, comparable to SHAP values.
+
+        For binary tasks (``n_classes == 2``) the result has shape ``[N, d]``
+        and holds the class-1 ("positive class") contributions: positive
+        values are evidence toward class 1, negative toward class 0. The
+        decomposition is additive — ``exp.sum(1) + model.g[1]`` reproduces
+        the surrogate's class-1 score.
+
+        For ``n_classes > 2`` the full per-class importances are returned
+        with shape ``[N, n_classes, d]``; the class axis is never collapsed.
+        """
         x = torch.from_numpy(x_numpy)
         imp = self._explainer_model.importance(x).detach().numpy()
-        imp = np.abs(imp).sum(1)
-        imp = imp.reshape(imp.shape[0], -1)
+        if self._explainer_model.classes == 2:
+            imp = imp[:, 1, :]
         return imp
 
 
@@ -123,38 +133,3 @@ class TextRuleOfThumb:
         imp = imp.reshape(imp.shape[0], -1)
         return imp
 
-    def _get_exp_abs_sum(self, x_numpy, attention_mask=None, lengths=None) -> np.ndarray:
-        """Return abs-summed per-token importances, shape ``[N, tokens]``."""
-        x = torch.from_numpy(x_numpy)
-        mask = _as_token_mask(lengths if attention_mask is None else attention_mask, x.shape[1])
-        imp = self._explainer_model.importance(x, mask=mask).detach().numpy()
-        imp = np.abs(imp).sum(1)
-        imp = imp.reshape(imp.shape[0], -1)
-        return imp
-
-    def _get_exp_sum(self, x_numpy, attention_mask=None, lengths=None) -> np.ndarray:
-        """Return summed per-token importances, shape ``[N, tokens]``."""
-        x = torch.from_numpy(x_numpy)
-        mask = _as_token_mask(lengths if attention_mask is None else attention_mask, x.shape[1])
-        imp = self._explainer_model.importance(x, mask=mask).detach().numpy()
-        imp = imp.sum(1)
-        imp = imp.reshape(imp.shape[0], -1)
-        return imp
-
-    def _get_exp_0m1(self, x_numpy, attention_mask=None, lengths=None) -> np.ndarray:
-        """Return class0-minus-class1 importances, shape ``[N, tokens]``."""
-        x = torch.from_numpy(x_numpy)
-        mask = _as_token_mask(lengths if attention_mask is None else attention_mask, x.shape[1])
-        imp = self._explainer_model.importance(x, mask=mask).detach().numpy()
-        imp = imp[:, 0, :] - imp[:, 1, :]
-        imp = imp.reshape(imp.shape[0], -1)
-        return imp
-
-    def _get_exp_1m0(self, x_numpy, attention_mask=None, lengths=None) -> np.ndarray:
-        """Return class1-minus-class0 importances, shape ``[N, tokens]``."""
-        x = torch.from_numpy(x_numpy)
-        mask = _as_token_mask(lengths if attention_mask is None else attention_mask, x.shape[1])
-        imp = self._explainer_model.importance(x, mask=mask).detach().numpy()
-        imp = imp[:, 1, :] - imp[:, 0, :]
-        imp = imp.reshape(imp.shape[0], -1)
-        return imp

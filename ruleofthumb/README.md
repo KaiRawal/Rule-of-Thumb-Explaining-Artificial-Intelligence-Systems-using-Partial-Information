@@ -58,7 +58,7 @@ X_train = np.random.rand(1000, 4).astype(np.float32)
 black_box_probs = (X_train[:, 0] > 0.5).astype(np.int64)  # e.g. model.predict(X_train)
 
 rot = RuleOfThumb(y_outputs=black_box_probs, x_inputs=X_train)
-importances = rot.get_explanation(X_train)  # shape [N, d], most-important-first via np.argsort
+importances = rot.get_explanation(X_train)  # signed, shape [N, d]; positive = evidence toward class 1
 ```
 
 ### Text / token embeddings
@@ -79,7 +79,7 @@ labels = np.array([1, 0, 1, 0], dtype=np.int64)      # e.g. LLM predictions per 
 
 rot = TextRuleOfThumb(y_outputs=labels, x_inputs=x.numpy(), lengths=lengths)
 token_importances = rot.get_explanation(x.numpy(), lengths=lengths)
-# shape [N, max_tokens]; padded tokens score exactly 0
+# signed, shape [N, max_tokens]: positive = evidence toward class 1; padded tokens score exactly 0
 ```
 
 Already have a rectangular batch and your own mask? Pass it directly as

@@ -29,6 +29,37 @@ def test_tabular_wrapper_explanation_shape(tabular_data):
     assert exp.shape == (64, 5)
 
 
+def test_tabular_wrapper_signed_explanations(tabular_data):
+    from ruleofthumb import RuleOfThumb
+
+    x, y = tabular_data
+    rot = RuleOfThumb(y, x, epochs=8, batch_size=32, learning_rate=0.05, seed=0)
+    exp = rot.get_explanation(x)
+
+    # signed: both positive and negative contributions exist
+    assert (exp > 0).any()
+    assert (exp < 0).any()
+
+    # additive decomposition: sum of contributions + class-1 bias = score
+    import torch
+
+    score1 = rot._explainer_model.score(torch.from_numpy(x))[:, 1].detach().numpy()
+    bias1 = rot._explainer_model.g[1].detach().numpy()
+    assert np.allclose(exp.sum(1) + bias1, score1, atol=1e-4)
+
+
+def test_tabular_wrapper_multiclass_per_class_output(tabular_data):
+    from ruleofthumb import RuleOfThumb
+
+    x, _ = tabular_data
+    y3 = (x[:, 0] > 0).astype(np.int64) + (x[:, 1] > 0).astype(np.int64)  # labels in {0, 1, 2}
+    rot = RuleOfThumb(y3, x, epochs=4, batch_size=32, learning_rate=0.05, n_classes=3)
+    exp = rot.get_explanation(x)
+    assert exp.shape == (64, 3, 5)
+    for k in range(3):
+        assert (exp[:, k, :] != 0).any()
+
+
 def test_text_wrapper_explanation_shape(text_data):
     from ruleofthumb import TextRuleOfThumb
 
@@ -95,7 +126,8 @@ def test_tabular_wrapper_n_classes(tabular_data):
     rot = RuleOfThumb(y3, x, epochs=4, batch_size=32, learning_rate=0.05, n_classes=3)
     assert rot._explainer_model.classes == 3
     exp = rot.get_explanation(x)
-    assert exp.shape == (64, 5)
+    # K > 2: full per-class output, class axis not collapsed
+    assert exp.shape == (64, 3, 5)
 
 
 def test_text_wrapper_n_classes(text_data):
@@ -112,5 +144,5 @@ def test_text_wrapper_n_classes(text_data):
 def test_package_exports():
     import ruleofthumb
 
-    assert ruleofthumb.__version__ == "0.2.6"
+    assert ruleofthumb.__version__ == "0.2.7"
     assert hasattr(ruleofthumb, "RoT")

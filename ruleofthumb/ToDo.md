@@ -6,16 +6,20 @@ features build on, then new functionality.
 
 ## API / correctness
 
-6. Generalise binary reductions to multiclass (builds on item 5): the text
-   wrapper's default explanation uses class-1 only, and `score_ordering`
-   computes binary confusion counts. Expose reduction options (`abs_sum`,
-   `sum`, `class_diff(i, j)`).
+6. Generalise explanation outputs to multiclass with SHAP-style signed
+   semantics (builds on item 5): the text wrapper must follow the tabular
+   v0.2.7 fix — signed class-1 explanations for binary tasks, full per-class
+   output for K > 2; no magnitude collapses (abs-sum) anywhere in explanation
+   paths (abs-over-classes remains only as `get_order`'s internal ranking
+   heuristic). `score_ordering`: accuracy default plus an optional per-step
+   K×K confusion matrix (`return_confusion=`). No reduction API — class-axis
+   collapsing is not part of the public surface.
 7. Add a `device=` parameter (CPU default, CUDA optional): tensors are
    currently created without an explicit device, so fitting cannot use a GPU.
-8. Unify the tabular/text explainer wrappers behind one facade with an
-   explicit reduction parameter; add the missing image wrapper. This is the
-   prerequisite for the native-ingestion and plotting items below — build
-   them on the facade, not the legacy-shaped wrappers.
+8. Unify the tabular/text explainer wrappers behind one facade with the
+   shared signed-explanation semantics; add the missing image wrapper. This
+   is the prerequisite for the native-ingestion and plotting items below —
+   build them on the facade, not the legacy-shaped wrappers.
 
 ## New functionality
 
@@ -71,6 +75,11 @@ features build on, then new functionality.
 
 ## Changelog
 
+- **v0.2.7** — tabular `RuleOfThumb.get_explanation` returns signed,
+  SHAP-comparable importances: class-1 contributions for binary tasks
+  (additive with the class-1 bias), full per-class output for K > 2; unused
+  private helpers `_get_exp_abs_sum` / `_get_exp_sum` / `_get_exp_0m1` /
+  `_get_exp_1m0` removed.
 - **v0.2.6** — the tabular/text explainer wrappers accept `n_classes=` (default
   2, previously hard-coded) and pass it through to the underlying models.
 - **v0.2.5** — reproducible seeding: `training_loop` and all three `fit`
