@@ -1,0 +1,16 @@
+# Development / runtime environment for the ruleofthumb package.
+# Modern-stack pins as tested on this branch (install from this directory:
+#   pip install -r requirements.txt && pip install -e ".[dev]")
+#
+# NOTE: inputs must be rectangular batches; see ToDo.md for the
+# mixed-length limitation preserved from the original research code.
+
+numpy==2.2.6
+torch==2.13.0
+
+# dev tooling
+pytest==9.1.1
+ruff==0.16.4
+build==1.5.0
+nbclient==0.11.0
+jupyter==1.1.1
