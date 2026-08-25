@@ -243,7 +243,8 @@ class RoT(torch.nn.Module):
             counts = flat_mask.sum(axis=1)
         else:
             counts = np.full(imp.shape[0], imp.shape[1])
-        order = np.argsort(imp, 1)[:, ::-1].copy()
+        # stable descending sort: ties break by earlier index first
+        order = np.argsort(-imp, axis=1, kind="stable")
         cols = np.arange(order.shape[1])[None, :]
         order[cols >= counts[:, None]] = -1
         return order.reshape(old_shape)

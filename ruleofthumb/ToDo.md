@@ -6,8 +6,6 @@ features build on, then new functionality.
 
 ## API / correctness
 
-2. Use stable tie-breaking in `get_order`: `np.argsort` currently uses
-   unstable quicksort, so equal-importance units rank nondeterministically.
 3. Expose hard-coded training hyperparameters as arguments: pretrain phase
    (5 epochs), SWA burn-in (`epochs // 10 + 1`), weight decay (`0.01`) and
    the text model's `l1_penalty` default (`0.01`).
@@ -82,6 +80,9 @@ features build on, then new functionality.
 
 ## Changelog
 
+- **v0.2.3** — `get_order` uses a stable descending sort, so units with equal
+  importance rank deterministically (earlier index first) instead of
+  nondeterministically under quicksort.
 - **v0.2.2** — `mins` / `maxs` are now instance attributes set in `RoT.__init__`
   (±inf defaults) instead of class attributes, so unfitted models no longer
   share state across instances.

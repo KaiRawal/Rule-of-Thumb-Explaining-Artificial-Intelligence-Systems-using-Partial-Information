@@ -76,3 +76,17 @@ def test_mins_maxs_are_instance_attributes():
     assert model_b.maxs == np.inf
     assert not hasattr(RoT, "mins")
     assert not hasattr(RoT, "maxs")
+
+
+def test_get_order_stable_tie_breaking(tabular_data):
+    x, _ = tabular_data
+    model = RoT(2, (5,))
+    # unfitted model: a and b are zero, so every feature has equal importance
+    order = model.get_order(torch.from_numpy(x))
+    expected = np.arange(5)
+    for row in order:
+        assert np.array_equal(row, expected)
+
+    # repeated calls are deterministic
+    again = model.get_order(torch.from_numpy(x))
+    assert np.array_equal(order, again)
