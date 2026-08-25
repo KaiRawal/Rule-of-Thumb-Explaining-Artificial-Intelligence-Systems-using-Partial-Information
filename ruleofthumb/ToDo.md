@@ -6,10 +6,6 @@ features build on, then new functionality.
 
 ## API / correctness
 
-4. Add reproducible seeding: a `seed=` parameter threaded through
-   `training_loop` / `fit`, covering batch shuffling (`torch.randperm`),
-   dropout masks and weight initialisation. Fits are currently
-   irreproducible and reveal-curve results can vary between runs.
 5. Add an `n_classes` parameter (currently `classes=2` hard-coded in the
    explainer wrappers and models).
 6. Generalise binary reductions to multiclass (builds on item 5): the text
@@ -77,6 +73,10 @@ features build on, then new functionality.
 
 ## Changelog
 
+- **v0.2.5** — reproducible seeding: `training_loop` and all three `fit`
+  methods accept `seed=` (covering batch shuffling and dropout draws; fits
+  seed once up front so the whole fit is one deterministic stream), and the
+  tabular/text wrappers thread `seed=` through.
 - **v0.2.4** — training hyperparameters are exposed as arguments: `fit` takes
   `pretrain_epochs=` (was hard-coded 5) and `weight_decay=` (was hard-coded
   0.01) on all three variants; `training_loop` takes `swa_burn_in=` (legacy

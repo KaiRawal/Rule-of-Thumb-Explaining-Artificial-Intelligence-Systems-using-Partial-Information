@@ -76,8 +76,19 @@ def test_wrappers_thread_training_hyperparameters(tabular_data, text_data):
     assert rot_text.get_explanation(tx, lengths=lengths).shape == (32, 6)
 
 
+def test_wrapper_seed_reproducibility(text_data):
+    from ruleofthumb import TextRuleOfThumb
+
+    x, lengths, y = text_data
+    rot_a = TextRuleOfThumb(y, x, epochs=4, batch_size=16, learning_rate=0.01, lengths=lengths, seed=0)
+    rot_b = TextRuleOfThumb(y, x, epochs=4, batch_size=16, learning_rate=0.01, lengths=lengths, seed=0)
+    exp_a = rot_a.get_explanation(x, lengths=lengths)
+    exp_b = rot_b.get_explanation(x, lengths=lengths)
+    assert np.allclose(exp_a, exp_b)
+
+
 def test_package_exports():
     import ruleofthumb
 
-    assert ruleofthumb.__version__ == "0.2.4"
+    assert ruleofthumb.__version__ == "0.2.5"
     assert hasattr(ruleofthumb, "RoT")

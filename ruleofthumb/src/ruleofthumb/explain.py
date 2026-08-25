@@ -39,6 +39,7 @@ class RuleOfThumb:
         dropout_rate=0.5,
         pretrain_epochs=5,
         weight_decay=0.01,
+        seed=None,
     ) -> None:
         y_preds = y_outputs.flatten()
         self._explainer_model = RoT(2, (x_inputs.shape[1],), dropout_rate=dropout_rate)
@@ -52,6 +53,7 @@ class RuleOfThumb:
             lr=learning_rate,
             pretrain_epochs=pretrain_epochs,
             weight_decay=weight_decay,
+            seed=seed,
         )
 
     def get_explanation(self, x_numpy) -> np.ndarray:
@@ -85,6 +87,7 @@ class TextRuleOfThumb:
         pretrain_epochs=5,
         weight_decay=0.01,
         l1_penalty=0.01,
+        seed=None,
     ) -> None:
         y_preds = y_outputs.flatten()
         self._explainer_model = RoTText(
@@ -102,6 +105,7 @@ class TextRuleOfThumb:
             mask=mask,
             pretrain_epochs=pretrain_epochs,
             weight_decay=weight_decay,
+            seed=seed,
         )
 
     def get_explanation(self, x_numpy, attention_mask=None, lengths=None) -> np.ndarray:

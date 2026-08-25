@@ -85,8 +85,19 @@ class RoT(torch.nn.Module):
         self.b.data = torch.clamp(self.b.data, self.mins, self.maxs)
 
     def training_loop(
-        self, loss, points, classifier_response, optimiser, epochs=1, batch_size=200, mask=None, swa_burn_in=None
+        self,
+        loss,
+        points,
+        classifier_response,
+        optimiser,
+        epochs=1,
+        batch_size=200,
+        mask=None,
+        swa_burn_in=None,
+        seed=None,
     ):
+        if seed is not None:
+            torch.manual_seed(seed)
         self.training_loss = np.zeros(epochs)
         burn_in = epochs // 10 + 1 if swa_burn_in is None else swa_burn_in
         features = points
@@ -119,9 +130,13 @@ class RoT(torch.nn.Module):
 
         self.training_loss /= features.shape[0] / batch_size
 
-    def fit(self, points, classifier_response, epochs, batch_size, lr=1e-4, pretrain_epochs=5, weight_decay=0.01):
+    def fit(
+        self, points, classifier_response, epochs, batch_size, lr=1e-4, pretrain_epochs=5, weight_decay=0.01, seed=None
+    ):
         assert points.shape[0] == classifier_response.shape[0]
         assert points.shape[1] == self.a.shape[1]
+        if seed is not None:
+            torch.manual_seed(seed)
         self.fit_project(-points.max(0)[0], -points.min(0)[0])
         with torch.no_grad():
             self.b.copy_(-points.mean(0))

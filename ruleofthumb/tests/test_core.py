@@ -122,3 +122,32 @@ def test_fit_hyperparameter_arguments(tabular_data):
     )
     assert len(model.training_loss) == 8
     assert model.training_loss[-1] <= model.training_loss[0]
+
+
+def test_fit_seed_reproducibility(tabular_data):
+    x, y = tabular_data
+    x = torch.from_numpy(x)
+
+    model_a = RoT(2, (5,))
+    model_a.fit(x, y, epochs=8, batch_size=32, lr=0.05, seed=42)
+    model_b = RoT(2, (5,))
+    model_b.fit(x, y, epochs=8, batch_size=32, lr=0.05, seed=42)
+    assert np.array_equal(model_a.training_loss, model_b.training_loss)
+    assert torch.equal(model_a.score(x), model_b.score(x))
+
+    model_c = RoT(2, (5,))
+    model_c.fit(x, y, epochs=8, batch_size=32, lr=0.05, seed=7)
+    assert not np.array_equal(model_a.training_loss, model_c.training_loss)
+
+
+def test_training_loop_seed_reproducibility(tabular_data):
+    x, y = tabular_data
+    x = torch.from_numpy(x)
+
+    losses = []
+    for _ in range(2):
+        model = RoT(2, (5,), dropout_rate=0.5)
+        optimiser = torch.optim.AdamW(model.parameters(), lr=0.05)
+        model.training_loop(model.loss, x, y, optimiser, epochs=4, batch_size=32, seed=123)
+        losses.append(model.training_loss)
+    assert np.array_equal(losses[0], losses[1])
