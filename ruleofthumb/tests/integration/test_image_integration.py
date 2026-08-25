@@ -1,0 +1,125 @@
+"""Integration tests: image modality, binary and 10-class digit tasks.
+
+Black boxes are TinyCNNs (architecture in ``cnn.py``) trained once by
+``generate_artifacts.py`` and committed as state_dicts:
+
+- 10-class digit classifier on the same 500 images as the tabular artifacts;
+- binary dense-vs-sparse classifier whose labels split at the median ink mass.
+
+Only the RoT explainer is fitted live, through the
+:func:`ruleofthumb.fit_image` facade. Note the image RoT shares importance
+across spatial locations, so a sample's score is monotone in total ink mass:
+the dense-vs-sparse task is exactly the kind of signal it can express, while
+the 10-class task mostly exercises structure (shapes, confusion counts,
+ranking), with fidelity asserted against the live majority baseline.
+"""
+
+import collections
+
+import numpy as np
+import torch
+
+from ruleofthumb import fit_image
+
+SEED = 0
+
+
+def _fit_image(x, y, n_classes):
+    return fit_image(y, x, epochs=300, batch_size=5000, learning_rate=0.05, seed=SEED, n_classes=n_classes)
+
+
+def test_black_box_labels_match_committed_cnns(image_multiclass):
+    assert image_multiclass["consistent_multi"]
+    assert image_multiclass["consistent_binary"]
+
+
+def test_binary_explanation_shape_and_fidelity(image_multiclass):
+    x, y = image_multiclass["x"], image_multiclass["y_binary"]
+    exp = _fit_image(x, y, n_classes=2)
+    assert exp.model.classes == 2
+
+    imp = exp.get_explanation(x)
+    assert imp.shape == (len(x),) + x.shape[2:]
+    assert np.isfinite(imp).all()
+
+    predictions = exp.predict(torch.from_numpy(x)).cpu().numpy()
+    accuracy = float((predictions == y).mean())
+    assert accuracy >= 0.9  # the surrogate can express this signal almost perfectly
+
+    # signed importances are additive with the class-1 bias
+    scores = exp.model.score(torch.from_numpy(x)).detach().cpu().numpy()
+    bias1 = exp.model.g[1].detach().cpu().numpy()
+    assert np.allclose(imp.sum((1, 2)) + bias1, scores[:, 1], atol=1e-3)
+
+
+def test_binary_reveal_curve_recovers_full_accuracy(image_multiclass):
+    x, y = image_multiclass["x"], image_multiclass["y_binary"]
+    exp = _fit_image(x, y, n_classes=2)
+    xt = torch.from_numpy(x)
+    order = exp.get_order(xt)
+    assert order.shape == (len(x),) + x.shape[2:]
+    curve = exp.score_ordering(xt, torch.from_numpy(y.astype(np.int64)), order)
+    full_accuracy = float((exp.predict(xt).cpu().numpy() == y).mean())
+    assert abs(float(curve[-1]) - full_accuracy) < 1e-6
+    assert curve[-1] >= curve[0] + 0.3
+
+
+def test_binary_seed_reproducibility(image_multiclass):
+    x, y = image_multiclass["x"], image_multiclass["y_binary"]
+    imp_a = _fit_image(x, y, n_classes=2).get_explanation(x)
+    imp_b = _fit_image(x, y, n_classes=2).get_explanation(x)
+    assert np.allclose(imp_a, imp_b)
+
+
+def test_multiclass_explanation_shape_and_structure(image_multiclass):
+    x, y = image_multiclass["x"], image_multiclass["y"]
+    exp = _fit_image(x, y, n_classes=10)
+    assert exp.modality == "image"
+    assert exp.model.classes == 10
+
+    imp = exp.get_explanation(x)
+    assert imp.shape == (len(x), 10) + x.shape[2:]
+    for k in range(10):
+        assert (imp[:, k] != 0).any()
+
+    # fidelity floor: at least as good as always predicting the majority class,
+    # measured live so it adapts to any machine/library combination
+    predictions = exp.predict(torch.from_numpy(x)).cpu().numpy()
+    accuracy = float((predictions == y).mean())
+    majority = max(collections.Counter(y.tolist()).values()) / len(y)
+    assert accuracy >= majority
+
+
+def test_ink_pixels_outrank_empty_borders(image_multiclass):
+    x = image_multiclass["x"]
+    exp_multi = _fit_image(x, image_multiclass["y"], n_classes=10)
+    imp_multi = np.abs(exp_multi.get_explanation(x))
+
+    flat_x = x.reshape(len(x), -1)
+    ink = flat_x.sum(0) > 0  # pixels that carry signal in any sample
+    border = ~ink
+    assert ink.any() and border.any()  # digits leave an empty margin
+    mean_ink = float(imp_multi.reshape(len(x), 10, -1)[:, :, ink].mean())
+    mean_border = float(imp_multi.reshape(len(x), 10, -1)[:, :, border].mean())
+    assert mean_ink > mean_border
+
+
+def test_multiclass_confusion_counts_and_reveal_curve(image_multiclass):
+    x, y = image_multiclass["x"], image_multiclass["y"]
+    exp = _fit_image(x, y, n_classes=10)
+    xt = torch.from_numpy(x)
+    yt = torch.from_numpy(y.astype(np.int64))
+    order = exp.get_order(xt)
+    assert order.shape == (len(x),) + x.shape[2:]
+
+    confusion = exp.score_ordering(xt, yt, order, return_confusion=True)
+    pred = exp.ordered_predict(xt, order).cpu()
+    valid = pred != -1
+    steps = pred.shape[1]
+    assert tuple(confusion.shape) == (steps, 10, 10)
+    for j in range(steps):
+        assert int(confusion[j].sum()) == int(valid[:, j].sum())
+
+    curve = exp.score_ordering(xt, yt, order)
+    full_accuracy = float((exp.predict(xt).cpu().numpy() == y).mean())
+    assert abs(float(curve[-1]) - full_accuracy) < 1e-6

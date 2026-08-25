@@ -86,3 +86,61 @@ def test_pad_images_utility():
     assert not mask[0, 4:, :].any()
     assert torch.all(padded[0, :, 4:, :] == 9.0)
     assert torch.equal(padded[1, :, :6, :5], torch.from_numpy(imgs[1]))
+
+
+def test_facade_binary_pipeline_with_untrained_conv_black_box():
+    """Binary image explanations against a real (untrained) conv black box."""
+    from ruleofthumb import fit_image
+
+    torch.manual_seed(0)
+    black_box = torch.nn.Sequential(
+        torch.nn.Conv2d(1, 8, kernel_size=3, padding=1),
+        torch.nn.ReLU(),
+        torch.nn.Conv2d(8, 8, kernel_size=3, padding=1),
+        torch.nn.ReLU(),
+        torch.nn.Flatten(),
+        torch.nn.Linear(8 * 8 * 8, 2),
+    )
+    x = torch.randn(16, 1, 8, 8)
+    with torch.no_grad():
+        y = black_box(x).argmax(1)
+
+    exp = fit_image(y.numpy(), x.numpy(), epochs=4, batch_size=8, learning_rate=0.05, device="cpu")
+    assert exp.modality == "image"
+    assert exp.model.classes == 2
+    assert exp.model.a.device.type == "cpu"  # device passthrough
+
+    imp = exp.get_explanation(x.numpy())
+    assert imp.shape == (16, 8, 8)
+    assert np.isfinite(imp).all()
+
+    # ordering is deterministic and covers every pixel exactly once
+    order_a = exp.get_order(x)
+    order_b = exp.get_order(x)
+    assert np.array_equal(order_a, order_b)
+    assert np.array_equal(np.sort(order_a.reshape(16, -1), axis=1), np.tile(np.arange(64), (16, 1)))
+
+
+def test_facade_binary_padded_batch_respects_mask():
+    from ruleofthumb import fit_image
+    from ruleofthumb.image import pad_images as _pad_images
+
+    torch.manual_seed(1)
+    black_box = torch.nn.Sequential(
+        torch.nn.Conv2d(1, 4, kernel_size=3, padding=1),
+        torch.nn.ReLU(),
+        torch.nn.Flatten(),
+        torch.nn.Linear(4 * 6 * 5, 2),
+    )
+    small = torch.randn(2, 1, 4, 4)
+    big = torch.randn(2, 1, 6, 5)
+    padded_probe, _ = _pad_images([small[0], big[0]])
+    with torch.no_grad():
+        labels = black_box(padded_probe).argmax(1)
+
+    padded, mask = _pad_images([small[0], big[0]])
+    exp = fit_image(labels.numpy(), padded.numpy(), mask=mask.numpy(), epochs=4, batch_size=2, learning_rate=0.05)
+    imp = exp.get_explanation(padded.numpy(), mask=mask.numpy())
+    assert imp.shape == (2, 6, 5)
+    assert (imp[0, 4:, :] == 0).all()  # sample 0's bottom rows are padding
+    assert (imp != 0).any()

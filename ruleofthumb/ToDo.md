@@ -80,6 +80,18 @@ features build on, then new functionality.
   defaults to per-step accuracy for any number of classes and accepts
   `return_confusion=True` for per-step K×K confusion counts (rows = true
   label); custom binary-count `metric=` callables are retained.
+- **v0.2.11** — integration-test tier (`tests/integration/`) running against
+  real data and models: breast-cancer + LogisticRegression (tabular binary),
+  digits + RandomForest (tabular multiclass), fixed film reviews +
+  distilbert-SST-2 (text binary), and digit images through committed TinyCNN
+  black boxes (image binary and 10-class). All black-box models/datasets are
+  built once by `tests/integration/generate_artifacts.py` and committed under
+  `tests/integration/artifacts/` (with a provenance `manifest.json`); the test
+  suite trains nothing and downloads nothing except HF-cached SST-2 weights.
+  New unit tests cover the remaining cells: multiclass text (reveal pipeline,
+  per-class padding, mask equivalence, seeding) and binary images via the
+  facade with a conv black box. `scikit-learn` moved to the `[dev]` extra —
+  it is only needed to (re)generate artifacts, never at runtime.
 - **v0.2.7** — tabular `RuleOfThumb.get_explanation` returns signed,
   SHAP-comparable importances: class-1 contributions for binary tasks
   (additive with the class-1 bias), full per-class output for K > 2; unused

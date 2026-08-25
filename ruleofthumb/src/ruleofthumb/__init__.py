@@ -5,7 +5,7 @@ from ruleofthumb.explain import Explainer, fit, fit_image, fit_tabular, fit_text
 from ruleofthumb.image import pad_images
 from ruleofthumb.text import pad_sequences, sentinel_mask
 
-__version__ = "0.2.10"
+__version__ = "0.2.11"
 
 __all__ = [
     "Explainer",

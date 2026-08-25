@@ -70,7 +70,9 @@ ruleofthumb/
 │   ├── image.py            # RoTImage, pad_images
 │   ├── explain.py          # Explainer facade + fit / fit_tabular / fit_text / fit_image factories
 │   └── __init__.py         # exports + __version__
-├── tests/                  # pytest suite (test_masks.py pins mask/reveal behaviour)
+├── tests/                  # pytest suite (test_masks.py pins mask/reveal behaviour;
+│                           #   tests/integration/ runs against committed real-data/model
+│                           #   artifacts — see tests/integration/generate_artifacts.py)
 └── examples/               # hello-world quickstart notebooks (dummy data)
 ```
 
@@ -136,6 +138,12 @@ version.
 Before finishing any change:
 
 - [ ] `pytest` green, `ruff check .` clean (run inside `ruleofthumb/.venv`).
+- [ ] Integration tier (`tests/integration/`) stays green and artifact-based:
+      black boxes are never trained and datasets never downloaded at test
+      time. If artifacts must change, regenerate them with
+      `tests/integration/generate_artifacts.py` (GNU `timeout`-guarded) and
+      commit them together with the code change; the whole suite should stay
+      under ~2 minutes.
 - [ ] `python -m build --sdist` succeeds if packaging changed.
 - [ ] Touched example notebooks still execute end-to-end without errors.
 - [ ] Version bumped in all three places when behaviour changed:
