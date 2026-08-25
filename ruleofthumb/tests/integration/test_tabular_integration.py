@@ -50,6 +50,10 @@ def test_binary_top_features_match_logistic_coefficients(tabular_binary):
     top_surrogate = set(np.argsort(-np.abs(imp).mean(0))[:k])
     assert len(top_black_box & top_surrogate) >= k // 2
 
+    # tighter anchors: the importance profile tracks the coefficient profile
+    assert len(set(np.argsort(-np.abs(coef))[:7]) & set(np.argsort(-np.abs(imp).mean(0))[:7])) >= 4
+    assert np.corrcoef(np.abs(imp).mean(0), np.abs(coef))[0, 1] >= 0.5
+
 
 def test_binary_reveal_curve_recovers_full_accuracy(tabular_binary):
     x, y = tabular_binary["x"], tabular_binary["y"]

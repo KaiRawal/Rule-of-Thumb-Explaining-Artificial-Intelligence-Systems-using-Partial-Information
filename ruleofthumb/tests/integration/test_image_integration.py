@@ -120,6 +120,18 @@ def test_multiclass_confusion_counts_and_reveal_curve(image_multiclass):
     for j in range(steps):
         assert int(confusion[j].sum()) == int(valid[:, j].sum())
 
+    # explicit confusion-matrix check on the final step: because the image RoT
+    # shares weights spatially (score is affine in total ink mass), 10-class
+    # fidelity is capped near the majority baseline — the matrix must look bad
+    final = confusion[steps - 1]
+    accuracy = sum(final[c][c].item() for c in range(10)) / len(x)
+    majority = max(collections.Counter(y.tolist()).values()) / len(y)
+    assert majority <= accuracy <= majority + 0.05
+
+    column_mass = final.sum(0)
+    top2_coverage = float(np.sort(column_mass)[::-1][:2].sum()) / len(x)
+    assert top2_coverage >= 0.9  # predictions collapse onto a couple of classes
+
     curve = exp.score_ordering(xt, yt, order)
     full_accuracy = float((exp.predict(xt).cpu().numpy() == y).mean())
     assert abs(float(curve[-1]) - full_accuracy) < 1e-6

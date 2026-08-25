@@ -9,6 +9,7 @@ which load from the local HF cache when present.
 import os
 
 import numpy as np
+import pandas as pd
 import pytest
 import torch
 
@@ -42,6 +43,63 @@ def tabular_multiclass():
     data = np.load(_require("digits_tabular.npz"))
     rf = joblib.load(_require("digits_rf.joblib"))["random_forest"]
     return {"x": data["x"], "y": data["y"], "forest": rf}
+
+
+def _tabular_model_case(stem):
+    """Committed dataset + GBM/SVC/MLP black boxes and their predictions."""
+    data = np.load(_require(f"{stem}.npz"))
+    bundle = joblib.load(_require(f"{stem}_models.joblib"))
+    case = {"x": data["x"], "feature_names": bundle["feature_names"]}
+    for model_name in ("gbm", "svc", "mlp"):
+        case[model_name] = bundle["models"][model_name]
+        case[f"y_{model_name}"] = data[f"y_{model_name}"]
+    return case
+
+
+@pytest.fixture(scope="session")
+def compas():
+    """ProPublica COMPAS two-year recidivism (binary) + GBM/SVC/MLP black boxes."""
+    return _tabular_model_case("compas")
+
+
+@pytest.fixture(scope="session")
+def wine():
+    """sklearn wine dataset (3 classes) + GBM/SVC/MLP black boxes."""
+    return _tabular_model_case("wine")
+
+
+@pytest.fixture(scope="session")
+def pets():
+    """Fixed cat/dog JPEGs + recorded GPT-4o-mini labels + reference heatmaps.
+
+    Only raw inputs, labels and the reference *explanations* are committed;
+    MobileNet feature maps are never stored and are recomputed afresh in
+    :func:`pet_features`.
+    """
+    labels = pd.read_csv(_require("pets_labels.csv"))
+    reference = np.load(_require("pet_reference_explanations.npz"))["heatmaps"]
+    return {"labels": labels, "reference": reference}
+
+
+@pytest.fixture(scope="session")
+def pet_features(pets):
+    """Live MobileNetV3-Small feature maps ``(N, 576, 7, 7)`` for the pet set."""
+    pytest.importorskip("torchvision")
+    from PIL import Image
+    from torchvision import models as tv_models
+
+    labels = pets["labels"]
+    weights = tv_models.MobileNet_V3_Small_Weights.DEFAULT
+    backbone = tv_models.mobilenet_v3_small(weights=weights).eval()
+    transform = weights.transforms()
+    batch = torch.stack(
+        [transform(Image.open(os.path.join(ARTIFACTS, "pet_images", name)).convert("RGB")) for name in labels["filename"]]
+    )
+    with torch.no_grad():
+        features = backbone.features(batch).numpy().astype(np.float32)
+    y_gpt = labels["gpt_label"].eq("dog").to_numpy().astype(np.int64)
+    ground_truth = labels["ground_truth"].eq("dog").to_numpy().astype(np.int64)
+    return {"features": features, "y_gpt": y_gpt, "ground_truth": ground_truth}
 
 
 @pytest.fixture(scope="session")

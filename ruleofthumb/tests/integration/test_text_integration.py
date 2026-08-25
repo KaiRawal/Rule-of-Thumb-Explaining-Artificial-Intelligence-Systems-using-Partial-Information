@@ -6,8 +6,11 @@ start. Only the RoT explainer is fitted, through the
 :func:`ruleofthumb.fit_text` facade.
 """
 
+import re
+
 import numpy as np
 import torch
+from _helpers import rot_accuracy
 
 from ruleofthumb import fit_text
 
@@ -23,6 +26,19 @@ NEGATIVE_WORDS = {
     "disappointment", "avoid", "chore", "mess", "wooden", "lifeless", "mediocre",
     "unfunny", "insults", "cheap", "clumsy", "lazy",
 }
+
+
+def _iter_words(encoded, tokenizer, i):
+    """Yield ``(word_id, token_positions, word)`` for every real word in review *i*."""
+    tokens = encoded.tokens(i)
+    groups = {}
+    for position, word_id in enumerate(encoded.word_ids(i)):
+        if word_id is None:  # [CLS] / [SEP] / padding
+            continue
+        groups.setdefault(word_id, []).append(position)
+    for word_id, positions in groups.items():
+        raw = tokenizer.convert_tokens_to_string([tokens[p] for p in positions])
+        yield word_id, positions, re.sub(r"[^a-z]", "", raw.lower())
 
 
 def _fit_text(embeddings, attention_mask, y):
@@ -57,14 +73,7 @@ def test_sentiment_words_carry_signed_importance(text_sst2):
 
     positive_mass, negative_mass = 0.0, 0.0
     for i in range(len(text_sst2["texts"])):
-        tokens = encoded.tokens(i)
-        word_groups = {}
-        for position, word_id in enumerate(encoded.word_ids(i)):
-            if word_id is None:  # [CLS] / [SEP] / padding
-                continue
-            word_groups.setdefault(word_id, []).append(position)
-        for positions in word_groups.values():
-            word = tokenizer.convert_tokens_to_string([tokens[p] for p in positions]).strip().lower()
+        for _, positions, word in _iter_words(encoded, tokenizer, i):
             mass = float(imp[i, positions].sum())
             if word in POSITIVE_WORDS:
                 positive_mass += mass
@@ -74,6 +83,49 @@ def test_sentiment_words_carry_signed_importance(text_sst2):
     # class-1 contributions: positive words push toward "positive", negative away
     assert positive_mass > 0.0
     assert negative_mass < 0.0
+
+
+def test_top_tokens_carry_sentiment_words(text_sst2):
+    """Explicit importance check: sentiment words dominate each review's top tokens."""
+    encoded, tokenizer = text_sst2["encoded"], text_sst2["tokenizer"]
+    exp = _fit_text(text_sst2["embeddings"], text_sst2["attention_mask"].numpy(), text_sst2["y"])
+    imp = exp.get_explanation(text_sst2["embeddings"], attention_mask=text_sst2["attention_mask"].numpy())
+
+    positive_hits = negative_hits = positive_n = negative_n = 0
+    for i, text in enumerate(text_sst2["texts"]):
+        words = {word: abs(float(imp[i, positions].sum())) for _, positions, word in _iter_words(encoded, tokenizer, i)}
+        top5 = set(sorted(words, key=words.get, reverse=True)[:5])
+        if text_sst2["y"][i] == 1:
+            positive_n += 1
+            positive_hits += bool(top5 & POSITIVE_WORDS)
+        else:
+            negative_n += 1
+            negative_hits += bool(top5 & NEGATIVE_WORDS)
+
+    assert positive_hits / positive_n >= 0.4
+    assert negative_hits / negative_n >= 0.55
+
+
+def test_brilliant_outranks_awful_in_the_pair_review(text_sst2):
+    """In the mixed review containing both words, 'brilliant' must win on class-1 mass."""
+    encoded, tokenizer = text_sst2["encoded"], text_sst2["tokenizer"]
+    exp = _fit_text(text_sst2["embeddings"], text_sst2["attention_mask"].numpy(), text_sst2["y"])
+    imp = exp.get_explanation(text_sst2["embeddings"], attention_mask=text_sst2["attention_mask"].numpy())
+
+    pair_rows = [
+        i
+        for i in range(len(text_sst2["texts"]))
+        if {"brilliant", "awful"} <= {word for _, _, word in _iter_words(encoded, tokenizer, i)}
+    ]
+    assert len(pair_rows) >= 1
+    for i in pair_rows:
+        masses = {
+            word: float(imp[i, positions].sum())
+            for _, positions, word in _iter_words(encoded, tokenizer, i)
+            if word in ("brilliant", "awful")
+        }
+        assert text_sst2["y"][i] == 1  # the review reads as positive overall
+        assert masses["brilliant"] > masses["awful"]
 
 
 def test_reveal_curve_recovers_full_accuracy(text_sst2):
@@ -89,9 +141,10 @@ def test_reveal_curve_recovers_full_accuracy(text_sst2):
         assert (order[i, :length] != -1).all() and (order[i, length:] == -1).all()
 
     curve = exp.score_ordering(xt, torch.from_numpy(y.astype(np.int64)), order)
-    full_accuracy = float((exp.predict(xt, mask=torch.from_numpy(mask)).cpu().numpy() == y).mean())
+    # RoT predicted-class accuracy vs the transformer's labels
+    full_accuracy = rot_accuracy(exp, embeddings, y)
     assert abs(float(curve[-1]) - full_accuracy) < 1e-6
-    assert full_accuracy >= 0.85  # surrogate fidelity vs the transformer's labels
+    assert full_accuracy >= 0.85
 
 
 def test_seed_reproducibility(text_sst2):

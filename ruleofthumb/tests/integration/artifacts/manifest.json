@@ -9,6 +9,27 @@
     "cnn_multiclass.pt": {
       "sha256": "9d19b31665030edeacc37a3699f6b2bf9f8df499389d608177e5947feb8db92f"
     },
+    "compas.npz": {
+      "sha256": "63e4bc868d4d9e2d5078b6cf24db6066993b96907b259423d14c030b90d59188",
+      "shapes": {
+        "x": [
+          800,
+          12
+        ],
+        "y_gbm": [
+          800
+        ],
+        "y_mlp": [
+          800
+        ],
+        "y_svc": [
+          800
+        ]
+      }
+    },
+    "compas_models.joblib": {
+      "sha256": "44113143196f6e781434fc901b4dcc340a405bcd3ef99335d75afbeb28cee30a"
+    },
     "digits_image.npz": {
       "sha256": "f2f4f1f96c1ee98a39524d6be2d18ad5c86348a0411d7132695b83ad2cd3e466",
       "shapes": {
@@ -47,8 +68,21 @@
         ]
       }
     },
+    "pet_reference_explanations.npz": {
+      "sha256": "dfce2da48483362cea30e4eea2592154146adf1d224f6ca8ec3fc9f0ee5de06e",
+      "shapes": {
+        "heatmaps": [
+          20,
+          7,
+          7
+        ]
+      }
+    },
+    "pets_labels.csv": {
+      "sha256": "d4ebee4a32e2509df067d9d09e7a0278dbe609737b5582fe5fbb759f1e0ac7b7"
+    },
     "reviews.txt": {
-      "sha256": "ac6fd62a56655baee65b3b25f33c03ab82d6d027026418c6bf71f71f06afb272"
+      "sha256": "8c6ffd6dd021e793fec76b6f7ca5ef0b53ca3ac4be03a5ae5ddd5c4f3c0ff97b"
     },
     "tabular_binary.npz": {
       "sha256": "af9b02db6e20d09dae2228d51b6e56d8d3fbcc9c402a13648dde7995b64d2432",
@@ -61,6 +95,27 @@
           569
         ]
       }
+    },
+    "wine.npz": {
+      "sha256": "2df489112352b758d2694169fcdf432bf2c4e0202c63d7803950ebe142b65235",
+      "shapes": {
+        "x": [
+          178,
+          13
+        ],
+        "y_gbm": [
+          178
+        ],
+        "y_mlp": [
+          178
+        ],
+        "y_svc": [
+          178
+        ]
+      }
+    },
+    "wine_models.joblib": {
+      "sha256": "c7b488a368fe4575d1ba055e31425458abc458e1d91a8463ceab5bc882ee4fe3"
     }
   },
   "numpy": "2.2.6",

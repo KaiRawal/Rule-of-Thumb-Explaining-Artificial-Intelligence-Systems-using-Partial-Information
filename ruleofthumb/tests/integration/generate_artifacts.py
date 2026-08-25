@@ -27,20 +27,35 @@ Artifacts produced:
 import hashlib
 import json
 import os
+import shutil
 import sys
+from pathlib import Path
 
 import joblib
 import numpy as np
+import pandas as pd
 import torch
-from sklearn.datasets import load_breast_cancer, load_digits
-from sklearn.ensemble import RandomForestClassifier
+from PIL import Image
+from sklearn.datasets import load_breast_cancer, load_digits, load_wine
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
+from torchvision import models as tv_models
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from cnn import TinyCNN
 
 ARTIFACTS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "artifacts")
+# legacy research data: read-only provenance for the pet experiment
+REPO_ROOT = Path(__file__).resolve().parents[3]
+LEGACY_DATA = REPO_ROOT / "ExplanationExampleRemote" / "DATA"
+COMPAS_URL = (
+    "https://raw.githubusercontent.com/propublica/compas-analysis/"
+    "master/compas-scores-two-years.csv"
+)
+PETS_PER_CLASS = 10
 
 
 def sha256(path):
@@ -169,7 +184,131 @@ def make_digits_image(manifest, per_class_binary=60):
     print(f"image binary (dense vs sparse): tiny-cnn accuracy {binary_accuracy:.3f}")
 
 
+def make_pets(manifest):
+    """Miniature cat-vs-dog experiment mirroring the legacy pipeline.
+
+    Copies a fixed subset of raw JPEGs (read-only) from the legacy research
+    data together with the recorded GPT-4o-mini labels, then fits the same
+    RoT-on-MobileNet-features pipeline once to commit *reference
+    explanations* used as regression anchors. No feature maps are stored:
+    at test time the features and explanations are recomputed afresh.
+    """
+    labels_df = pd.read_csv(LEGACY_DATA / "openai_classification_results.csv")
+    gpt_labels = dict(zip(labels_df["filename"], labels_df["api_prediction"]))
+
+    pet_dir = Path(ARTIFACTS) / "pet_images"
+    rows = []
+    for cls in ("Cat", "Dog"):
+        out_dir = pet_dir / cls.lower()
+        out_dir.mkdir(parents=True, exist_ok=True)
+        images = sorted((LEGACY_DATA / "PetImages" / cls).glob("*.jpg"), key=lambda p: int(p.stem))
+        taken = 0
+        for src in images:
+            rel = f"PetImages/{cls}/{src.name}"
+            if rel not in gpt_labels:
+                continue  # CSV covers only the first 2500 images per class
+            dst = out_dir / src.name
+            shutil.copyfile(src, dst)
+            try:  # the Kaggle dump contains a handful of corrupt files
+                Image.open(dst).convert("RGB").load()
+            except Exception:  # noqa: BLE001 — any decode failure disqualifies the image
+                dst.unlink()
+                continue
+            rows.append(
+                {"filename": f"{cls.lower()}/{src.name}", "ground_truth": cls.lower(), "gpt_label": gpt_labels[rel]}
+            )
+            taken += 1
+            if taken == PETS_PER_CLASS:
+                break
+        assert taken == PETS_PER_CLASS, f"only found {taken} usable {cls} images"
+
+    pd.DataFrame(rows).to_csv(Path(ARTIFACTS) / "pets_labels.csv", index=False)
+
+    weights = tv_models.MobileNet_V3_Small_Weights.DEFAULT
+    backbone = tv_models.mobilenet_v3_small(weights=weights).eval()
+    transform = weights.transforms()
+    batch = torch.stack([transform(Image.open(pet_dir / r["filename"]).convert("RGB")) for r in rows])
+    with torch.no_grad():
+        features = backbone.features(batch).numpy().astype(np.float32)
+
+    y_gpt = np.array([1 if r["gpt_label"] == "dog" else 0 for r in rows], dtype=np.int64)
+    from ruleofthumb import fit_image
+
+    exp = fit_image(y_gpt, features, epochs=300, batch_size=5000, learning_rate=0.05, seed=0)
+    reference = exp.get_explanation(features).astype(np.float32)  # signed class-"dog" heatmaps
+    rot_accuracy = float((exp.predict(torch.from_numpy(features)).cpu().numpy() == y_gpt).mean())
+
+    np.savez_compressed(Path(ARTIFACTS) / "pet_reference_explanations.npz", heatmaps=reference)
+    record(manifest, "pet_reference_explanations.npz", {"heatmaps": reference})
+    record(manifest, "pets_labels.csv")
+    gpt_accuracy = float((y_gpt == [r["ground_truth"] == "dog" for r in rows]).mean())
+    print(f"pets: {len(rows)} images ({PETS_PER_CLASS}/class), gpt accuracy {gpt_accuracy:.2f}, rot fit accuracy {rot_accuracy:.2f}")
+
+
+def _fit_tabular_models(x, y_true):
+    """Fit the typical DS model trio; returns models + their predictions."""
+    models = {
+        "gbm": GradientBoostingClassifier(random_state=0),
+        "svc": SVC(kernel="rbf", random_state=0),
+        "mlp": MLPClassifier(random_state=0, max_iter=1000),
+    }
+    predictions = {}
+    for name, model in models.items():
+        model.fit(x, y_true)
+        predictions[name] = model.predict(x).astype(np.int64)
+    return models, predictions
+
+
+def _save_tabular_case(manifest, stem, x, feature_names, models, predictions, y_true):
+    y = {f"y_{name}": pred for name, pred in predictions.items()}
+    np.savez_compressed(os.path.join(ARTIFACTS, f"{stem}.npz"), x=x.astype(np.float32), **y)
+    joblib.dump({"feature_names": list(feature_names), "models": models}, os.path.join(ARTIFACTS, f"{stem}_models.joblib"))
+    arrays = {"x": x.astype(np.float32)}
+    arrays.update(y)
+    record(manifest, f"{stem}.npz", arrays)
+    record(manifest, f"{stem}_models.joblib")
+    scores = ", ".join(f"{n} {(p == y_true).mean():.3f}" for n, p in predictions.items())
+    print(f"{stem}: x{x.shape}, black-box train accuracy — {scores}")
+
+
+def make_compas(manifest, n_rows=800):
+    """ProPublica COMPAS two-year recidivism with the canonical filters."""
+    df = pd.read_csv(COMPAS_URL)
+    df = df[
+        df.days_b_screening_arrest.between(-30, 30)
+        & (df.is_recid != -1)
+        & (df.c_charge_degree != "O")
+        & (df.score_text != "N/A")
+    ]
+    numeric = ["age", "juv_fel_count", "juv_misd_count", "juv_other_count", "priors_count"]
+    categorical = ["sex", "race", "c_charge_degree"]
+    features = pd.get_dummies(df[numeric + categorical], columns=categorical, drop_first=True).astype(float)
+    y_true = df["two_year_recid"].to_numpy()
+
+    rng = np.random.RandomState(0)
+    idx = rng.choice(len(features), size=n_rows, replace=False)
+    scaler = StandardScaler()
+    x = scaler.fit_transform(features.iloc[idx])
+    names = list(features.columns)
+
+    models, predictions = _fit_tabular_models(x, y_true[idx])
+    joblib.dump({"scaler": scaler, "raw_feature_names": numeric + categorical}, os.path.join(ARTIFACTS, "compas_preprocessing.joblib"))
+    _save_tabular_case(manifest, "compas", x, names, models, predictions, y_true[idx])
+
+
+def make_wine(manifest):
+    wine = load_wine()
+    scaler = StandardScaler()
+    x = scaler.fit_transform(wine.data)
+    y_true = wine.target
+
+    models, predictions = _fit_tabular_models(x, y_true)
+    joblib.dump({"scaler": scaler}, os.path.join(ARTIFACTS, "wine_preprocessing.joblib"))
+    _save_tabular_case(manifest, "wine", x, list(wine.feature_names), models, predictions, y_true)
+
+
 REVIEWS = [
+    "Brilliant acting, wonderful pacing, and a superb script with no awful scenes at all.",
     "A brilliant film with wonderful performances and a sharp, moving script.",
     "Absolutely loved it. The direction is confident and the ending is devastating in the best way.",
     "One of the best films of the year: funny, humane and beautifully shot.",
@@ -225,6 +364,9 @@ def main():
     make_digits_tabular(manifest, x_tab, y_tab)
     make_digits_image(manifest)
     write_reviews(manifest)
+    make_pets(manifest)
+    make_compas(manifest)
+    make_wine(manifest)
 
     path = os.path.join(ARTIFACTS, "manifest.json")
     with open(path, "w") as f:

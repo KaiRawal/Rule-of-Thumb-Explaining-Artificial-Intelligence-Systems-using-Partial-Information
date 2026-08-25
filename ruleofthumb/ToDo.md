@@ -80,6 +80,24 @@ features build on, then new functionality.
   defaults to per-step accuracy for any number of classes and accepts
   `return_confusion=True` for per-step K×K confusion counts (rows = true
   label); custom binary-count `metric=` callables are retained.
+- **v0.2.12** — integration tier expanded and hardened; every case now asserts
+  the RoT surrogate's own **predicted-class accuracy** against its black box
+  plus explicit feature-importance anchors: breast-cancer explanations track
+  the LogisticRegression coefficient profile, COMPAS explanations rank
+  `priors_count` top for GBM/SVC/MLP black boxes, wine models agree on shared
+  dominant features, text top tokens carry sentiment words (with a
+  "brilliant" > "awful" pair check), pet saliency maps reproduce committed
+  reference heatmaps and point in the dog direction for GPT-"dog" images, and
+  the 10-class image confusion matrix is asserted to collapse near the
+  majority baseline (documenting the spatially-shared-weight capacity limit).
+  New cases mirror real DS workflows via pandas: the legacy GPT-4o-mini
+  cat-vs-dog experiment miniaturized (raw JPEGs + labels committed from
+  `ExplanationExampleRemote/DATA` read-only; MobileNetV3-Small features and
+  all embeddings recomputed afresh every run — never cached), COMPAS
+  two-year recidivism fetched once by the generator with the canonical
+  ProPublica filters, and sklearn wine. Typical black boxes added:
+  GradientBoosting/SVC(RBF)/MLP per dataset. `pandas` joined the `[dev]`
+  extra.
 - **v0.2.11** — integration-test tier (`tests/integration/`) running against
   real data and models: breast-cancer + LogisticRegression (tabular binary),
   digits + RandomForest (tabular multiclass), fixed film reviews +
