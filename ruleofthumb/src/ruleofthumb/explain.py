@@ -29,12 +29,30 @@ def _as_token_mask(mask_or_lengths, n_tokens):
 class RuleOfThumb:
     """Tabular RoT explainer."""
 
-    def __init__(self, y_outputs, x_inputs, epochs=500, batch_size=5000, learning_rate=0.05, dropout_rate=0.5) -> None:
+    def __init__(
+        self,
+        y_outputs,
+        x_inputs,
+        epochs=500,
+        batch_size=5000,
+        learning_rate=0.05,
+        dropout_rate=0.5,
+        pretrain_epochs=5,
+        weight_decay=0.01,
+    ) -> None:
         y_preds = y_outputs.flatten()
         self._explainer_model = RoT(2, (x_inputs.shape[1],), dropout_rate=dropout_rate)
         xx = torch.from_numpy(x_inputs)
         yy = torch.from_numpy(y_preds)
-        self._explainer_model.fit(xx.to(torch.float), yy, epochs=epochs, batch_size=batch_size, lr=learning_rate)
+        self._explainer_model.fit(
+            xx.to(torch.float),
+            yy,
+            epochs=epochs,
+            batch_size=batch_size,
+            lr=learning_rate,
+            pretrain_epochs=pretrain_epochs,
+            weight_decay=weight_decay,
+        )
 
     def get_explanation(self, x_numpy) -> np.ndarray:
         """Return per-feature importances of shape ``[N, d]``."""
@@ -64,14 +82,26 @@ class TextRuleOfThumb:
         dropout_rate=0.5,
         attention_mask=None,
         lengths=None,
+        pretrain_epochs=5,
+        weight_decay=0.01,
+        l1_penalty=0.01,
     ) -> None:
         y_preds = y_outputs.flatten()
-        self._explainer_model = RoTText(2, (x_inputs.shape[1], x_inputs.shape[2]), dropout_rate=dropout_rate)
+        self._explainer_model = RoTText(
+            2, (x_inputs.shape[1], x_inputs.shape[2]), dropout_rate=dropout_rate, l1_penalty=l1_penalty
+        )
         mask = _as_token_mask(lengths if attention_mask is None else attention_mask, x_inputs.shape[1])
         xx = torch.from_numpy(x_inputs)
         yy = torch.from_numpy(y_preds)
         self._explainer_model.fit(
-            xx.to(torch.float), yy, epochs=epochs, batch_size=batch_size, lr=learning_rate, mask=mask
+            xx.to(torch.float),
+            yy,
+            epochs=epochs,
+            batch_size=batch_size,
+            lr=learning_rate,
+            mask=mask,
+            pretrain_epochs=pretrain_epochs,
+            weight_decay=weight_decay,
         )
 
     def get_explanation(self, x_numpy, attention_mask=None, lengths=None) -> np.ndarray:

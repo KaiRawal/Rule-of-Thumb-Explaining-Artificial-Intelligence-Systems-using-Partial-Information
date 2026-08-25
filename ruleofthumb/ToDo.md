@@ -6,9 +6,6 @@ features build on, then new functionality.
 
 ## API / correctness
 
-3. Expose hard-coded training hyperparameters as arguments: pretrain phase
-   (5 epochs), SWA burn-in (`epochs // 10 + 1`), weight decay (`0.01`) and
-   the text model's `l1_penalty` default (`0.01`).
 4. Add reproducible seeding: a `seed=` parameter threaded through
    `training_loop` / `fit`, covering batch shuffling (`torch.randperm`),
    dropout masks and weight initialisation. Fits are currently
@@ -80,6 +77,11 @@ features build on, then new functionality.
 
 ## Changelog
 
+- **v0.2.4** — training hyperparameters are exposed as arguments: `fit` takes
+  `pretrain_epochs=` (was hard-coded 5) and `weight_decay=` (was hard-coded
+  0.01) on all three variants; `training_loop` takes `swa_burn_in=` (legacy
+  default `epochs // 10 + 1`); the tabular/text wrappers thread
+  `pretrain_epochs=`, `weight_decay=` and (text) `l1_penalty=` through.
 - **v0.2.3** — `get_order` uses a stable descending sort, so units with equal
   importance rank deterministically (earlier index first) instead of
   nondeterministically under quicksort.

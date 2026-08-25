@@ -114,7 +114,7 @@ class RoTText(RoT):
         """Reveal units are tokens: aggregate signed importance over embedding dims."""
         return imp.sum(dim=-1)
 
-    def fit(self, points, classifier_response, epochs, batch_size, lr=1e-4, mask=None):
+    def fit(self, points, classifier_response, epochs, batch_size, lr=1e-4, mask=None, pretrain_epochs=5, weight_decay=0.01):
         # Unlike the tabular ``RoT.fit``: no projection of ``b`` onto the data
         # range, zero initialisation instead of mean-centering, as in the
         # original text-experiment copies.
@@ -123,7 +123,7 @@ class RoTText(RoT):
         optimiser = torch.optim.AdamW(self.parameters(), lr=lr)
         drop_out = self.dropout_rate
         self.dropout_rate = 0
-        self.training_loop(self.loss, points, classifier_response, optimiser, 5, batch_size, mask=mask)
+        self.training_loop(self.loss, points, classifier_response, optimiser, pretrain_epochs, batch_size, mask=mask)
         self.dropout_rate = drop_out
-        optimiser = torch.optim.AdamW(self.parameters(), lr=lr, weight_decay=0.01)
+        optimiser = torch.optim.AdamW(self.parameters(), lr=lr, weight_decay=weight_decay)
         self.training_loop(self.loss, points, classifier_response, optimiser, epochs, batch_size, mask=mask)

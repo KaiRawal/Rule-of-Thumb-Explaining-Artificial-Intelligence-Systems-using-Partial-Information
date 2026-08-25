@@ -52,8 +52,32 @@ def test_text_wrapper_attention_mask_matches_lengths(text_data):
     assert np.allclose(exp_by_lengths, exp_by_mask)
 
 
+def test_wrappers_thread_training_hyperparameters(tabular_data, text_data):
+    from ruleofthumb import RuleOfThumb, TextRuleOfThumb
+
+    x, y = tabular_data
+    rot = RuleOfThumb(
+        y, x, epochs=4, batch_size=32, learning_rate=0.05, pretrain_epochs=1, weight_decay=0.1
+    )
+    assert rot.get_explanation(x).shape == (64, 5)
+
+    tx, lengths, ty = text_data
+    rot_text = TextRuleOfThumb(
+        ty,
+        tx,
+        epochs=4,
+        batch_size=16,
+        learning_rate=0.01,
+        lengths=lengths,
+        pretrain_epochs=1,
+        weight_decay=0.1,
+        l1_penalty=0.05,
+    )
+    assert rot_text.get_explanation(tx, lengths=lengths).shape == (32, 6)
+
+
 def test_package_exports():
     import ruleofthumb
 
-    assert ruleofthumb.__version__ == "0.2.3"
+    assert ruleofthumb.__version__ == "0.2.4"
     assert hasattr(ruleofthumb, "RoT")

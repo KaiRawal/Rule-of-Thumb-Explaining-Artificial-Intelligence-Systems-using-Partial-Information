@@ -90,3 +90,35 @@ def test_get_order_stable_tie_breaking(tabular_data):
     # repeated calls are deterministic
     again = model.get_order(torch.from_numpy(x))
     assert np.array_equal(order, again)
+
+
+def test_training_loop_swa_burn_in_parameter(tabular_data):
+    x, y = tabular_data
+    model = RoT(2, (5,))
+    optimiser = torch.optim.AdamW(model.parameters(), lr=0.05)
+
+    # default burn-in (epochs // 10 + 1 == 1) creates the SWA model
+    model.training_loop(model.loss, torch.from_numpy(x), y, optimiser, epochs=2, batch_size=32)
+    assert model.swa_model is not None
+
+    # a burn-in beyond the epoch count never creates it
+    model = RoT(2, (5,))
+    optimiser = torch.optim.AdamW(model.parameters(), lr=0.05)
+    model.training_loop(model.loss, torch.from_numpy(x), y, optimiser, epochs=2, batch_size=32, swa_burn_in=5)
+    assert model.swa_model is None
+
+    # an explicit zero burn-in works too
+    model = RoT(2, (5,))
+    optimiser = torch.optim.AdamW(model.parameters(), lr=0.05)
+    model.training_loop(model.loss, torch.from_numpy(x), y, optimiser, epochs=2, batch_size=32, swa_burn_in=0)
+    assert model.swa_model is not None
+
+
+def test_fit_hyperparameter_arguments(tabular_data):
+    x, y = tabular_data
+    model = RoT(2, (5,))
+    model.fit(
+        torch.from_numpy(x), y, epochs=8, batch_size=32, lr=0.05, pretrain_epochs=2, weight_decay=0.1
+    )
+    assert len(model.training_loss) == 8
+    assert model.training_loss[-1] <= model.training_loss[0]

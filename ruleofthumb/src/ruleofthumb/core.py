@@ -84,9 +84,11 @@ class RoT(torch.nn.Module):
         # accepts either scalars or tensors so it also works before ``fit_project``.
         self.b.data = torch.clamp(self.b.data, self.mins, self.maxs)
 
-    def training_loop(self, loss, points, classifier_response, optimiser, epochs=1, batch_size=200, mask=None):
+    def training_loop(
+        self, loss, points, classifier_response, optimiser, epochs=1, batch_size=200, mask=None, swa_burn_in=None
+    ):
         self.training_loss = np.zeros(epochs)
-        burn_in = epochs // 10 + 1
+        burn_in = epochs // 10 + 1 if swa_burn_in is None else swa_burn_in
         features = points
         for e in range(epochs):
             shuff = torch.randperm(classifier_response.shape[0])
@@ -117,7 +119,7 @@ class RoT(torch.nn.Module):
 
         self.training_loss /= features.shape[0] / batch_size
 
-    def fit(self, points, classifier_response, epochs, batch_size, lr=1e-4):
+    def fit(self, points, classifier_response, epochs, batch_size, lr=1e-4, pretrain_epochs=5, weight_decay=0.01):
         assert points.shape[0] == classifier_response.shape[0]
         assert points.shape[1] == self.a.shape[1]
         self.fit_project(-points.max(0)[0], -points.min(0)[0])
@@ -126,9 +128,9 @@ class RoT(torch.nn.Module):
         optimiser = torch.optim.AdamW(self.parameters(), lr=lr)
         drop_out = self.dropout_rate
         self.dropout_rate = 0
-        self.training_loop(self.loss, points, classifier_response, optimiser, 5, batch_size)
+        self.training_loop(self.loss, points, classifier_response, optimiser, pretrain_epochs, batch_size)
         self.dropout_rate = drop_out
-        optimiser = torch.optim.AdamW(self.parameters(), lr=lr, weight_decay=0.01)
+        optimiser = torch.optim.AdamW(self.parameters(), lr=lr, weight_decay=weight_decay)
         self.training_loop(self.loss, points, classifier_response, optimiser, epochs, batch_size)
 
     def averaged_explainer(self):
