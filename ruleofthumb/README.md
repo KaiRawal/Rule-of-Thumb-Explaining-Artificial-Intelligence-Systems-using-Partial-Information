@@ -191,6 +191,41 @@ np.allclose(exp.get_explanation(x), loaded.get_explanation(x))  # identical
 Native string / file-path ingestion is not persisted: a reloaded explainer
 consumes numeric arrays (refit from strings/paths to restore it).
 
+### Plotting
+
+`ruleofthumb.plot` renders every modality. Colour convention throughout:
+**red = evidence toward the explained class, blue = against**.
+
+```python
+import ruleofthumb.plot as plot
+
+# Tabular — SHAP's signature plots, rendered via the shap package:
+plot.waterfall(exp, x[:1], feature_names=names)   # also: force, decision
+plot.bar(exp, x[:50], feature_names=names)        # also: beeswarm (batch-level)
+fig.savefig("waterfall.png")                      # everything returns a Figure
+
+# Text — token highlighting for Jupyter plus a static matplotlib export:
+out = ruleofthumb.embed_texts(["a wonderful film", "terrible pacing"])
+imp = exp.get_explanation(out.embeddings, attention_mask=out.attention_mask)
+plot.text_html(imp[0], out.tokens[0])             # IPython-aware HTML
+plot.text_matplotlib(imp[0], out.tokens[0]).savefig("tokens.png")
+plot.word_clouds(imp, out.tokens)                 # aggregated pos/neg/combined clouds
+
+# Images — legacy-style saliency overlay (red/blue transparent heatmaps):
+plot.saliency(imp_map, image=rgb_array).savefig("saliency.png")
+```
+
+**Baseline semantics (SHAP → RoT).** SHAP decomposes `f(x) = φ₀ + Σφᵢ`
+with `φ₀ = E[f(X)]`. RoT's surrogate is additive by construction:
+`s_k(x) = g_k + Σ_d a_kd·(x_d + b_kd)` and `get_explanation` returns exactly
+the per-feature terms — so the SHAP base value maps to the **class bias
+`g_k`**, and `f(x)` maps to the **surrogate score** (RoT explains its own
+surrogate of the black box, not the black box directly). RoT folds each
+feature's shift `b` into its contribution, so features are measured from
+zero-shift rather than mean-centred baselines. Text scores are
+length-normalised means over tokens, so token importances do not sum to the
+score; text visualisations show raw signed token weights only.
+
 ## Quick start notebooks
 
 Hello-world examples on dummy data — no downloads or GPUs needed:

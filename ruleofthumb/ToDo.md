@@ -8,13 +8,6 @@ features build on, then new functionality.
 
 ## New functionality
 
-14. `ruleofthumb.plot`: plotting utilities (builds on item 8), including
-    porting existing SHAP visualisations to RoT so explanations can be
-    inspected the same way as SHAP ones — text visualisations (token
-    highlighting, word clouds), image visualisations (saliency-style
-    importance overlays) and rich inline rendering for Jupyter notebooks;
-    mirror SHAP's plotting API shapes where useful (source: legacy `viz.py`,
-    `word_clouds.py`, `run.py`).
 15. Bring back the ability to use non-linear additive functions within the
     RoT framework: per-feature non-linear shape functions combined with the
     linear RoT importance, with configurable sub-model widths and tests
@@ -57,6 +50,19 @@ features build on, then new functionality.
 
 ## Changelog
 
+- **v0.2.18** — new `ruleofthumb.plot` module. Tabular: SHAP's signature
+  plots (waterfall, force, decision, bar, beeswarm) rendered by delegating
+  to the `shap` package (new base dependency) with RoT values packed into a
+  `shap.Explanation`; the SHAP base value maps to the RoT class bias `g_k`
+  and `f(x)` to the surrogate score (documented in the README's baseline
+  semantics table). Text: token highlighting as IPython-aware HTML and a
+  static matplotlib export, plus aggregated positive/negative/combined word
+  clouds (red = toward the class, blue = against — departing from the legacy
+  clouds' green/red for consistency with the legacy saliency overlays).
+  Images: port of the legacy saliency overlay (sign-preserving power
+  transform, independent percentile-trimmed normalisation, saturation
+  compression) over optional RGB input. All functions return matplotlib
+  figures or HTML; nothing auto-shows.
 - **v0.2.17** — automatic hyperparameter tuning: `ruleofthumb.autotune`
   searches `learning_rate` / `batch_size` / `epochs` / `dropout_rate` /
   `weight_decay` (grid or seeded random search over a customisable space,
