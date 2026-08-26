@@ -15,6 +15,7 @@ ranking), with fidelity asserted against the live majority baseline.
 """
 
 import collections
+import os
 
 import numpy as np
 import torch
@@ -27,6 +28,57 @@ SEED = 0
 
 def _fit_image(x, y, n_classes):
     return fit_image(y, x, epochs=300, batch_size=5000, learning_rate=0.05, seed=SEED, n_classes=n_classes)
+
+
+def _pet_paths_and_labels(pets):
+    labels = pets["labels"]
+    paths = [os.path.join(pets["images_dir"], name) for name in labels["filename"]]
+    y = labels["gpt_label"].eq("dog").to_numpy().astype(np.int64)
+    return paths, y
+
+
+def test_native_image_ingestion_end_to_end(pets):
+    """Raw JPEG paths + black-box predictions in; per-pixel importances out.
+
+    No ``(N, C, H, W)`` array is ever built by the caller: fit_image decodes
+    the files (resize + centre-crop to 64x64), and get_explanation re-loads
+    the same paths. The black box splits at the median green-channel mass —
+    a signal the spatially-shared surrogate can express (unlike the semantic
+    GPT cat/dog labels, which pool to uninformative colour mass; see item 16).
+    """
+    from ruleofthumb import load_images
+
+    paths, _ = _pet_paths_and_labels(pets)
+    loaded = load_images(paths, size=(64, 64))
+    green_mass = loaded.images[:, 1].sum(axis=(1, 2))
+    y = (green_mass > np.median(green_mass)).astype(np.int64)
+
+    exp = fit_image(y, paths, size=(64, 64), epochs=300, batch_size=5000, learning_rate=0.05, seed=SEED)
+
+    assert exp.modality == "image"
+    imp = exp.get_explanation(paths)
+    assert imp.shape == (len(paths), 64, 64)
+    assert np.isfinite(imp).all()
+    assert (np.abs(imp) > 0).any()
+
+    # RoT predicted-class accuracy against the black box's labels
+    assert rot_accuracy(exp, loaded.images, y) >= 0.9
+
+
+def test_native_path_equals_array_path(pets):
+    """Fitting from file paths matches the pre-loaded array path exactly."""
+    from ruleofthumb import load_images
+
+    paths, y = _pet_paths_and_labels(pets)
+    loaded = load_images(paths, size=(64, 64))
+
+    native = fit_image(y, paths, size=(64, 64), epochs=300, batch_size=5000, learning_rate=0.05, seed=SEED)
+    arrays = fit_image(y, loaded.images, epochs=300, batch_size=5000, learning_rate=0.05, seed=SEED)
+
+    imp_native = native.get_explanation(paths)
+    imp_arrays = arrays.get_explanation(loaded.images)
+    assert imp_native.shape == imp_arrays.shape
+    assert np.allclose(imp_native, imp_arrays)
 
 
 def test_black_box_labels_match_committed_cnns(image_multiclass):

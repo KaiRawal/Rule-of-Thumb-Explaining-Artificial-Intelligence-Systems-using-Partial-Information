@@ -78,7 +78,7 @@ def pets():
     """
     labels = pd.read_csv(_require("pets_labels.csv"))
     reference = np.load(_require("pet_reference_explanations.npz"))["heatmaps"]
-    return {"labels": labels, "reference": reference}
+    return {"labels": labels, "reference": reference, "images_dir": os.path.join(ARTIFACTS, "pet_images")}
 
 
 @pytest.fixture(scope="session")

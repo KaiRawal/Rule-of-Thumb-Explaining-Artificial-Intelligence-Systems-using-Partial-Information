@@ -141,6 +141,23 @@ for img in images:
     single_imp = model.importance(torch.from_numpy(img[None]))
 ```
 
+Starting from image files? Pass the paths straight in — `fit_image` decodes
+them (RGB, `[0, 1]` floats), derives validity masks automatically, and every
+explainer method accepts the same paths back:
+
+```python
+import ruleofthumb
+
+paths = ["cat.jpg", "dog.jpg"]
+exp = ruleofthumb.fit_image(y_outputs=labels, x_inputs=paths)          # native sizes, padded
+exp = ruleofthumb.fit_image(y_outputs=labels, x_inputs=paths, size=(64, 64))  # resize + centre-crop
+imp = exp.get_explanation(paths)   # signed, shape [N, H, W]
+```
+
+Need custom preprocessing (e.g. ImageNet normalisation for a torchvision
+black box)? Supply `transform=` (a PIL Image → tensor callable), or use
+`ruleofthumb.load_images(paths, ...)` directly to inspect `.images` / `.mask`.
+
 ## Quick start notebooks
 
 Hello-world examples on dummy data — no downloads or GPUs needed:

@@ -11,10 +11,81 @@ scoring individual unpadded samples one at a time remains fully supported and
 needs no mask.
 """
 
+import dataclasses
+
+import numpy as np
 import torch
 from torch import nn
 
 from ruleofthumb.core import RoT
+
+
+@dataclasses.dataclass(frozen=True)
+class ImageBatch:
+    """Images decoded from files, ready for :func:`ruleofthumb.fit_image`.
+
+    Attributes:
+        images: ``(N, channels, height, width)`` float32 array, zero-padded
+            beyond each sample's real region.
+        mask: ``(N, height, width)`` boolean validity mask (``True`` marks
+            real pixels); pass as ``mask=`` to array-based entry points.
+    """
+
+    images: np.ndarray
+    mask: np.ndarray
+
+
+def load_images(paths, *, size=None, transform=None):
+    """Decode image files into a rectangular batch with a validity mask.
+
+    Args:
+        paths: list of image file paths (PNG / JPEG / ...).
+        size: optional ``(height, width)``; when given, every image is
+            resized (shorter edge) and centre-cropped to that common size and
+            the mask is all-true. When ``None`` (default), native sizes are
+            kept and smaller images are zero-padded with real-region masks.
+        transform: optional callable overriding the default pipeline entirely
+            (PIL Image -> ``(C, H, W)`` tensor), e.g. a torchvision weights
+            transform including normalisation; output must be uniform so the
+            mask is all-true.
+
+    Returns:
+        :class:`ImageBatch` with float32 RGB images scaled to ``[0, 1]``
+        (unless ``transform`` replaces the scaling).
+    """
+    from PIL import Image
+
+    if len(paths) == 0:
+        raise ValueError("paths must be non-empty")
+
+    tensors = []
+    for path in paths:
+        with Image.open(path) as image:
+            pil = image.convert("RGB")
+        if transform is not None:
+            tensors.append(torch.as_tensor(transform(pil)).to(torch.float32))
+        elif size is not None:
+            tensors.append(_resize_and_crop(pil, size))
+        else:
+            tensors.append(torch.from_numpy(np.asarray(pil)).permute(2, 0, 1).to(torch.float32) / 255.0)
+
+    channels = int(tensors[0].shape[0])
+    if any(t.shape[0] != channels for t in tensors):
+        raise ValueError("all images must have the same number of channels")
+    if any(t.shape[1:] != tensors[0].shape[1:] for t in tensors):
+        padded, mask = pad_images(tensors)
+        return ImageBatch(images=padded.numpy().astype(np.float32), mask=mask.numpy())
+    batch = torch.stack(tensors)
+    return ImageBatch(images=batch.numpy().astype(np.float32), mask=np.ones(batch.shape[:1] + batch.shape[2:], dtype=bool))
+
+
+def _resize_and_crop(pil, size):
+    """Resize the shorter edge to ``size`` and centre-crop to ``(h, w)``."""
+    from torchvision.transforms import functional as tf
+
+    height, width = int(size[0]), int(size[1])
+    resized = tf.resize(pil, min(height, width))
+    return tf.center_crop(tf.to_tensor(resized), [height, width])
 
 
 def pad_images(images, pad_value=0.0):

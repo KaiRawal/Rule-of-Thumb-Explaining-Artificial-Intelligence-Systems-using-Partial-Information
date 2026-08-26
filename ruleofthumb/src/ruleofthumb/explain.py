@@ -12,13 +12,14 @@ binary tasks, full per-class output for ``n_classes > 2``.
 """
 
 import functools
+import os
 
 import numpy as np
 import torch
 
 from ruleofthumb.core import RoT
 from ruleofthumb.embed import embed_texts
-from ruleofthumb.image import RoTImage
+from ruleofthumb.image import RoTImage, load_images
 from ruleofthumb.text import RoTText, lengths_to_mask
 
 
@@ -32,9 +33,17 @@ def _as_token_mask(mask_or_lengths, n_tokens):
     return m.to(torch.bool)
 
 
+_IMAGE_EXTENSIONS = frozenset({".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp", ".tif", ".tiff"})
+
+
 def _is_string_batch(x):
     """True when ``x`` is a non-empty list/tuple of raw strings."""
     return isinstance(x, (list, tuple)) and len(x) > 0 and all(isinstance(s, str) for s in x)
+
+
+def _is_path_batch(x):
+    """True when ``x`` is a non-empty list/tuple of image file paths."""
+    return _is_string_batch(x) and all(os.path.splitext(s)[1].lower() in _IMAGE_EXTENSIONS for s in x)
 
 
 def _as_float_inputs(x_inputs):
@@ -51,10 +60,10 @@ class Explainer:
     Create instances through :func:`fit`, :func:`fit_tabular`,
     :func:`fit_text` or :func:`fit_image` rather than constructing directly.
 
-    A text explainer fitted from raw strings remembers how to embed them:
-    every public method then accepts the same strings in place of
-    ``(N, tokens, embedding)`` arrays, re-embedding (and re-deriving padding
-    masks) on each call.
+    A text explainer fitted from raw strings, or an image explainer fitted
+    from file paths, remembers how to load its inputs: every public method
+    then accepts the same strings / paths in place of numeric arrays,
+    re-loading (and re-deriving padding masks) on each call.
 
     The underlying model is available as :attr:`model` (a :class:`~ruleofthumb.core.RoT`
     subclass) for full manual control; the reveal-pipeline methods
@@ -62,10 +71,11 @@ class Explainer:
     delegate to it verbatim.
     """
 
-    def __init__(self, model, modality, string_embedder=None):
+    def __init__(self, model, modality, string_embedder=None, image_loader=None):
         self._model = model
         self._modality = modality
         self._string_embedder = string_embedder
+        self._image_loader = image_loader
 
     @property
     def modality(self):
@@ -77,19 +87,25 @@ class Explainer:
         """The fitted underlying RoT model."""
         return self._model
 
-    def _resolve_strings(self, x):
-        """Embed a string batch; returns ``(points tensor, mask tensor)`` or ``None``."""
+    def _resolve_native(self, x):
+        """Load a raw string/path batch; returns ``(points tensor, mask tensor)`` or ``None``."""
         if not _is_string_batch(x):
             return None
-        if self._string_embedder is None:
+        if self._modality == "text":
+            if self._string_embedder is None:
+                raise ValueError(
+                    "this explainer was fitted on embedding arrays and cannot consume raw strings; "
+                    "pass arrays or refit from strings"
+                )
+            embedded = self._string_embedder(list(x))
+            return torch.from_numpy(embedded.embeddings).to(self._model.device), torch.from_numpy(embedded.attention_mask)
+        if self._image_loader is None:
             raise ValueError(
-                "this explainer was fitted on embedding arrays and cannot consume raw strings; "
-                "pass arrays or refit from strings"
+                "this explainer was fitted on image arrays and cannot consume file paths; "
+                "pass arrays or refit from paths"
             )
-        embedded = self._string_embedder(list(x))
-        points = torch.from_numpy(embedded.embeddings).to(self._model.device)
-        mask = torch.from_numpy(embedded.attention_mask)
-        return points, mask
+        batch = self._image_loader(list(x))
+        return torch.from_numpy(batch.images).to(self._model.device), torch.from_numpy(batch.mask)
 
     def get_explanation(self, x_numpy, *, mask=None, attention_mask=None, lengths=None) -> np.ndarray:
         """Return signed importances, comparable to SHAP values.
@@ -108,16 +124,17 @@ class Explainer:
         Padding arguments depend on the modality: tabular takes none, text
         accepts at most one of ``mask`` / ``attention_mask`` / ``lengths``
         (or none at all when ``x_numpy`` is a list of raw strings — padding
-        is derived automatically), image accepts ``mask`` only.
+        is derived automatically), image accepts ``mask`` only (or none at
+        all for file paths).
         """
-        resolved = self._resolve_strings(x_numpy) if self._modality == "text" else None
+        resolved = self._resolve_native(x_numpy)
         if resolved is not None:
             if mask is not None or attention_mask is not None or lengths is not None:
-                raise ValueError("raw strings derive their padding automatically; pass no padding arguments")
-            x, text_mask = resolved
+                raise ValueError("raw inputs derive their padding automatically; pass no padding arguments")
+            x, native_mask = resolved
         else:
             x = torch.from_numpy(np.asarray(x_numpy)).to(self._model.device)
-            text_mask = None
+            native_mask = None
         given = [
             name
             for name, value in (("mask", mask), ("attention_mask", attention_mask), ("lengths", lengths))
@@ -134,14 +151,17 @@ class Explainer:
                 padding = lengths if attention_mask is None else attention_mask
                 if padding is None:
                     padding = mask
-                text_mask = _as_token_mask(padding, x.shape[1])
-            imp = self._model.importance(x, mask=text_mask)
+                native_mask = _as_token_mask(padding, x.shape[1])
+            imp = self._model.importance(x, mask=native_mask)
         else:
             if attention_mask is not None or lengths is not None:
                 raise ValueError("image explanations take mask= only")
-            if mask is not None:
-                mask = torch.as_tensor(np.asarray(mask)).to(torch.bool)
-            imp = self._model.importance(x, mask=mask)
+            if resolved is not None:
+                imp = self._model.importance(x, mask=native_mask)
+            else:
+                if mask is not None:
+                    mask = torch.as_tensor(np.asarray(mask)).to(torch.bool)
+                imp = self._model.importance(x, mask=mask)
         imp = self._model._reduce_to_units(imp).detach().cpu().numpy()
         if self._model.classes == 2:
             imp = imp[:, 1]
@@ -150,49 +170,52 @@ class Explainer:
     _MASK_METHODS = frozenset({"get_order", "score", "predict"})
 
     def _delegate(self, name, args, kwargs):
-        """Call the raw-model method, embedding a leading string batch for text."""
-        if self._modality == "text" and args and _is_string_batch(args[0]):
-            if "mask" in kwargs and kwargs["mask"] is not None:
-                raise ValueError("raw strings derive their padding automatically; pass mask=None")
-            points, mask = self._resolve_strings(args[0])
+        """Call the raw-model method, loading a leading string/path batch for text/image."""
+        if args and _is_string_batch(args[0]) and self._modality in ("text", "image"):
+            if kwargs.get("mask") is not None:
+                raise ValueError("raw inputs derive their padding automatically; pass mask=None")
+            points, mask = self._resolve_native(args[0])
             args = (points,) + args[1:]
             if name in self._MASK_METHODS:
                 kwargs["mask"] = mask
         return getattr(self._model, name)(*args, **kwargs)
 
     def get_order(self, *args, **kwargs):
-        """See :meth:`ruleofthumb.core.RoT.get_order`. Accepts raw strings for text explainers."""
+        """See :meth:`ruleofthumb.core.RoT.get_order`. Accepts raw strings / file paths."""
         return self._delegate("get_order", args, kwargs)
 
     def ordered_predict(self, *args, **kwargs):
-        """See :meth:`ruleofthumb.core.RoT.ordered_predict`. Accepts raw strings for text explainers."""
+        """See :meth:`ruleofthumb.core.RoT.ordered_predict`. Accepts raw strings / file paths."""
         return self._delegate("ordered_predict", args, kwargs)
 
     def score(self, *args, **kwargs):
-        """See :meth:`ruleofthumb.core.RoT.score`. Accepts raw strings for text explainers."""
+        """See :meth:`ruleofthumb.core.RoT.score`. Accepts raw strings / file paths."""
         return self._delegate("score", args, kwargs)
 
     def predict(self, *args, **kwargs):
-        """See :meth:`ruleofthumb.core.RoT.predict`. Accepts raw strings for text explainers."""
+        """See :meth:`ruleofthumb.core.RoT.predict`. Accepts raw strings / file paths."""
         return self._delegate("predict", args, kwargs)
 
     def score_ordering(self, *args, **kwargs):
-        """See :meth:`ruleofthumb.core.RoT.score_ordering`. Accepts raw strings for text explainers."""
+        """See :meth:`ruleofthumb.core.RoT.score_ordering`. Accepts raw strings / file paths."""
         return self._delegate("score_ordering", args, kwargs)
 
 
 def fit(y_outputs, x_inputs, *, modality="auto", **kwargs):
     """Fit an :class:`Explainer` to black-box outputs, auto-detecting the modality.
 
-    ``modality="auto"`` dispatches on the input: a list of raw strings →
-    text; otherwise on ``x_inputs.ndim``: 2 → tabular, 3 → text
-    ``(N, tokens, embedding)``, 4 → image ``(N, C, H, W)``. Pass
-    ``modality="tabular" | "text" | "image"`` explicitly to override. The
-    remaining keyword arguments are forwarded to the matching factory
-    (:func:`fit_tabular`, :func:`fit_text` or :func:`fit_image`).
+    ``modality="auto"`` dispatches on the input: a list of image file paths →
+    image, any other list of raw strings → text; otherwise on
+    ``x_inputs.ndim``: 2 → tabular, 3 → text ``(N, tokens, embedding)``,
+    4 → image ``(N, C, H, W)``. Pass ``modality="tabular" | "text" | "image"``
+    explicitly to override. The remaining keyword arguments are forwarded to
+    the matching factory (:func:`fit_tabular`, :func:`fit_text` or
+    :func:`fit_image`).
     """
     if modality == "auto":
-        if _is_string_batch(x_inputs):
+        if _is_path_batch(x_inputs):
+            modality = "image"
+        elif _is_string_batch(x_inputs):
             modality = "text"
         else:
             ndim = np.asarray(x_inputs).ndim
@@ -305,6 +328,8 @@ def fit_image(
     x_inputs,
     *,
     mask=None,
+    size=None,
+    transform=None,
     epochs=500,
     batch_size=5000,
     learning_rate=0.05,
@@ -315,16 +340,35 @@ def fit_image(
     n_classes=2,
     device=None,
 ):
-    """Fit an image :class:`Explainer` on ``(N, C, H, W)`` inputs.
+    """Fit an image :class:`Explainer` on ``(N, C, H, W)`` inputs or image file paths.
 
-    Pass a boolean validity ``mask`` of shape ``(N, H, W)`` alongside padded
-    batches (see :func:`ruleofthumb.image.pad_images`); masked-out pixels
-    receive exactly zero importance.
+    Pass a list of image file paths (PNG / JPEG / ...) and they are decoded
+    automatically (RGB, ``[0, 1]`` floats): with ``size=(height, width)``
+    every image is resized and centre-cropped to that common size; without
+    it, native sizes are kept and smaller images are zero-padded. Validity
+    masks are derived automatically — ``mask=`` must not be given alongside
+    paths. Supply ``transform=`` (a PIL Image -> tensor callable) to replace
+    the default pipeline entirely, e.g. a torchvision weights transform.
+
+    For array inputs, pass a boolean validity ``mask`` of shape ``(N, H, W)``
+    alongside padded batches (see :func:`ruleofthumb.image.pad_images`);
+    masked-out pixels receive exactly zero importance.
+
+    Explainers fitted from paths accept the same paths back in every public
+    method; each call re-loads the files.
     """
-    model = RoTImage(n_classes, (x_inputs.shape[1],), dropout_rate=dropout_rate, device=device)
-    if mask is not None:
+    image_loader = None
+    if _is_string_batch(x_inputs):
+        if mask is not None:
+            raise ValueError("raw image files derive their padding automatically; pass mask=None")
+        image_loader = functools.partial(load_images, size=size, transform=transform)
+        loaded = image_loader(list(x_inputs))
+        x_inputs = loaded.images
+        mask = torch.from_numpy(loaded.mask)
+    elif mask is not None:
         mask = torch.as_tensor(np.asarray(mask)).to(torch.bool)
-    model.fit(
+    rot = RoTImage(n_classes, (x_inputs.shape[1],), dropout_rate=dropout_rate, device=device)
+    rot.fit(
         _as_float_inputs(x_inputs),
         _as_labels(y_outputs),
         epochs=epochs,
@@ -335,4 +379,4 @@ def fit_image(
         weight_decay=weight_decay,
         seed=seed,
     )
-    return Explainer(model, "image")
+    return Explainer(rot, "image", image_loader=image_loader)

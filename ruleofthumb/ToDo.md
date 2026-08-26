@@ -8,11 +8,6 @@ features build on, then new functionality.
 
 ## New functionality
 
-11. **Native image ingestion** (builds on item 8): accept image file paths
-    (PNG / JPEG / etc.) directly in the image explainer entry points. Decode
-    with Pillow / torchvision and apply standard transforms (resize /
-    centre-crop to a common size, normalisation), deriving validity masks
-    automatically to fit the existing pad-and-mask API.
 12. Save/load fitted explainers: persistence helpers (state_dict round-trip)
     so fitted models survive process boundaries without refitting.
 13. **Automatic training** (builds on items 3–4): Keras-tuner-style
@@ -72,6 +67,16 @@ features build on, then new functionality.
 
 ## Changelog
 
+- **v0.2.15** — native image ingestion: `fit_image` (and `fit`'s
+  auto-detection, which routes image file extensions to the image modality)
+  accept image file paths directly; files are decoded with Pillow (RGB,
+  `[0, 1]` floats) either at native sizes (zero-padded with derived validity
+  masks) or resized + centre-cropped via `size=`, and `transform=` replaces
+  the whole pipeline for caller-supplied preprocessing (e.g. torchvision
+  weights transforms). New `ruleofthumb.image.load_images` /
+  `ImageBatch` mirror the text-side utilities. Explainers fitted from paths
+  accept the same paths back in every public method — each call re-loads the
+  files.
 - **v0.2.14** — native text ingestion: `fit_text` (and `fit`'s auto-detection)
   accept raw strings directly, embedding them with the bundled
   `answerdotai/ModernBERT-base` default and deriving attention masks
