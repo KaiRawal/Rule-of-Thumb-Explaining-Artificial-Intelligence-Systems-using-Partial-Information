@@ -158,6 +158,20 @@ Need custom preprocessing (e.g. ImageNet normalisation for a torchvision
 black box)? Supply `transform=` (a PIL Image → tensor callable), or use
 `ruleofthumb.load_images(paths, ...)` directly to inspect `.images` / `.mask`.
 
+### Saving and loading
+
+Fitted explainers round-trip through `Explainer.save` / `load_explainer`
+(weights + configuration only — no refitting, no pickled classes):
+
+```python
+exp.save("explainer.rotx")
+loaded = ruleofthumb.load_explainer("explainer.rotx", device="cpu")
+np.allclose(exp.get_explanation(x), loaded.get_explanation(x))  # identical
+```
+
+Native string / file-path ingestion is not persisted: a reloaded explainer
+consumes numeric arrays (refit from strings/paths to restore it).
+
 ## Quick start notebooks
 
 Hello-world examples on dummy data — no downloads or GPUs needed:

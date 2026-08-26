@@ -32,6 +32,7 @@ class RoT(torch.nn.Module):
             self.b = nn.Parameter(torch.zeros((classes,) + sample_shape, requires_grad=True, device=self.device))
         self.g = nn.Parameter(torch.zeros(classes, requires_grad=True, device=self.device))
         self.classes = classes
+        self.sample_shape = tuple(sample_shape)
         if use_BCE_loss is False:
             self.objective = torch.nn.CrossEntropyLoss(reduction="sum")
         else:

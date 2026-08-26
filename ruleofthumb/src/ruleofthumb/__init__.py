@@ -2,11 +2,11 @@
 
 from ruleofthumb.core import RoT
 from ruleofthumb.embed import DEFAULT_TEXT_MODEL, TextEmbeddings, embed_texts
-from ruleofthumb.explain import Explainer, fit, fit_image, fit_tabular, fit_text
+from ruleofthumb.explain import Explainer, fit, fit_image, fit_tabular, fit_text, load_explainer
 from ruleofthumb.image import ImageBatch, load_images, pad_images
 from ruleofthumb.text import pad_sequences, sentinel_mask
 
-__version__ = "0.2.15"
+__version__ = "0.2.16"
 
 __all__ = [
     "DEFAULT_TEXT_MODEL",
@@ -20,6 +20,7 @@ __all__ = [
     "fit_image",
     "fit_tabular",
     "fit_text",
+    "load_explainer",
     "load_images",
     "pad_images",
     "pad_sequences",

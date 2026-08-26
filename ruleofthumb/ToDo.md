@@ -8,8 +8,6 @@ features build on, then new functionality.
 
 ## New functionality
 
-12. Save/load fitted explainers: persistence helpers (state_dict round-trip)
-    so fitted models survive process boundaries without refitting.
 13. **Automatic training** (builds on items 3–4): Keras-tuner-style
     hyperparameter autotuning — a validation-split-driven search (random or
     grid) over the exposed training hyperparameters (`learning_rate`,
@@ -67,6 +65,16 @@ features build on, then new functionality.
 
 ## Changelog
 
+- **v0.2.16** — explainer persistence: `Explainer.save(path)` writes a
+  versioned payload (model `state_dict`, per-modality constructor config,
+  `mins` / `maxs`; primitives and tensors only, loadable with
+  `weights_only=True`) and `ruleofthumb.load_explainer(path, device=...)`
+  reconstructs the explainer without refitting — explanations, predictions
+  and reveal-curve outputs are identical after the round-trip. RoT models now
+  record their construction `sample_shape` (needed to rebuild text models,
+  whose `(T, E)` shape is not recoverable from the weights alone). Native
+  string / file-path ingestion is not persisted; reloaded explainers consume
+  numeric arrays.
 - **v0.2.15** — native image ingestion: `fit_image` (and `fit`'s
   auto-detection, which routes image file extensions to the image modality)
   accept image file paths directly; files are decoded with Pillow (RGB,

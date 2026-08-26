@@ -200,6 +200,75 @@ class Explainer:
         """See :meth:`ruleofthumb.core.RoT.score_ordering`. Accepts raw strings / file paths."""
         return self._delegate("score_ordering", args, kwargs)
 
+    def save(self, path):
+        """Persist this explainer to ``path`` for reloading without refitting.
+
+        Saves the underlying RoT model's weights and configuration; use
+        :func:`load_explainer` to restore it. Native string / file-path
+        ingestion is not persisted — a reloaded explainer consumes numeric
+        arrays.
+        """
+        model = self._model
+        config = {
+            "classes": int(model.classes),
+            "sample_shape": [int(s) for s in model.sample_shape],
+            "dropout_rate": float(model.dropout_rate),
+            "use_BCE_loss": bool(model.use_BCE_loss),
+        }
+        if self._modality == "text":
+            config["l1_penalty"] = float(model.l1_penalty)
+        payload = {
+            "ruleofthumb_format": _PERSISTENCE_FORMAT,
+            "modality": self._modality,
+            "config": config,
+            "state_dict": {key: value.detach().cpu() for key, value in model.state_dict().items()},
+            "mins": _to_payload_value(model.mins),
+            "maxs": _to_payload_value(model.maxs),
+        }
+        torch.save(payload, path)
+
+
+_PERSISTENCE_FORMAT = 1
+
+
+def _to_payload_value(value):
+    """Reduce ``mins`` / ``maxs`` to weights_only-safe primitives."""
+    if isinstance(value, torch.Tensor):
+        return value.detach().cpu().tolist()
+    return value if isinstance(value, float) else np.asarray(value).tolist()
+
+
+def _from_payload_value(value, device):
+    if isinstance(value, list):
+        return torch.tensor(value, device=device)
+    return value
+
+
+def load_explainer(path, *, device=None):
+    """Load an :class:`Explainer` saved with :meth:`Explainer.save`.
+
+    Args:
+        path: file written by :meth:`Explainer.save`.
+        device: optional torch device for the restored model; ``None``
+            auto-detects cuda > mps > cpu.
+
+    Returns:
+        A fitted :class:`Explainer` consuming numeric arrays (native
+        string / file-path ingestion is not persisted).
+    """
+    payload = torch.load(path, map_location="cpu", weights_only=True)
+    if not isinstance(payload, dict) or payload.get("ruleofthumb_format") != _PERSISTENCE_FORMAT:
+        raise ValueError(f"{path!r} is not a ruleofthumb explainer file")
+    modality = payload["modality"]
+    config = dict(payload["config"])
+    config["sample_shape"] = tuple(config["sample_shape"])
+    classes = {"tabular": RoT, "text": RoTText, "image": RoTImage}[modality]
+    model = classes(device=device, **config)
+    model.load_state_dict(payload["state_dict"])
+    model.mins = _from_payload_value(payload["mins"], model.device)
+    model.maxs = _from_payload_value(payload["maxs"], model.device)
+    return Explainer(model, modality)
+
 
 def fit(y_outputs, x_inputs, *, modality="auto", **kwargs):
     """Fit an :class:`Explainer` to black-box outputs, auto-detecting the modality.
