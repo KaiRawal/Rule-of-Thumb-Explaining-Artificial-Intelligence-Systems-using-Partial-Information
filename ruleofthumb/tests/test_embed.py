@@ -140,3 +140,47 @@ def test_bad_batch_size_rejected(stubs):
 
 def test_default_model_constant():
     assert DEFAULT_TEXT_MODEL == "answerdotai/ModernBERT-base"
+
+
+def test_fit_routes_strings_to_text(stubs):
+    from ruleofthumb import fit
+
+    tokenizer, model = stubs
+    exp = fit(np.array([0, 1]), ["a bb", "ccc"], tokenizer=tokenizer, model=model, epochs=2, batch_size=2, learning_rate=0.05)
+    assert exp.modality == "text"
+    assert exp.get_explanation(["a bb", "ccc"]).shape == (2, 2)
+
+
+def test_facade_methods_accept_strings(stubs):
+    from ruleofthumb import fit_text
+
+    tokenizer, model = stubs
+    y = np.array([0, 1, 0])
+    texts = ["a bb", "ccc", "dddd ee"]
+    exp = fit_text(y, texts, tokenizer=tokenizer, model=model, epochs=2, batch_size=3, learning_rate=0.05)
+
+    imp = exp.get_explanation(texts)
+    assert imp.shape == (3, 2)  # padded to the longest text ("a bb" / "dddd ee" = 2 tokens)
+    order = exp.get_order(texts)
+    assert order.shape == imp.shape
+    curve = exp.score_ordering(texts, y, order)
+    assert curve.ndim == 1 and len(curve) > 0
+    preds = exp.predict(texts)
+    assert preds.shape[0] == 3
+
+
+def test_strings_with_explicit_padding_rejected(stubs):
+    from ruleofthumb import fit_text
+
+    tokenizer, model = stubs
+    with pytest.raises(ValueError, match="automatically"):
+        fit_text(np.array([0, 1]), ["a bb", "ccc"], attention_mask=np.ones((2, 3)), tokenizer=tokenizer, model=model)
+
+
+def test_get_explanation_strings_on_array_fitted_raises(stubs):
+    from ruleofthumb import fit_text
+
+    x = np.random.rand(4, 3, DIM).astype(np.float32)
+    exp = fit_text(np.array([0, 1, 0, 1]), x, epochs=2, batch_size=4, learning_rate=0.05)
+    with pytest.raises(ValueError, match="fitted on embedding arrays"):
+        exp.get_explanation(["a bb", "ccc"])

@@ -90,12 +90,23 @@ Already have a rectangular batch and your own mask? Pass it directly as
 `attention_mask=...` (or a plain boolean `mask=`) to `fit_text` /
 `get_explanation`.
 
-Starting from raw strings? `ruleofthumb.embed_texts` tokenises and embeds them
-for you (default model: `answerdotai/ModernBERT-base`, overridable):
+Starting from raw strings? Pass them straight in — `fit_text` embeds them
+(bundled default: `answerdotai/ModernBERT-base`, overridable via
+`tokenizer=` / `model=`), derives padding automatically, and every explainer
+method accepts the same strings back:
 
 ```python
 import ruleofthumb
 
+exp = ruleofthumb.fit_text(y_outputs=labels, x_inputs=["a wonderful film", "terrible pacing"])
+token_importances = exp.get_explanation(["a wonderful film", "terrible pacing"])
+order = exp.get_order(["a wonderful film", "terrible pacing"])   # reveal pipeline works on strings too
+```
+
+Need the intermediate arrays (e.g. decoded tokens for plotting)? Use
+`ruleofthumb.embed_texts` directly:
+
+```python
 out = ruleofthumb.embed_texts(["a wonderful film", "terrible pacing"])
 exp = ruleofthumb.fit_text(y_outputs=labels, x_inputs=out.embeddings,
                            attention_mask=out.attention_mask)

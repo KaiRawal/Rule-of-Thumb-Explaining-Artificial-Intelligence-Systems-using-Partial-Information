@@ -169,4 +169,5 @@ def text_sst2():
         "y": logits.argmax(-1).numpy().astype(np.int64),
         "confidence": probabilities.max(-1).values,
         "n_classes": logits.shape[-1],
+        "model_name": SST2_NAME,
     }

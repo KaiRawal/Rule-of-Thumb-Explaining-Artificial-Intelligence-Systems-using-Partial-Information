@@ -9,6 +9,7 @@ start. Only the RoT explainer is fitted, through the
 import re
 
 import numpy as np
+import pytest
 import torch
 from _helpers import rot_accuracy
 
@@ -173,3 +174,66 @@ def test_embed_texts_produces_fit_ready_arrays():
     assert np.isfinite(out.embeddings).all()
     assert (out.embeddings[~out.attention_mask] == 0).all()
     assert (np.abs(out.embeddings[out.attention_mask]) > 0).any()
+
+
+def test_native_string_ingestion_end_to_end(text_sst2):
+    """Raw strings + black-box predictions in; per-token importances out.
+
+    No ``(N, tokens, embedding)`` array is ever built by the caller: fit_text
+    embeds via the bundled ModernBERT default, derives the attention mask,
+    and get_explanation re-embeds the same strings.
+    """
+    from ruleofthumb import DEFAULT_TEXT_MODEL, embed_texts
+
+    texts, y = text_sst2["texts"], text_sst2["y"]
+    exp = fit_text(y, texts, epochs=200, batch_size=500, learning_rate=0.05, seed=SEED)
+
+    embedded = embed_texts(texts, DEFAULT_TEXT_MODEL)
+    imp = exp.get_explanation(texts)
+
+    assert exp.modality == "text"
+    assert imp.shape == (len(texts), embedded.embeddings.shape[1])
+    assert np.isfinite(imp).all()
+    assert (imp[~embedded.attention_mask] == 0).all()  # derived pads score exactly zero
+    assert (np.abs(imp) > 0).any()
+
+    # RoT predicted-class accuracy against the black box's labels
+    assert rot_accuracy(exp, embedded.embeddings, y) >= 0.8
+
+    # signed sentiment-word masses over the ModernBERT tokenisation
+    transformers = pytest.importorskip("transformers")
+    tokenizer = transformers.AutoTokenizer.from_pretrained(DEFAULT_TEXT_MODEL)
+    encoded = tokenizer(list(texts))
+    positive_mass, negative_mass = 0.0, 0.0
+    for i in range(len(texts)):
+        for _, positions, word in _iter_words(encoded, tokenizer, i):
+            mass = float(imp[i, positions].sum())
+            if word in POSITIVE_WORDS:
+                positive_mass += mass
+            elif word in NEGATIVE_WORDS:
+                negative_mass += mass
+    assert positive_mass > 0.0
+    assert negative_mass < 0.0
+
+
+def test_native_path_equals_array_path(text_sst2):
+    """Fitting from strings with an explicit override matches the array path exactly."""
+    transformers = pytest.importorskip("transformers")
+    from ruleofthumb import embed_texts
+
+    tokenizer = transformers.AutoTokenizer.from_pretrained(text_sst2["model_name"])
+    backbone = transformers.AutoModel.from_pretrained(text_sst2["model_name"])
+    backbone.eval()
+
+    texts, y = text_sst2["texts"], text_sst2["y"]
+    emb = embed_texts(texts, tokenizer=tokenizer, model=backbone, max_length=48)
+
+    native = fit_text(y, texts, tokenizer=tokenizer, model=backbone, epochs=200, batch_size=500, learning_rate=0.05, seed=SEED)
+    arrays = fit_text(
+        y, emb.embeddings, attention_mask=emb.attention_mask, epochs=200, batch_size=500, learning_rate=0.05, seed=SEED
+    )
+
+    imp_native = native.get_explanation(texts)
+    imp_arrays = arrays.get_explanation(emb.embeddings, attention_mask=emb.attention_mask)
+    assert imp_native.shape == imp_arrays.shape
+    assert np.allclose(imp_native, imp_arrays)

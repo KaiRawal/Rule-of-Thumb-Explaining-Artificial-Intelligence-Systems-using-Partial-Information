@@ -8,11 +8,6 @@ features build on, then new functionality.
 
 ## New functionality
 
-10. **Native text ingestion** (uses the shipped `ruleofthumb.embed_texts`):
-    accept raw strings directly in the text explainer entry points. Embed via
-    a sensible bundled default HuggingFace model, with an override parameter
-    for caller-supplied tokeniser/model; derive attention masks / lengths
-    automatically so callers never hand-build `(N, tokens, embedding)` arrays.
 11. **Native image ingestion** (builds on item 8): accept image file paths
     (PNG / JPEG / etc.) directly in the image explainer entry points. Decode
     with Pillow / torchvision and apply standard transforms (resize /
@@ -77,6 +72,14 @@ features build on, then new functionality.
 
 ## Changelog
 
+- **v0.2.14** — native text ingestion: `fit_text` (and `fit`'s auto-detection)
+  accept raw strings directly, embedding them with the bundled
+  `answerdotai/ModernBERT-base` default and deriving attention masks
+  automatically; callers supply `tokenizer=` / `model=` to override the
+  embedder. Explainers fitted from strings accept the same strings back in
+  every public method (`get_explanation`, `get_order`, `ordered_predict`,
+  `score_ordering`, `score`, `predict`) — each call re-embeds the texts;
+  string inputs compose with no explicit padding arguments.
 - **v0.2.13** — new `ruleofthumb.embed` module: `embed_texts` tokenises and
   embeds raw strings with a HuggingFace transformer (default
   `answerdotai/ModernBERT-base`, overridable via `tokenizer=` / `model=`),
