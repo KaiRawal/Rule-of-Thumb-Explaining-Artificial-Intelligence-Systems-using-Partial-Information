@@ -24,7 +24,7 @@ def _resolve_device(device=None):
 
 
 class RoT(torch.nn.Module):
-    def __init__(self, classes, sample_shape, dropout_rate=0.5, use_BCE_loss=False, no_a_b=False, device=None):
+    def __init__(self, classes, sample_shape, dropout_rate=0.5, use_BCE_loss=False, no_a_b=False, device=None, nonlinear=None):
         super().__init__()
         self.device = _resolve_device(device)
         if not no_a_b:
@@ -33,6 +33,14 @@ class RoT(torch.nn.Module):
         self.g = nn.Parameter(torch.zeros(classes, requires_grad=True, device=self.device))
         self.classes = classes
         self.sample_shape = tuple(sample_shape)
+        if nonlinear is None:
+            self.nonlinear_spec = None
+            self.response = None
+        else:
+            from ruleofthumb.shapes import build_response, normalised_spec
+
+            self.nonlinear_spec = normalised_spec(nonlinear)
+            self.response = build_response(nonlinear, device=self.device)
         if use_BCE_loss is False:
             self.objective = torch.nn.CrossEntropyLoss(reduction="sum")
         else:
@@ -57,6 +65,12 @@ class RoT(torch.nn.Module):
         # (older torch silently tolerated this via non-strict zips).
         object.__setattr__(self, "swa_model", model)
 
+    def _respond(self, points):
+        """Elementwise learned response; identity for linear models."""
+        if self.response is None:
+            return points
+        return self.response(points)
+
     def importance(self, points, mask=None):
         """Per-feature importance.
 
@@ -68,7 +82,7 @@ class RoT(torch.nn.Module):
         Inputs may live on any device; they are moved to the model's device.
         """
         points = torch.as_tensor(points, device=self.device)
-        return self.a[None] * (points[:, None] + self.b[None])
+        return self.a[None] * (self._respond(points)[:, None] + self.b[None])
 
     def stochastic_importance(self, points, mask=None):
         imp = self.importance(points, mask=mask)

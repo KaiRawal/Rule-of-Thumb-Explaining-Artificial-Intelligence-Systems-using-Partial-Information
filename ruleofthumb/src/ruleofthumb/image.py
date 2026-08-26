@@ -120,8 +120,8 @@ class RoTImage(RoT):
     fit bounds and scores.
     """
 
-    def __init__(self, classes, sample_shape, dropout_rate=0.5, use_BCE_loss=False, device=None):
-        super().__init__(classes, sample_shape, dropout_rate, use_BCE_loss, no_a_b=True, device=device)
+    def __init__(self, classes, sample_shape, dropout_rate=0.5, use_BCE_loss=False, device=None, nonlinear=None):
+        super().__init__(classes, sample_shape, dropout_rate, use_BCE_loss, no_a_b=True, device=device, nonlinear=nonlinear)
         self.a = nn.Parameter(torch.zeros((classes, sample_shape[0]), requires_grad=True, device=self.device))
         self.b = nn.Parameter(torch.zeros((classes, sample_shape[0]), requires_grad=True, device=self.device))
         self.weights = (self.a, self.b, self.g)
@@ -132,7 +132,7 @@ class RoTImage(RoT):
         points = torch.as_tensor(points, device=self.device)
         if mask is not None:
             mask = torch.as_tensor(mask, device=self.device)
-        imp = self.a[None, :, :, None, None] * (points[:, None] + self.b[None, :, :, None, None])
+        imp = self.a[None, :, :, None, None] * (self._respond(points)[:, None] + self.b[None, :, :, None, None])
         if mask is None:
             return imp
         return imp * mask.unsqueeze(1).unsqueeze(1).to(imp.dtype)

@@ -191,6 +191,27 @@ np.allclose(exp.get_explanation(x), loaded.get_explanation(x))  # identical
 Native string / file-path ingestion is not persisted: a reloaded explainer
 consumes numeric arrays (refit from strings/paths to restore it).
 
+### Non-linear additive explanations
+
+By default every RoT surrogate is linear in its inputs. Pass `nonlinear=` to
+any factory (all three modalities, binary and multiclass) to learn a shared
+elementwise response function `s` inside the additive model
+`imp[k,i] = a[k,i]·(s(x[i]) + b[k,i])` — per-feature non-linear shape
+curves with a parameter budget independent of input size:
+
+```python
+exp = ruleofthumb.fit_tabular(y, x, nonlinear="rbf")            # Gaussian bumps
+exp = ruleofthumb.fit_text(y, texts, nonlinear="hinge")         # SELU hinges
+exp = ruleofthumb.fit_image(y, paths, nonlinear={"type": "rbf", "n_bases": 32})
+```
+
+Both responses are residual and zero-initialised, so an unfitted non-linear
+model is exactly the linear one and training adds non-linearity only where
+it reduces loss. Explanations stay exactly additive per feature element, so
+plotting, reveal curves and persistence work unchanged; the chosen
+configuration is stored in save files. Omitting `nonlinear` keeps the plain
+linear model.
+
 ### Plotting
 
 `ruleofthumb.plot` renders every modality. Colour convention throughout:

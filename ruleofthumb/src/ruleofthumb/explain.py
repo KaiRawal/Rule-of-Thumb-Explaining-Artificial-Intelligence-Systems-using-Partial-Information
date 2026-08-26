@@ -217,6 +217,8 @@ class Explainer:
         }
         if self._modality == "text":
             config["l1_penalty"] = float(model.l1_penalty)
+        if getattr(model, "nonlinear_spec", None) is not None:
+            config["nonlinear"] = dict(model.nonlinear_spec)
         payload = {
             "ruleofthumb_format": _PERSISTENCE_FORMAT,
             "modality": self._modality,
@@ -310,9 +312,10 @@ def fit_tabular(
     seed=None,
     n_classes=2,
     device=None,
+    nonlinear=None,
 ):
     """Fit a tabular :class:`Explainer` on ``(N, d)`` feature inputs."""
-    model = RoT(n_classes, (x_inputs.shape[1],), dropout_rate=dropout_rate, device=device)
+    model = RoT(n_classes, (x_inputs.shape[1],), dropout_rate=dropout_rate, device=device, nonlinear=nonlinear)
     model.fit(
         _as_float_inputs(x_inputs),
         _as_labels(y_outputs),
@@ -344,6 +347,7 @@ def fit_text(
     seed=None,
     n_classes=2,
     device=None,
+    nonlinear=None,
 ):
     """Fit a text :class:`Explainer` on ``(N, tokens, embedding)`` inputs or raw strings.
 
@@ -377,6 +381,7 @@ def fit_text(
         dropout_rate=dropout_rate,
         l1_penalty=l1_penalty,
         device=device,
+        nonlinear=nonlinear,
     )
     rot.fit(
         _as_float_inputs(x_inputs),
@@ -408,6 +413,7 @@ def fit_image(
     seed=None,
     n_classes=2,
     device=None,
+    nonlinear=None,
 ):
     """Fit an image :class:`Explainer` on ``(N, C, H, W)`` inputs or image file paths.
 
@@ -436,7 +442,7 @@ def fit_image(
         mask = torch.from_numpy(loaded.mask)
     elif mask is not None:
         mask = torch.as_tensor(np.asarray(mask)).to(torch.bool)
-    rot = RoTImage(n_classes, (x_inputs.shape[1],), dropout_rate=dropout_rate, device=device)
+    rot = RoTImage(n_classes, (x_inputs.shape[1],), dropout_rate=dropout_rate, device=device, nonlinear=nonlinear)
     rot.fit(
         _as_float_inputs(x_inputs),
         _as_labels(y_outputs),

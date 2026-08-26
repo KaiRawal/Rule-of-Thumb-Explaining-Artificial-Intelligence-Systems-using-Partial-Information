@@ -62,8 +62,8 @@ class RoTText(RoT):
     every token is treated as real data.
     """
 
-    def __init__(self, classes, sample_shape, dropout_rate=0.5, use_BCE_loss=False, l1_penalty=0.01, device=None):
-        super().__init__(classes, sample_shape, dropout_rate, use_BCE_loss, no_a_b=True, device=device)
+    def __init__(self, classes, sample_shape, dropout_rate=0.5, use_BCE_loss=False, l1_penalty=0.01, device=None, nonlinear=None):
+        super().__init__(classes, sample_shape, dropout_rate, use_BCE_loss, no_a_b=True, device=device, nonlinear=nonlinear)
         self.a = nn.Parameter(torch.zeros((classes, sample_shape[1]), requires_grad=True, device=self.device))
         self.b = nn.Parameter(torch.zeros((classes, sample_shape[1]), requires_grad=True, device=self.device))
         self.weights = (self.a, self.b, self.g)
@@ -73,7 +73,7 @@ class RoTText(RoT):
         points = torch.as_tensor(points, device=self.device)
         if mask is not None:
             mask = torch.as_tensor(mask, device=self.device)
-        imp = self.a[None, :, None, :] * (points[:, None] + self.b[None, :, None, :])
+        imp = self.a[None, :, None, :] * (self._respond(points)[:, None] + self.b[None, :, None, :])
         if mask is None:
             return imp
         return mask[:, None, :, None].to(imp.dtype) * imp

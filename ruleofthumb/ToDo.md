@@ -8,11 +8,6 @@ features build on, then new functionality.
 
 ## New functionality
 
-15. Bring back the ability to use non-linear additive functions within the
-    RoT framework: per-feature non-linear shape functions combined with the
-    linear RoT importance, with configurable sub-model widths and tests
-    (source: legacy `rot_class.py`; see also the drafted, unapplied
-    OpenXAI integration patch in the repository history).
 16. **Optional per-location importance weights.** The text and image variants
     share their `a` / `b` parameters across all positions — shape
     `(K, E)` for text, `(K, C)` for images (`2·K·C` parameters, independent of
@@ -50,6 +45,19 @@ features build on, then new functionality.
 
 ## Changelog
 
+- **v0.2.19** — opt-in non-linear additive explanations: every factory and
+  RoT constructor accepts `nonlinear=` (a string — `"rbf"` Gaussian bumps or
+  `"hinge"` SELU hinges — or a dict `{"type": ..., ...}` whose extra keys are
+  forwarded as hyperparameters, e.g. `{"type": "rbf", "n_bases": 32}`). The
+  learned elementwise response `s` turns the surrogate into
+  `imp[k,i] = a[k,i]·(s(x[i]) + b[k,i])`: per-feature non-linear shape
+  curves shared across all input elements (parameter budget independent of
+  input size), for all modalities and class counts. Both responses are
+  residual with zero-initialised coefficients, so unfitted non-linear models
+  are exactly the linear ones; explanations stay exactly additive per
+  feature element, so plots, reveal curves and persistence work unchanged,
+  and the configuration round-trips through save files. Default behaviour is
+  unchanged: omitting `nonlinear` keeps the plain linear model.
 - **v0.2.18** — new `ruleofthumb.plot` module. Tabular: SHAP's signature
   plots (waterfall, force, decision, bar, beeswarm) rendered by delegating
   to the `shap` package (new base dependency) with RoT values packed into a
