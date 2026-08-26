@@ -153,3 +153,23 @@ def test_seed_reproducibility(text_sst2):
     imp_a = _fit_text(embeddings, mask, y).get_explanation(embeddings, attention_mask=mask)
     imp_b = _fit_text(embeddings, mask, y).get_explanation(embeddings, attention_mask=mask)
     assert np.allclose(imp_a, imp_b)
+
+
+def test_embed_texts_produces_fit_ready_arrays():
+    """The bundled ModernBERT path yields rectangular embeddings, masks and tokens."""
+    from ruleofthumb import DEFAULT_TEXT_MODEL, embed_texts
+
+    texts = ["a wonderful masterpiece", "terrible"]
+    out = embed_texts(texts, DEFAULT_TEXT_MODEL, batch_size=2)
+
+    n, tokens, dim = out.embeddings.shape
+    assert (n, dim) == (2, 768)
+    assert out.attention_mask.shape == (n, tokens)
+    assert len(out.tokens) == n and all(len(row) == tokens for row in out.tokens)
+    # every sample keeps its words plus [CLS]/[SEP]; pads are blanked everywhere
+    assert (out.attention_mask.sum(1) >= [4, 3]).all()
+    assert all(token != "" for row, mask in zip(out.tokens, out.attention_mask) for token, real in zip(row, mask) if real)
+    assert all(token == "" for row, mask in zip(out.tokens, out.attention_mask) for token, real in zip(row, mask) if not real)
+    assert np.isfinite(out.embeddings).all()
+    assert (out.embeddings[~out.attention_mask] == 0).all()
+    assert (np.abs(out.embeddings[out.attention_mask]) > 0).any()

@@ -8,21 +8,19 @@ features build on, then new functionality.
 
 ## New functionality
 
-9. `ruleofthumb.embed`: embedding-extraction utilities for tokenising and
-    embedding text inputs (source: legacy `gen_token_embeddings.py`).
-10. **Native text ingestion** (builds on items 8–9): accept raw strings
-    directly in the text explainer entry points. Embed via a sensible bundled
-    default HuggingFace model, with an override parameter for caller-supplied
-    tokeniser/model; derive attention masks / lengths automatically so callers
-    never hand-build `(N, tokens, embedding)` arrays.
-11. **Native image ingestion** (builds on item 8): accept image file paths
+9. **Native text ingestion** (uses the shipped `ruleofthumb.embed_texts`):
+    accept raw strings directly in the text explainer entry points. Embed via
+    a sensible bundled default HuggingFace model, with an override parameter
+    for caller-supplied tokeniser/model; derive attention masks / lengths
+    automatically so callers never hand-build `(N, tokens, embedding)` arrays.
+10. **Native image ingestion** (builds on item 8): accept image file paths
     (PNG / JPEG / etc.) directly in the image explainer entry points. Decode
     with Pillow / torchvision and apply standard transforms (resize /
     centre-crop to a common size, normalisation), deriving validity masks
     automatically to fit the existing pad-and-mask API.
-12. Save/load fitted explainers: persistence helpers (state_dict round-trip)
+11. Save/load fitted explainers: persistence helpers (state_dict round-trip)
     so fitted models survive process boundaries without refitting.
-13. **Automatic training** (builds on items 3–4): Keras-tuner-style
+12. **Automatic training** (builds on items 3–4): Keras-tuner-style
     hyperparameter autotuning — a validation-split-driven search (random or
     grid) over the exposed training hyperparameters (`learning_rate`,
     `batch_size`, `epochs`, `dropout_rate`, weight decay, SWA burn-in) that
@@ -30,19 +28,19 @@ features build on, then new functionality.
     reveal-fidelity metric, and returns the best fitted explainer. Requires
     item 3 (hyperparameters exposed) and pairs with item 4 (seeding) so
     candidate comparisons are fair.
-14. `ruleofthumb.plot`: plotting utilities (builds on item 8), including
+13. `ruleofthumb.plot`: plotting utilities (builds on item 8), including
     porting existing SHAP visualisations to RoT so explanations can be
     inspected the same way as SHAP ones — text visualisations (token
     highlighting, word clouds), image visualisations (saliency-style
     importance overlays) and rich inline rendering for Jupyter notebooks;
     mirror SHAP's plotting API shapes where useful (source: legacy `viz.py`,
     `word_clouds.py`, `run.py`).
-15. Bring back the ability to use non-linear additive functions within the
+14. Bring back the ability to use non-linear additive functions within the
     RoT framework: per-feature non-linear shape functions combined with the
     linear RoT importance, with configurable sub-model widths and tests
     (source: legacy `rot_class.py`; see also the drafted, unapplied
     OpenXAI integration patch in the repository history).
-16. **Optional per-location importance weights.** The text and image variants
+15. **Optional per-location importance weights.** The text and image variants
     share their `a` / `b` parameters across all positions — shape
     `(K, E)` for text, `(K, C)` for images (`2·K·C` parameters, independent of
     spatial size) — making each surrogate a linear model on a pooled
@@ -64,9 +62,9 @@ features build on, then new functionality.
 
 ## Release / maintenance
 
-17. CI workflow: GitHub Actions running `pytest` + `ruff check .` on push/PR,
+16. CI workflow: GitHub Actions running `pytest` + `ruff check .` on push/PR,
     enforcing the definition-of-done mechanically.
-18. PyPI release checklist: build sdist + wheel, twine upload, tag releases
+17. PyPI release checklist: build sdist + wheel, twine upload, tag releases
     consistently with the three-place version bump (`pyproject.toml`,
     `src/ruleofthumb/__init__.py`, `tests/test_explain.py` assertion).
 
@@ -79,6 +77,15 @@ features build on, then new functionality.
 
 ## Changelog
 
+- **v0.2.13** — new `ruleofthumb.embed` module: `embed_texts` tokenises and
+  embeds raw strings with a HuggingFace transformer (default
+  `answerdotai/ModernBERT-base`, overridable via `tokenizer=` / `model=`),
+  returning a frozen `TextEmbeddings` dataclass with rectangular zero-padded
+  `(N, tokens, dim)` float32 embeddings, a boolean attention mask ready for
+  `fit_text`, and decoded per-sample token strings aligned with the embedding
+  rows; batching, `max_length=` truncation and `device=` (auto-detect
+  cuda > mps > cpu) supported. Port of the legacy `gen_token_embeddings.py`
+  workflow as a library function.
 - **v0.2.10** — unified explainer facade (breaking): the `RuleOfThumb` /
   `TextRuleOfThumb` wrapper classes are replaced by the public `Explainer`
   class plus `fit` / `fit_tabular` / `fit_text` / `fit_image` factories

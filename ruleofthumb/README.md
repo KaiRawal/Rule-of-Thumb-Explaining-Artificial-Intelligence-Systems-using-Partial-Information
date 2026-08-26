@@ -90,6 +90,18 @@ Already have a rectangular batch and your own mask? Pass it directly as
 `attention_mask=...` (or a plain boolean `mask=`) to `fit_text` /
 `get_explanation`.
 
+Starting from raw strings? `ruleofthumb.embed_texts` tokenises and embeds them
+for you (default model: `answerdotai/ModernBERT-base`, overridable):
+
+```python
+import ruleofthumb
+
+out = ruleofthumb.embed_texts(["a wonderful film", "terrible pacing"])
+exp = ruleofthumb.fit_text(y_outputs=labels, x_inputs=out.embeddings,
+                           attention_mask=out.attention_mask)
+out.tokens  # decoded token strings, aligned with per-token importances
+```
+
 ### Images
 
 Inputs are `(N, channels, height, width)` tensors; importance is shared across
