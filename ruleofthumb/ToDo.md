@@ -42,12 +42,31 @@ features build on, then new functionality.
     linear RoT importance, with configurable sub-model widths and tests
     (source: legacy `rot_class.py`; see also the drafted, unapplied
     OpenXAI integration patch in the repository history).
+16. **Optional per-location importance weights.** The text and image variants
+    share their `a` / `b` parameters across all positions — shape
+    `(K, E)` for text, `(K, C)` for images (`2·K·C` parameters, independent of
+    spatial size) — making each surrogate a linear model on a pooled
+    representation: the token-mean embedding for text, per-channel spatial
+    sums for images. This is faithful to the legacy design and yields
+    position-invariant saliency, but caps fidelity at the separability of the
+    pooled vector: raw single-channel images pool to total ink mass alone, so
+    multiclass fidelity floors out near the majority baseline no matter how
+    long the fit runs (measured on digits; see
+    `tests/integration/test_image_integration.py`, which pins both the failure
+    and the partial recovery from coordinate channels). The same applies to
+    text: pooling to the token-mean makes word order invisible, so tasks
+    driven by syntax, negation scope or token counts — rather than which words
+    appear — hit an analogous ceiling even with high-dimensional embeddings.
+    Consider an opt-in unshared mode — image weights `(K, C, H, W)` / text
+    weights `(K, T, E)` or per-position biases — turning the surrogate into a
+    full linear multiclass model over raw inputs (`2·K·H·W` parameters),
+    behind a constructor flag so the legacy behaviour stays the default.
 
 ## Release / maintenance
 
-16. CI workflow: GitHub Actions running `pytest` + `ruff check .` on push/PR,
+17. CI workflow: GitHub Actions running `pytest` + `ruff check .` on push/PR,
     enforcing the definition-of-done mechanically.
-17. PyPI release checklist: build sdist + wheel, twine upload, tag releases
+18. PyPI release checklist: build sdist + wheel, twine upload, tag releases
     consistently with the three-place version bump (`pyproject.toml`,
     `src/ruleofthumb/__init__.py`, `tests/test_explain.py` assertion).
 

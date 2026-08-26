@@ -216,6 +216,22 @@ custom callable over the binary counts `(tp, fp, fn, tn)`.
 - Custom reveal-curve metrics (`metric=`) are defined over binary counts
   (`tp, fp, fn, tn`); use them only where that view is meaningful. The default
   accuracy metric and `return_confusion=True` work for any number of classes.
+- **Pooled linear capacity (text & image).** The text and image variants share
+  their importance weights across positions (`a`, `b` have shape
+  `(n_classes, embedding)` and `(n_classes, channels)` respectively), so each
+  surrogate is a *linear model on a pooled representation*: the token-mean
+  embedding (`E` numbers) for text, and per-channel spatial sums (`C` numbers)
+  for images. This is faithful to the original research code and is what makes
+  the saliency maps position-invariant — but it bounds fidelity by how well
+  classes separate in that pooled space. Feeding raw single-channel images
+  (`C = 1`) leaves total ink mass as the only signal, capping multiclass
+  fidelity near the majority baseline regardless of training; for text, word
+  order is invisible — predictions depend only on which words appear, so
+  tasks driven by syntax, negation scope or token counts (rather than lexical
+  content) are similarly capped. Prefer rich channel representations (e.g.
+  pretrained feature maps) for image inputs, and always check surrogate
+  predicted-class accuracy before trusting an explanation. See `ToDo.md` for
+  possible per-location variants.
 
 See `ToDo.md` for the full list and `tests/test_masks.py` for pinned
 behaviour.
