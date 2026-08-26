@@ -158,6 +158,25 @@ Need custom preprocessing (e.g. ImageNet normalisation for a torchvision
 black box)? Supply `transform=` (a PIL Image → tensor callable), or use
 `ruleofthumb.load_images(paths, ...)` directly to inspect `.images` / `.mask`.
 
+### Automatic hyperparameter tuning
+
+`ruleofthumb.autotune` searches the training hyperparameters
+(`learning_rate`, `batch_size`, `epochs`, `dropout_rate`, `weight_decay`)
+with a seeded validation split, scores candidates by held-out reveal
+fidelity, and returns the winner refit on all data:
+
+```python
+result = ruleofthumb.autotune(y_outputs=labels, x_inputs=x, search="random",
+                              n_candidates=8, seed=0)
+result.explainer    # best config refit on all data — use like any explainer
+result.best_params  # winning hyperparameters
+result.trials       # every candidate with its validation score, best-first
+```
+
+`search="grid"` enumerates a `space=` dict exhaustively; `space=` accepts any
+subset of the defaults. Works for all three modalities, including raw strings
+and image paths.
+
 ### Saving and loading
 
 Fitted explainers round-trip through `Explainer.save` / `load_explainer`

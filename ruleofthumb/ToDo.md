@@ -8,14 +8,6 @@ features build on, then new functionality.
 
 ## New functionality
 
-13. **Automatic training** (builds on items 3–4): Keras-tuner-style
-    hyperparameter autotuning — a validation-split-driven search (random or
-    grid) over the exposed training hyperparameters (`learning_rate`,
-    `batch_size`, `epochs`, `dropout_rate`, weight decay, SWA burn-in) that
-    fits candidate configurations, scores them on held-out data via the
-    reveal-fidelity metric, and returns the best fitted explainer. Requires
-    item 3 (hyperparameters exposed) and pairs with item 4 (seeding) so
-    candidate comparisons are fair.
 14. `ruleofthumb.plot`: plotting utilities (builds on item 8), including
     porting existing SHAP visualisations to RoT so explanations can be
     inspected the same way as SHAP ones — text visualisations (token
@@ -65,6 +57,15 @@ features build on, then new functionality.
 
 ## Changelog
 
+- **v0.2.17** — automatic hyperparameter tuning: `ruleofthumb.autotune`
+  searches `learning_rate` / `batch_size` / `epochs` / `dropout_rate` /
+  `weight_decay` (grid or seeded random search over a customisable space,
+  default `DEFAULT_SPACE`) with a seeded validation split; candidates are
+  fitted through the regular factories with per-candidate seeds and scored
+  on held-out data by final-step reveal accuracy. Returns an `AutotuneResult`
+  whose `.explainer` is the winning configuration refit on all data, plus
+  `.best_params`, `.best_score` and best-first `.trials`. Supports all three
+  modalities including native string / file-path inputs.
 - **v0.2.16** — explainer persistence: `Explainer.save(path)` writes a
   versioned payload (model `state_dict`, per-modality constructor config,
   `mins` / `maxs`; primitives and tensors only, loadable with
