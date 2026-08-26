@@ -9,6 +9,9 @@
     "cnn_multiclass.pt": {
       "sha256": "9d19b31665030edeacc37a3699f6b2bf9f8df499389d608177e5947feb8db92f"
     },
+    "cnn_multiclass_coords.pt": {
+      "sha256": "c68e23a4d2f1d8c478e79a9a7a20e35513727103be08011c70600a9e19051de4"
+    },
     "compas.npz": {
       "sha256": "63e4bc868d4d9e2d5078b6cf24db6066993b96907b259423d14c030b90d59188",
       "shapes": {
@@ -31,11 +34,17 @@
       "sha256": "44113143196f6e781434fc901b4dcc340a405bcd3ef99335d75afbeb28cee30a"
     },
     "digits_image.npz": {
-      "sha256": "f2f4f1f96c1ee98a39524d6be2d18ad5c86348a0411d7132695b83ad2cd3e466",
+      "sha256": "db45d2c461672bcaf2240a6dcda818d3247633a6a29b4c102d84d6a8d52b7ebb",
       "shapes": {
         "x_bin": [
           120,
           1,
+          8,
+          8
+        ],
+        "x_coords": [
+          500,
+          3,
           8,
           8
         ],

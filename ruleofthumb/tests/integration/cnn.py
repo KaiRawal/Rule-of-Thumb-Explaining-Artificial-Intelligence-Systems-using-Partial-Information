@@ -9,10 +9,10 @@ from torch import nn
 
 
 class TinyCNN(nn.Module):
-    def __init__(self, n_classes=10):
+    def __init__(self, n_classes=10, in_channels=1):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Conv2d(1, 8, kernel_size=3, padding=1),
+            nn.Conv2d(in_channels, 8, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.Conv2d(8, 8, kernel_size=3, padding=1),
             nn.ReLU(),

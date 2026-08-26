@@ -18,6 +18,7 @@ import collections
 
 import numpy as np
 import torch
+from _helpers import rot_accuracy
 
 from ruleofthumb import fit_image
 
@@ -135,3 +136,42 @@ def test_multiclass_confusion_counts_and_reveal_curve(image_multiclass):
     curve = exp.score_ordering(xt, yt, order)
     full_accuracy = float((exp.predict(xt).cpu().numpy() == y).mean())
     assert abs(float(curve[-1]) - full_accuracy) < 1e-6
+
+
+def test_coordinate_channels_restore_multiclass_capacity(image_multiclass):
+    """Encoding position as intensity-gated channels lifts the surrogate off the floor.
+
+    The C=1 case pools to total ink alone (majority-baseline ceiling). With
+    coordinate channels the pool becomes {mass, sum(row*ink), sum(col*ink)} —
+    mass plus center-of-mass — so the same spatially-shared surrogate gains
+    real class signal (logistic-regression ceiling on these three numbers is
+    ~0.41; full per-pixel linear capacity would be ~0.98).
+    """
+    x, y = image_multiclass["x_coords"], image_multiclass["y_coords"]
+    assert image_multiclass["consistent_coords"]
+    exp = _fit_image(x, y, n_classes=10)
+
+    accuracy = rot_accuracy(exp, x, y)
+    majority = max(collections.Counter(y.tolist()).values()) / len(y)
+    assert accuracy >= max(majority + 0.15, 0.3)  # calibrated floor (measured ~0.35)
+
+    # explicit contrast with the C=1 case on the same digits
+    baseline_exp = _fit_image(image_multiclass["x"], image_multiclass["y"], n_classes=10)
+    assert accuracy >= rot_accuracy(baseline_exp, image_multiclass["x"], image_multiclass["y"]) + 0.15
+
+    imp = exp.get_explanation(x)
+    assert imp.shape == (len(x), 10) + x.shape[2:]
+
+    xt = torch.from_numpy(x)
+    yt = torch.from_numpy(y.astype(np.int64))
+    order = exp.get_order(xt)
+    confusion = exp.score_ordering(xt, yt, order, return_confusion=True)
+    valid = exp.ordered_predict(xt, order).cpu() != -1
+    for j in range(confusion.shape[0]):
+        assert int(confusion[j].sum()) == int(valid[:, j].sum())
+
+    curve = exp.score_ordering(xt, yt, order)
+    assert abs(float(curve[-1]) - accuracy) < 1e-6
+
+    imp_again = _fit_image(x, y, n_classes=10).get_explanation(x)
+    assert np.allclose(imp, imp_again)

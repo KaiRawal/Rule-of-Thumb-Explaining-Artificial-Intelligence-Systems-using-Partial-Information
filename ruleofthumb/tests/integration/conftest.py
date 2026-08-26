@@ -104,7 +104,11 @@ def pet_features(pets):
 
 @pytest.fixture(scope="session")
 def image_multiclass():
-    """Digit images ``(N, 1, 8, 8)`` + TinyCNN black boxes (2 and 10 classes)."""
+    """Digit images ``(N, 1|3, 8, 8)`` + TinyCNN black boxes (2 and 10 classes).
+
+    Includes a coordinate-augmented 10-class view: intensity plus
+    intensity-gated row/col grids, so pooling retains mass and center-of-mass.
+    """
     data = np.load(_require("digits_image.npz"))
     state = torch.load(_require("cnn_multiclass.pt"), map_location="cpu", weights_only=True)
     cnn_multi = TinyCNN(n_classes=10)
@@ -114,18 +118,28 @@ def image_multiclass():
     cnn_binary = TinyCNN(n_classes=2)
     cnn_binary.load_state_dict(state)
     cnn_binary.eval()
+    state = torch.load(_require("cnn_multiclass_coords.pt"), map_location="cpu", weights_only=True)
+    cnn_coords = TinyCNN(n_classes=10, in_channels=3)
+    cnn_coords.load_state_dict(state)
+    cnn_coords.eval()
     x = data["x_multi"]
     with torch.no_grad():
         consistent_multi = bool((cnn_multi(torch.from_numpy(x)).argmax(1).numpy() == data["y_multi"]).all())
         consistent_binary = bool((cnn_binary(torch.from_numpy(x)).argmax(1).numpy() == data["y_binary"]).all())
+        consistent_coords = bool(
+            (cnn_coords(torch.from_numpy(data["x_coords"])).argmax(1).numpy() == data["y_coords"]).all()
+        )
     return {
         "x": x,
         "y": data["y_multi"],
         "y_binary": data["y_binary"],
+        "x_coords": data["x_coords"],
+        "y_coords": data["y_coords"],
         "cnn_multi": cnn_multi,
         "cnn_binary": cnn_binary,
         "consistent_multi": consistent_multi,
         "consistent_binary": consistent_binary,
+        "consistent_coords": consistent_coords,
     }
 
 

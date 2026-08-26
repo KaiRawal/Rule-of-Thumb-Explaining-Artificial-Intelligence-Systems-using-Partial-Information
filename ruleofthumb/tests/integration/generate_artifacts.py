@@ -111,9 +111,9 @@ def make_digits_tabular(manifest, x, y_true):
     print(f"tabular multiclass: x{x.shape}, forest oob-style train accuracy {rf.score(x, y_true):.3f}")
 
 
-def _train_tiny_cnn(x, y, n_classes, epochs=40, batch=64):
+def _train_tiny_cnn(x, y, n_classes, epochs=40, batch=64, in_channels=1):
     torch.manual_seed(0)
-    cnn = TinyCNN(n_classes=n_classes)
+    cnn = TinyCNN(n_classes=n_classes, in_channels=in_channels)
     optimiser = torch.optim.AdamW(cnn.parameters(), lr=1e-3)
     loss_fn = torch.nn.CrossEntropyLoss()
     xt = torch.as_tensor(x, dtype=torch.float32)
@@ -165,6 +165,21 @@ def make_digits_image(manifest, per_class_binary=60):
 
     torch.save(cnn_multi.state_dict(), os.path.join(ARTIFACTS, "cnn_multiclass.pt"))
     torch.save(cnn_binary.state_dict(), os.path.join(ARTIFACTS, "cnn_binary.pt"))
+
+    # coordinate-augmented view: intensity plus intensity-gated normalized
+    # row/col grids as extra channels. Pooling then keeps
+    # {mass, sum(row*ink), sum(col*ink)} — mass and center-of-mass — giving
+    # the spatially-shared surrogate real (if partial) class signal.
+    rr, cc = np.mgrid[0:8, 0:8]
+    x_coords = np.concatenate(
+        [xm, (rr / 7.0)[None] * xm, (cc / 7.0)[None] * xm], axis=1
+    ).astype(np.float32)
+    cnn_coords = _train_tiny_cnn(x_coords, ym_true, n_classes=10, in_channels=3)
+    with torch.no_grad():
+        y_coords = cnn_coords(torch.from_numpy(x_coords)).argmax(1).numpy().astype(np.int64)
+    coords_accuracy = float((y_coords == ym_true).mean())
+    torch.save(cnn_coords.state_dict(), os.path.join(ARTIFACTS, "cnn_multiclass_coords.pt"))
+
     np.savez_compressed(
         os.path.join(ARTIFACTS, "digits_image.npz"),
         x_bin=images[bin_idx],
@@ -172,17 +187,20 @@ def make_digits_image(manifest, per_class_binary=60):
         x_multi=xm,
         y_multi=y_multi,
         y_binary=y_binary,
+        x_coords=x_coords,
+        y_coords=y_coords,
     )
     record(manifest, "cnn_multiclass.pt")
     record(manifest, "cnn_binary.pt")
+    record(manifest, "cnn_multiclass_coords.pt")
     record(
         manifest,
         "digits_image.npz",
-        {"x_bin": images[bin_idx], "x_multi": xm, "y_multi": y_multi, "y_binary": y_binary},
+        {"x_bin": images[bin_idx], "x_multi": xm, "y_multi": y_multi, "y_binary": y_binary, "x_coords": x_coords},
     )
     print(f"image multiclass: x{xm.shape}, tiny-cnn accuracy {multi_accuracy:.3f}")
     print(f"image binary (dense vs sparse): tiny-cnn accuracy {binary_accuracy:.3f}")
-
+    print(f"image multiclass (coordinate channels): tiny-cnn accuracy {coords_accuracy:.3f}")
 
 def make_pets(manifest):
     """Miniature cat-vs-dog experiment mirroring the legacy pipeline.
