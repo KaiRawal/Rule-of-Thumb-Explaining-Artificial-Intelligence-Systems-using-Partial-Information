@@ -10,8 +10,6 @@ The default model is ``answerdotai/ModernBERT-base``; both the tokeniser and
 the model can be overridden by callers who need a different backbone.
 """
 
-from __future__ import annotations
-
 import dataclasses
 
 import numpy as np

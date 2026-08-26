@@ -42,6 +42,9 @@ Repeat until every item in ToDo.md is complete or the user interrupts:
 - Draft a concrete plan: files to change, new API surface, tests to add,
   whether a three-place version bump is needed (`pyproject.toml`,
   `src/ruleofthumb/__init__.py`, assertion in `tests/test_explain.py`).
+- Treat `(source: legacy ...)` pointers in ToDo.md as background reading
+  about provenance, never as behavioural specs (see AGENTS.md,
+  "Precedence: ToDo over legacy").
 
 ### Gate 2 — Questions & approval
 - Ask clarifying design questions with the `question` tool (scope, API naming,
@@ -60,8 +63,10 @@ Repeat until every item in ToDo.md is complete or the user interrupts:
 - Python installs happen ONLY in `ruleofthumb/.venv`
   (`ruleofthumb/.venv/bin/pip`). Never install into the root `.venv` or any
   system environment.
-- Follow existing code conventions; no comments unless asked; PEP8 renames
-  without backward-compat aliases.
+- Follow existing code conventions, except where the ToDo item defines a
+  deliberate departure from legacy-derived patterns — the ToDo spec takes
+  precedence (see AGENTS.md, "Precedence: ToDo over legacy"). No comments
+  unless asked; PEP8 renames without backward-compat aliases.
 
 ### Gate 4 — Verify (definition-of-done)
 All commands run against `ruleofthumb/.venv`:

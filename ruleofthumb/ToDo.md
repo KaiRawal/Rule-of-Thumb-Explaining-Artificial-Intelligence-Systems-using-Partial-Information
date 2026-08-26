@@ -86,26 +86,6 @@ features build on, then new functionality.
   rows; batching, `max_length=` truncation and `device=` (auto-detect
   cuda > mps > cpu) supported. Port of the legacy `gen_token_embeddings.py`
   workflow as a library function.
-- **v0.2.10** — unified explainer facade (breaking): the `RuleOfThumb` /
-  `TextRuleOfThumb` wrapper classes are replaced by the public `Explainer`
-  class plus `fit` / `fit_tabular` / `fit_text` / `fit_image` factories
-  (`fit` auto-detects the modality from input ndim). Adds the previously
-  missing image wrapper (signed per-pixel explanations, channels summed,
-  `(N, H, W)` masks) and public delegating reveal-pipeline methods
-  (`get_order`, `ordered_predict`, `score_ordering`, `score`, `predict`);
-  raw models are unchanged.
-- **v0.2.9** — `device=` parameter on all three RoT models and both explainer
-  wrappers (`None` auto-detects cuda > mps > cpu; default cpu otherwise).
-  Fit and inference move inputs to the model's device; raw-model methods
-  return tensors on the model's device while `get_order` ranks host-side,
-  `score_ordering` returns CPU tensors, and wrapper `get_explanation` still
-  returns numpy arrays.
-- **v0.2.8** — multiclass generalisation: `TextRuleOfThumb.get_explanation`
-  follows the tabular semantics (signed class-1 `[N, tokens]` for binary,
-  full per-class `[N, n_classes, tokens]` for K > 2); `score_ordering`
-  defaults to per-step accuracy for any number of classes and accepts
-  `return_confusion=True` for per-step K×K confusion counts (rows = true
-  label); custom binary-count `metric=` callables are retained.
 - **v0.2.12** — integration tier expanded and hardened; every case now asserts
   the RoT surrogate's own **predicted-class accuracy** against its black box
   plus explicit feature-importance anchors: breast-cancer explanations track
@@ -136,6 +116,26 @@ features build on, then new functionality.
   per-class padding, mask equivalence, seeding) and binary images via the
   facade with a conv black box. `scikit-learn` moved to the `[dev]` extra —
   it is only needed to (re)generate artifacts, never at runtime.
+- **v0.2.10** — unified explainer facade (breaking): the `RuleOfThumb` /
+  `TextRuleOfThumb` wrapper classes are replaced by the public `Explainer`
+  class plus `fit` / `fit_tabular` / `fit_text` / `fit_image` factories
+  (`fit` auto-detects the modality from input ndim). Adds the previously
+  missing image wrapper (signed per-pixel explanations, channels summed,
+  `(N, H, W)` masks) and public delegating reveal-pipeline methods
+  (`get_order`, `ordered_predict`, `score_ordering`, `score`, `predict`);
+  raw models are unchanged.
+- **v0.2.9** — `device=` parameter on all three RoT models and both explainer
+  wrappers (`None` auto-detects cuda > mps > cpu; default cpu otherwise).
+  Fit and inference move inputs to the model's device; raw-model methods
+  return tensors on the model's device while `get_order` ranks host-side,
+  `score_ordering` returns CPU tensors, and wrapper `get_explanation` still
+  returns numpy arrays.
+- **v0.2.8** — multiclass generalisation: `TextRuleOfThumb.get_explanation`
+  follows the tabular semantics (signed class-1 `[N, tokens]` for binary,
+  full per-class `[N, n_classes, tokens]` for K > 2); `score_ordering`
+  defaults to per-step accuracy for any number of classes and accepts
+  `return_confusion=True` for per-step K×K confusion counts (rows = true
+  label); custom binary-count `metric=` callables are retained.
 - **v0.2.7** — tabular `RuleOfThumb.get_explanation` returns signed,
   SHAP-comparable importances: class-1 contributions for binary tasks
   (additive with the class-1 bias), full per-class output for K > 2; unused

@@ -41,6 +41,15 @@ Everything **outside** `ruleofthumb/` is frozen historical experiment code:
 - Success criterion for every session: `git status` shows changes confined to
   `ruleofthumb/`.
 
+## Precedence: ToDo over legacy
+
+The legacy research code is provenance and reference only — it does **not**
+constrain new work. When a ToDo item specifies new functionality, the ToDo
+text defines the design and wins over any legacy behaviour, even where the
+two conflict. `(source: legacy ...)` pointers in ToDo.md explain where an
+idea originated; they never imply behavioural fidelity. Notable departures
+from legacy behaviour deserve a sentence in the changelog entry.
+
 ## Environment rules
 
 - All development happens in **`ruleofthumb/.venv`** (pre-created: editable
@@ -114,6 +123,12 @@ regress them:
    `classes=2` hard-coded, binary-only reduction metrics, class-level
    `mins`/`maxs`, hard-coded training hyperparameters (5 pretrain epochs,
    SWA burn-in `epochs // 10 + 1`, weight decay `0.01`, `l1_penalty 0.01`).
+7. **Outputs honour the explicit-mask contract** (v0.2.13). Padding /
+   embedding utilities may normalise their outputs to "the mask carries the
+   truth": e.g. `embed_texts` writes zeros into padded rows even though
+   transformers emit non-zero hidden states there. Downstream models exclude
+   masked positions either way; normalised outputs are simply predictable to
+   inspect.
 
 ## ToDo.md conventions
 
@@ -124,11 +139,16 @@ never fixes for the legacy research code. Structure:
 - *New functionality* — new modules and capabilities (e.g. native ingestion
   of raw strings / image file paths, plotting, additive shape functions).
   Terse legacy source pointers like `(source: legacy rot_class.py)` are
-  allowed and encouraged.
+  allowed as optional provenance notes (see "Precedence: ToDo over legacy").
 - *Non-goals* — explicit design decisions against features (do not re-litigate
   them silently).
 - *Changelog footer* — completed work summarised per version; once an item
-  ships it moves from the todo list to here.
+  ships it moves from the todo list to here. The footer is ordered strictly
+  newest-first, with each new entry inserted directly under the `## Changelog`
+  heading.
+
+Item numbers are permanent identifiers: completed items simply leave gaps in
+the numbering. Never renumber, compress or shift remaining items.
 
 When behaviour changes, update README (usage + migration notes) and bump the
 version.
