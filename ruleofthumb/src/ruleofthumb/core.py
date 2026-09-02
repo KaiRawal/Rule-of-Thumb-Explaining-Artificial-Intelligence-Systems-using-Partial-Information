@@ -195,6 +195,8 @@ class RoT(torch.nn.Module):
 
     def predict(self, points, mask=None):
         score = self.score(points, mask=mask)
+        if self.use_BCE_loss:
+            return score > 0
         return score.argmax(1)
 
     def _reduce_to_units(self, imp):
