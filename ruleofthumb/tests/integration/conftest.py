@@ -103,6 +103,38 @@ def pet_features(pets):
 
 
 @pytest.fixture(scope="session")
+def digit_features_multiclass():
+    """Live MobileNetV3-Small feature maps ``(500, 576, 7, 7)`` for the digit set.
+
+    The same 500 8x8 digits as ``image_multiclass`` are upscaled to RGB and
+    passed through the pretrained backbone live on every run (weights from
+    the local cache; nothing intermediate is committed). Labels are the
+    committed TinyCNN 10-class predictions, so the RoT surrogate is still
+    the only model fitted at test time. ``N=500`` exceeds the 49 spatial
+    positions per map, keeping the shared-weight fit overdetermined.
+    """
+    pytest.importorskip("torchvision")
+    from PIL import Image
+    from torchvision import models as tv_models
+
+    data = np.load(_require("digits_image.npz"))
+    x = data["x_multi"].astype(np.float32)
+    y = data["y_multi"].astype(np.int64)
+    weights = tv_models.MobileNet_V3_Small_Weights.DEFAULT
+    backbone = tv_models.mobilenet_v3_small(weights=weights).eval()
+    transform = weights.transforms()
+    batch = torch.stack(
+        [
+            transform(Image.fromarray((x[i, 0] * 255).clip(0, 255).astype(np.uint8), mode="L").convert("RGB"))
+            for i in range(len(x))
+        ]
+    )
+    with torch.no_grad():
+        features = backbone.features(batch).numpy().astype(np.float32)
+    return {"features": features, "y": y}
+
+
+@pytest.fixture(scope="session")
 def image_multiclass():
     """Digit images ``(N, 1|3, 8, 8)`` + TinyCNN black boxes (2 and 10 classes).
 

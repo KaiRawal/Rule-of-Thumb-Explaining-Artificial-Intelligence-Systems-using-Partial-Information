@@ -56,6 +56,14 @@ def sentinel_mask(points, value=-1.0):
 class RoTText(RoT):
     """Token x embedding RoT explainer.
 
+    Definitions: `E` is the embedding length per token (numbers describing
+    one word-piece); the learned slopes `a` and offsets `b` have one row per
+    embedding number and that row is reused at every token, so the score is
+    linear on the token-mean embedding. Word order is therefore invisible:
+    lexical tasks work, syntax/negation/count tasks are capped (see README
+    Limitations). Rich pretrained embeddings are the intended real-life
+    input.
+
     All methods accept an optional ``mask`` of shape ``(N, tokens)``:
     ``True``/1 marks real tokens, masked-out tokens receive exactly zero
     importance and are excluded from length normalisation. With ``mask=None``

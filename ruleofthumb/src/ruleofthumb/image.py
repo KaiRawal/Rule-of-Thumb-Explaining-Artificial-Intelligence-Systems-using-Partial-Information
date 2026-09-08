@@ -114,10 +114,17 @@ def pad_images(images, pad_value=0.0):
 class RoTImage(RoT):
     """Share importance between spatial locations.
 
-    Assumes datapoints are in the form channel x width x height. An optional
-    boolean ``mask`` of shape ``(N, H, W)`` marks real (non-padding) pixels;
-    masked-out pixels receive exactly zero importance and are excluded from
-    fit bounds and scores.
+    Definitions: `C` is the channel count per pixel (1 for grey, 576 for
+    MobileNetV3-Small maps); `H`/`W` are height/width in pixels. The learned
+    slopes `a` and offsets `b` have one row per channel and that row is
+    reused at every pixel, so the score is linear on per-channel spatial
+    sums. Raw `C=1` inputs pool to total ink mass (10-class digits cap near
+    the majority baseline); rich pretrained feature maps restore strong
+    multiclass fidelity (see README Limitations and the rich-backbone
+    integration test). Assumes datapoints are in the form channel x width x
+    height. An optional boolean ``mask`` of shape ``(N, H, W)`` marks real
+    (non-padding) pixels; masked-out pixels receive exactly zero importance
+    and are excluded from fit bounds and scores.
     """
 
     def __init__(self, classes, sample_shape, dropout_rate=0.5, use_BCE_loss=False, device=None, nonlinear=None):

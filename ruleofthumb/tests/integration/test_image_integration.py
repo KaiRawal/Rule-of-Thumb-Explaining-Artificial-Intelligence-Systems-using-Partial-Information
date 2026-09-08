@@ -8,10 +8,13 @@ Black boxes are TinyCNNs (architecture in ``cnn.py``) trained once by
 
 Only the RoT explainer is fitted live, through the
 :func:`ruleofthumb.fit_image` facade. Note the image RoT shares importance
-across spatial locations, so a sample's score is monotone in total ink mass:
-the dense-vs-sparse task is exactly the kind of signal it can express, while
-the 10-class task mostly exercises structure (shapes, confusion counts,
-ranking), with fidelity asserted against the live majority baseline.
+across spatial locations, so a sample's score is monotone in total ink mass
+on raw single-channel inputs: the dense-vs-sparse task is exactly the kind
+of signal it can express, while the raw 10-class task mostly exercises
+structure (shapes, confusion counts, ranking), with fidelity asserted
+against the live majority baseline. Rich pretrained feature maps (see the
+``digit_features_multiclass`` tests below) restore strong multiclass
+fidelity with the same shared-weight surrogate.
 """
 
 import collections
@@ -227,3 +230,60 @@ def test_coordinate_channels_restore_multiclass_capacity(image_multiclass):
 
     imp_again = _fit_image(x, y, n_classes=10).get_explanation(x)
     assert np.allclose(imp, imp_again)
+
+
+def test_rich_backbone_feature_shape(digit_features_multiclass):
+    """Live MobileNet maps for the 500 digits are well-formed and overdetermined."""
+    x, y = digit_features_multiclass["features"], digit_features_multiclass["y"]
+    assert x.shape == (500, 576, 7, 7)
+    assert np.isfinite(x).all()
+    assert len(x) > x.shape[2] * x.shape[3]  # N=500 images exceeds 49 spatial positions
+    assert set(np.unique(y).tolist()) == set(range(10))
+
+
+def test_multiclass_rich_backbone_strong_accuracy(digit_features_multiclass, image_multiclass):
+    """Same shared-weight surrogate reaches strong 10-class fidelity on rich channels.
+
+    Raw single-channel digits pool to total ink mass (majority-baseline
+    ceiling asserted above); MobileNetV3-Small maps pool to 576 per-channel
+    spatial sums of semantic detectors, which separate the 10 digit classes
+    linearly. Feature maps are recomputed live from the committed 8x8 digits
+    (upscaled to RGB); only the RoT surrogate is fitted here. Gate note: the
+    TinyCNN trunk itself ((500, 8, 8, 8) maps) was tried first and reached
+    only ~0.49, so it is not used — this test pins the real-backbone path.
+    """
+    x, y = digit_features_multiclass["features"], digit_features_multiclass["y"]
+    exp = _fit_image(x, y, n_classes=10)
+
+    accuracy = rot_accuracy(exp, x, y)
+    majority = max(collections.Counter(y.tolist()).values()) / len(y)
+    assert accuracy >= 0.8  # strong bar (measured ~0.99; coords partial fix is ~0.35)
+    assert accuracy >= majority + 0.5
+
+    # explicit contrast with the raw C=1 ceiling on the same digits
+    raw_accuracy = rot_accuracy(
+        _fit_image(image_multiclass["x"], image_multiclass["y"], n_classes=10),
+        image_multiclass["x"],
+        image_multiclass["y"],
+    )
+    assert accuracy >= raw_accuracy + 0.5
+
+    imp = exp.get_explanation(x)
+    assert imp.shape == (len(x), 10) + x.shape[2:]
+    assert np.isfinite(imp).all()
+
+    xt = torch.from_numpy(x)
+    yt = torch.from_numpy(y.astype(np.int64))
+    order = exp.get_order(xt)
+    assert order.shape == (len(x),) + x.shape[2:]
+    confusion = exp.score_ordering(xt, yt, order, return_confusion=True)
+    final = confusion[-1]
+    final_accuracy = sum(final[c][c].item() for c in range(10)) / len(x)
+    assert abs(final_accuracy - accuracy) < 1e-6
+
+    # strong multiclass spreads predictions instead of collapsing onto 1-2 classes
+    predicted_classes = set(exp.predict(xt).cpu().numpy().tolist())
+    assert len(predicted_classes) >= 8
+
+    curve = exp.score_ordering(xt, yt, order)
+    assert abs(float(curve[-1]) - accuracy) < 1e-6

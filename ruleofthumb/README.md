@@ -346,21 +346,39 @@ custom callable over the binary counts `(tp, fp, fn, tn)`.
   (`tp, fp, fn, tn`); use them only where that view is meaningful. The default
   accuracy metric and `return_confusion=True` work for any number of classes.
 - **Pooled linear capacity (text & image).** The text and image variants share
-  their importance weights across positions (`a`, `b` have shape
-  `(n_classes, embedding)` and `(n_classes, channels)` respectively), so each
-  surrogate is a *linear model on a pooled representation*: the token-mean
-  embedding (`E` numbers) for text, and per-channel spatial sums (`C` numbers)
-  for images. This is faithful to the original research code and is what makes
-  the saliency maps position-invariant — but it bounds fidelity by how well
-  classes separate in that pooled space. Feeding raw single-channel images
-  (`C = 1`) leaves total ink mass as the only signal, capping multiclass
-  fidelity near the majority baseline regardless of training; for text, word
-  order is invisible — predictions depend only on which words appear, so
-  tasks driven by syntax, negation scope or token counts (rather than lexical
-  content) are similarly capped. Prefer rich channel representations (e.g.
-  pretrained feature maps) for image inputs, and always check surrogate
-  predicted-class accuracy before trusting an explanation. See `ToDo.md` for
-  possible per-location variants.
+  their importance weights across positions. Definitions: `n_classes` is the
+  number of possible answers (2 for cat-vs-dog, 10 for digits 0-9);
+  `embedding` (`E`) is the length of the number-list describing one token
+  (e.g. 384); `channels` (`C`) is the number of layers per pixel (1 for
+  grey, 3 for colour, 576 for MobileNetV3-Small feature maps); `tokens`
+  (`T`) is the number of word-pieces per text; `height`/`width` (`H`/`W`)
+  are image dimensions. The learned slopes `a` and offsets `b` have shape
+  `(n_classes, embedding)` for text and `(n_classes, channels)` for images,
+  and the same `a`/`b` row is reused at every token/pixel. Each surrogate is
+  therefore a *linear model on a pooled representation*: the token-mean
+  embedding (`E` averaged numbers) for text, and per-channel spatial sums
+  (`C` totals) for images. Sharing is what makes saliency maps
+  position-invariant (where a pattern appears matters less than how much of
+  it there is) and keeps the learned count at `2*n_classes*C` independent of
+  `T`/`H`/`W`. Fidelity is then bounded by how well classes separate in that
+  pooled space. Raw single-channel images (`C = 1`) pool to total ink mass
+  alone, capping 10-class digit fidelity near the majority baseline (always
+  guessing the commonest class) regardless of training — pinned by
+  `test_multiclass_confusion_counts_and_reveal_curve`. Coordinate channels
+  (`{mass, row-mass, col-mass}`) lift digits to ~0.35
+  (`test_coordinate_channels_restore_multiclass_capacity`); the TinyCNN trunk
+  itself (`(500, 8, 8, 8)` maps) reaches only ~0.49 and is not used as a
+  backbone. For text, word order is invisible — predictions depend only on
+  which words appear — so syntax, negation scope or token counts are
+  similarly capped, while lexical sentiment works. In real life prefer rich
+  channel representations (e.g. pretrained transformer embeddings or
+  MobileNet feature maps): the same shared-weight image surrogate reaches
+  ~0.99 on 10-class digits from live MobileNetV3-Small `(500, 576, 7, 7)`
+  maps with 500 images exceeding 49 spatial positions — pinned by
+  `test_multiclass_rich_backbone_strong_accuracy` (strong bar `>= 0.8`).
+  Always check surrogate predicted-class accuracy before trusting an
+  explanation. See `ToDo.md` item 16 for the deferred opt-in per-location
+  variant.
 
 See `ToDo.md` for the full list and `tests/test_masks.py` for pinned
 behaviour.

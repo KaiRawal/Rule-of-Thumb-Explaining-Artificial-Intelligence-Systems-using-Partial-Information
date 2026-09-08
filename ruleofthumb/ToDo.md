@@ -8,25 +8,34 @@ features build on, then new functionality.
 
 ## New functionality
 
-16. **Optional per-location importance weights.** The text and image variants
-    share their `a` / `b` parameters across all positions — shape
+16. **Optional per-location importance weights (deferred: rich backbones cover
+    real use).** Definitions: `K` is the number of classes (2 for cat-vs-dog,
+    10 for digits); `E` is the embedding length per token; `C` is the channel
+    count per pixel; `T`/`H`/`W` are tokens/height/width. The text and image
+    variants share their `a` / `b` parameters across all positions — shape
     `(K, E)` for text, `(K, C)` for images (`2·K·C` parameters, independent of
     spatial size) — making each surrogate a linear model on a pooled
     representation: the token-mean embedding for text, per-channel spatial
     sums for images. This is faithful to the legacy design and yields
     position-invariant saliency, but caps fidelity at the separability of the
     pooled vector: raw single-channel images pool to total ink mass alone, so
-    multiclass fidelity floors out near the majority baseline no matter how
-    long the fit runs (measured on digits; see
-    `tests/integration/test_image_integration.py`, which pins both the failure
-    and the partial recovery from coordinate channels). The same applies to
+    multiclass fidelity floors out near the majority baseline (always guessing
+    the commonest class) no matter how long the fit runs (measured on digits;
+    see `tests/integration/test_image_integration.py`, which pins the raw
+    failure, the coordinate-channel partial recovery to ~0.35, the TinyCNN
+    trunk at only ~0.49, and the strong MobileNetV3-Small recovery to ~0.99
+    with 500 images exceeding 49 spatial positions). The same applies to
     text: pooling to the token-mean makes word order invisible, so tasks
     driven by syntax, negation scope or token counts — rather than which words
-    appear — hit an analogous ceiling even with high-dimensional embeddings.
-    Consider an opt-in unshared mode — image weights `(K, C, H, W)` / text
-    weights `(K, T, E)` or per-position biases — turning the surrogate into a
-    full linear multiclass model over raw inputs (`2·K·H·W` parameters),
-    behind a constructor flag so the legacy behaviour stays the default.
+    appear — hit an analogous ceiling even with high-dimensional embeddings,
+    while lexical tasks and rich pretrained embeddings stay strong. Real-life
+    users should use rich backbones (transformer embeddings, MobileNet
+    feature maps) and check surrogate predicted-class accuracy; only if
+    raw-input multiclass is required, consider an opt-in unshared mode —
+    image weights `(K, C, H, W)` / text weights `(K, T, E)` or per-position
+    biases — turning the surrogate into a full linear multiclass model over
+    raw inputs (`2·K·H·W` parameters), behind a constructor flag so the
+    legacy behaviour stays the default.
 
 ## Release / maintenance
 
