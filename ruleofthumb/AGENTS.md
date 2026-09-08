@@ -59,7 +59,7 @@ from legacy behaviour deserve a sentence in the changelog entry.
 - Run everything from the `ruleofthumb/` directory:
   - `.venv/bin/python -m pytest`
   - `.venv/bin/python -m ruff check .`
-  - `.venv/bin/python -m build --sdist`
+  - `uv build`
   - `.venv/bin/jupyter nbconvert --to notebook --execute --inplace examples/<nb>.ipynb`
 - This machine runs **lightweight verification only**: the test suite (~1s),
   lint, sdist builds, and executing the small example notebooks. Do not run
@@ -69,7 +69,11 @@ from legacy behaviour deserve a sentence in the changelog entry.
 
 ```
 ruleofthumb/
-├── pyproject.toml          # hatchling; single-install deps; [dev] extra only
+├── pyproject.toml          # uv_build; single-install deps; [dev]/[docs] extras only
+├── LICENSE               # vendored copy of the repo-root MIT license (split-ready)
+├── .gitignore              # split-ready ignores (dist/, build/, .venv/, caches)
+├── mkdocs.yml + docs/      # full docs site (guides, executed notebooks, API, test report; manual build only, no CI)
+├── PUBLISH.md              # PyPI + Pages release runbook (do not publish from CI)
 ├── requirements.txt        # pinned env matching pyproject (convenience)
 ├── ToDo.md                 # forward-looking package TODOs + changelog footer
 ├── README.md               # user docs incl. v0.1→v0.2 migration guide
@@ -164,7 +168,7 @@ Before finishing any change:
       `tests/integration/generate_artifacts.py` (GNU `timeout`-guarded) and
       commit them together with the code change; the whole suite should stay
       under ~2 minutes.
-- [ ] `python -m build --sdist` succeeds if packaging changed.
+- [ ] `uv build` succeeds if packaging changed.
 - [ ] Touched example notebooks still execute end-to-end without errors.
 - [ ] Version bumped in all three places when behaviour changed:
       `pyproject.toml`, `src/ruleofthumb/__init__.py`, and the assertion in

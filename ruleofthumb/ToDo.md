@@ -44,20 +44,6 @@ features build on, then new functionality.
 18. PyPI release checklist: build sdist + wheel, twine upload, tag releases
     consistently with the three-place version bump (`pyproject.toml`,
     `src/ruleofthumb/__init__.py`, `tests/test_explain.py` assertion).
-19. **Fully operational documentation website for the pip package.** Build a
-    versioned docs site from inside `ruleofthumb/` (new `docs/` tree only —
-    never touch the frozen legacy `website*`/`site*` directories): API
-    reference for every public entry point (`fit`, `fit_tabular`,
-    `fit_text`, `fit_image`, `Explainer`, `autotune`, `embed_texts`,
-    `load_explainer`, `load_images`, `pad_sequences`, `pad_images`,
-    `sentinel_mask`, `ruleofthumb.plot`), modality usage guides with the
-    executed `examples/` notebooks, the v0.1→v0.2 migration guide, the
-    pooled-capacity/backbone guidance (README Limitations + item 16 numbers),
-    and the `tests/TEST_SUITE.md` report. Publish via the item-17 CI
-    workflow (e.g. GitHub Pages on tag), with link-checked builds and a
-    per-release version selector. Done when a clean checkout builds the
-    site with one command and every public symbol is reachable from the
-    landing page.
 
 ## Non-goals
 
@@ -68,6 +54,20 @@ features build on, then new functionality.
 
 ## Changelog
 
+- **v0.0.1** — first public pre-alpha (version reset from internal v0.2.19
+  to reserve the PyPI name and invite early feedback). Entirely vibe-coded
+  from hand-written research code; expect breakage and
+  backwards-incompatible changes before any 1.0. Build backend switched
+  from hatchling to `uv_build`; package metadata completed (`LICENSE`
+  vendored, `license-files`, `project.urls` incl. Documentation,
+  `Development Status :: 1 - Planning`, `[docs]` extra). Full
+  documentation website (closes item 19): modality guides with executed
+  notebooks, workflows, migration notes, capacity guidance, per-module API
+  reference, and the test-suite report — built with one command
+  (`mkdocs build --strict`), published manually (no CI per deferred item
+  17, no version selector yet). Type annotations added to the five public
+  functions griffe flagged (`embed_texts`, `autotune`, `load_images`,
+  `load_explainer`, `plot.saliency`); behaviour unchanged. No behaviour change.
 - **v0.2.19** — opt-in non-linear additive explanations: every factory and
   RoT constructor accepts `nonlinear=` (a string — `"rbf"` Gaussian bumps or
   `"hinge"` SELU hinges — or a dict `{"type": ..., ...}` whose extra keys are

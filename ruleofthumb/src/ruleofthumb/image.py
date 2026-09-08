@@ -11,7 +11,11 @@ scoring individual unpadded samples one at a time remains fully supported and
 needs no mask.
 """
 
+from __future__ import annotations
+
 import dataclasses
+from collections.abc import Callable, Sequence
+from typing import Any
 
 import numpy as np
 import torch
@@ -35,7 +39,9 @@ class ImageBatch:
     mask: np.ndarray
 
 
-def load_images(paths, *, size=None, transform=None):
+def load_images(
+    paths: Sequence[str], *, size: tuple[int, int] | None = None, transform: Callable[..., Any] | None = None
+) -> ImageBatch:
     """Decode image files into a rectangular batch with a validity mask.
 
     Args:

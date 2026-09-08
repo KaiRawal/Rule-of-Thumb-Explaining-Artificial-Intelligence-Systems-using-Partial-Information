@@ -10,6 +10,11 @@ model and never downloads a dataset; it only loads these files. The script is
 deterministic and rerunnable: identical outputs given identical library
 versions (see ``manifest.json``).
 
+Split note: the pet case reads read-only legacy data
+(``ExplanationExampleRemote/DATA``) from the monorepo root. After the
+planned ``ruleofthumb/`` split, regeneration requires a monorepo checkout;
+the committed artifacts keep the split repo's test suite green without it.
+
 Artifacts produced:
 - ``tabular_binary.npz`` + ``breast_cancer_lr.joblib`` — scaled breast-cancer
   features, LogisticRegression predictions as black-box labels.

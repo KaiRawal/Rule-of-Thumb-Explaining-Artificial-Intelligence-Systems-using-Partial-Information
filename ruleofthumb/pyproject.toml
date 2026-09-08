@@ -1,18 +1,18 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["uv_build>=0.12.10,<0.13"]
+build-backend = "uv_build"
 
 [project]
 name = "ruleofthumb"
-version = "0.2.19"
-description = "Rule of Thumb: explaining AI systems using partial information"
+version = "0.0.1"
+description = "Rule of Thumb: explaining AI systems using partial information (experimental 0.0.x)"
 readme = "README.md"
-license = "MIT"
+license-files = ["LICENSE*"]
 authors = [{ name = "RoT authors" }]
 requires-python = ">=3.9"
 keywords = ["explainability", "interpretability", "machine-learning", "rule-of-thumb"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 1 - Planning",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
@@ -30,6 +30,13 @@ dependencies = [
     "shap>=0.45",
 ]
 
+[project.urls]
+Homepage = "https://github.com/KaiRawal/Rule-of-Thumb-Explaining-Artificial-Intelligence-Systems-using-Partial-Information"
+Repository = "https://github.com/KaiRawal/Rule-of-Thumb-Explaining-Artificial-Intelligence-Systems-using-Partial-Information"
+Issues = "https://github.com/KaiRawal/Rule-of-Thumb-Explaining-Artificial-Intelligence-Systems-using-Partial-Information/issues"
+# TODO(split): point Documentation at the standalone repo's Pages URL once ruleofthumb/ is split out.
+Documentation = "https://KaiRawal.github.io/Rule-of-Thumb-Explaining-Artificial-Intelligence-Systems-using-Partial-Information/"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0",
@@ -38,9 +45,13 @@ dev = [
     "scikit-learn>=1.3",
     "pandas>=2.0",
 ]
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/ruleofthumb"]
+docs = [
+    "mkdocs>=1.6",
+    "mkdocstrings[python]>=0.28",
+    "mkdocs-material>=9.0",
+    "mkdocs-jupyter>=0.25",
+    "mkdocs-include-markdown-plugin>=6.0",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -10,7 +10,11 @@ The default model is ``answerdotai/ModernBERT-base``; both the tokeniser and
 the model can be overridden by callers who need a different backbone.
 """
 
+from __future__ import annotations
+
 import dataclasses
+from collections.abc import Sequence
+from typing import Any
 
 import numpy as np
 import torch
@@ -56,15 +60,15 @@ def _decode_tokens(tokenizer, input_ids):
 
 
 def embed_texts(
-    texts,
-    model_name=DEFAULT_TEXT_MODEL,
+    texts: Sequence[str],
+    model_name: str = DEFAULT_TEXT_MODEL,
     *,
-    tokenizer=None,
-    model=None,
-    max_length=None,
-    batch_size=32,
-    device=None,
-):
+    tokenizer: Any | None = None,
+    model: Any | None = None,
+    max_length: int | None = None,
+    batch_size: int = 32,
+    device: Any | None = None,
+) -> TextEmbeddings:
     """Tokenise and embed raw strings with a HuggingFace transformer.
 
     Args:

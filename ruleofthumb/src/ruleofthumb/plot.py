@@ -23,7 +23,10 @@ class bias are packed into a :class:`shap.Explanation` and handed to
 ``shap.plots.waterfall`` / ``force`` / ``decision`` / ``bar`` / ``beeswarm``.
 """
 
+from __future__ import annotations
+
 import html as _html
+from typing import Any
 
 import matplotlib.colors
 import matplotlib.pyplot as plt
@@ -199,7 +202,15 @@ def text_matplotlib(importance_row, tokens, *, max_tokens=None, width=16):
     return figure
 
 
-def saliency(heatmap, image=None, *, power=1.0, trim=2.0, size=(5, 5), ax=None):
+def saliency(
+    heatmap: np.ndarray,
+    image: np.ndarray | None = None,
+    *,
+    power: float = 1.0,
+    trim: float = 2.0,
+    size: tuple[float, float] = (5, 5),
+    ax: Any | None = None,
+):
     """Signed saliency overlay: red pixels push toward the class, blue against.
 
     Port of the legacy overlay algorithm: a sign-preserving power transform,

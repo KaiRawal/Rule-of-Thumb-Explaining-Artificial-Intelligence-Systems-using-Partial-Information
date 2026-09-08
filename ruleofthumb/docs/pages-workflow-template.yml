@@ -1,0 +1,57 @@
+# Template: GitHub Pages workflow for the ruleofthumb docs site.
+#
+# DEFERRED with ToDo item 17 (no CI workflows for now): do not wire this
+# up. Publishing is manual — see PUBLISH.md §5 for the one-time deploy.
+# Kept inside ruleofthumb/ so it travels with the subdirectory on the
+# planned split (`git subtree split -P ruleofthumb`). Do NOT create
+# `.github/workflows/` at the monorepo root in this branch — that would
+# touch files outside ruleofthumb/ against AGENTS.md.
+#
+# When CI is wanted later: copy this file to
+# `.github/workflows/docs-rot.yml` at the repo root (monorepo) or to
+# `.github/workflows/docs.yml` in the standalone repo (dropping the
+# `working-directory` / `paths` scoping).
+#
+# Requires: Settings → Pages → Source: GitHub Actions.
+
+name: docs-rot
+
+on:
+  push:
+    tags:
+      - "ruleofthumb-v*"
+    paths:
+      - "ruleofthumb/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ruleofthumb
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -e ".[docs]"
+      - run: mkdocs build --strict
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ruleofthumb/site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

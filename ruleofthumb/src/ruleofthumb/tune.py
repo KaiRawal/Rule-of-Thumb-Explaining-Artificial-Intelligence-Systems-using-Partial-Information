@@ -7,8 +7,11 @@ held-out data by final-step reveal fidelity, and the winner is refit on all
 data.
 """
 
+from __future__ import annotations
+
 import dataclasses
 import itertools
+from typing import Any
 
 import numpy as np
 import torch
@@ -95,17 +98,17 @@ def _validation_score(explainer, x_val, y_val):
 
 
 def autotune(
-    y_outputs,
-    x_inputs,
+    y_outputs: Any,
+    x_inputs: Any,
     *,
-    modality="auto",
-    search="random",
-    n_candidates=8,
-    space=None,
-    validation_split=0.25,
-    seed=None,
-    device=None,
-):
+    modality: str = "auto",
+    search: str = "random",
+    n_candidates: int = 8,
+    space: dict[str, list[Any]] | None = None,
+    validation_split: float = 0.25,
+    seed: int | None = None,
+    device: Any | None = None,
+) -> AutotuneResult:
     """Search the training hyperparameters and return the best fitted explainer.
 
     Candidates are fitted on a seeded train split via the regular

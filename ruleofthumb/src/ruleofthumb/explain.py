@@ -11,8 +11,11 @@ returns signed, SHAP-comparable importances: class-1 contributions for
 binary tasks, full per-class output for ``n_classes > 2``.
 """
 
+from __future__ import annotations
+
 import functools
 import os
+from typing import Any
 
 import numpy as np
 import torch
@@ -246,7 +249,7 @@ def _from_payload_value(value, device):
     return value
 
 
-def load_explainer(path, *, device=None):
+def load_explainer(path: str | os.PathLike, *, device: Any | None = None) -> Explainer:
     """Load an :class:`Explainer` saved with :meth:`Explainer.save`.
 
     Args:

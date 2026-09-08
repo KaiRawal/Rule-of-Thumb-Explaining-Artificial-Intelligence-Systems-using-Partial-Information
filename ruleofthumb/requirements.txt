@@ -24,3 +24,11 @@ ruff==0.16.4
 build==1.5.0
 nbclient==0.11.0
 jupyter==1.1.1
+
+# docs site only (pip install -e ".[docs]"; see docs/ + PUBLISH.md)
+mkdocs==1.6.1
+mkdocstrings==1.0.6
+mkdocstrings-python==2.0.8
+mkdocs-material==9.7.7
+mkdocs-jupyter==0.26.3
+mkdocs-include-markdown-plugin==7.3.0

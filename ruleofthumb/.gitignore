@@ -1,0 +1,17 @@
+# Split-ready ignores for the ruleofthumb package.
+# This file travels with the subdirectory so a future
+# `git subtree split -P ruleofthumb` yields a clean standalone repo.
+dist/
+build/
+*.egg-info/
+src/*.egg-info/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+# docs build outputs (generated; see PUBLISH.md one-command docs build)
+site/
+docs/notebooks/
+.cache/

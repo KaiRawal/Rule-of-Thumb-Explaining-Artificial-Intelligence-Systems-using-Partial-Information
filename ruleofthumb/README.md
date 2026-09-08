@@ -1,6 +1,13 @@
 # ruleofthumb
 
+> ⚠️ **Experimental 0.0.x pre-alpha.** This package was entirely vibe-coded
+> from hand-written research code. It may break, and backwards-incompatible
+> changes are expected before any 1.0. Verify explanations before trusting
+> them.
+
 Rule of Thumb (RoT): explaining AI systems using partial information.
+
+Documentation: https://KaiRawal.github.io/Rule-of-Thumb-Explaining-Artificial-Intelligence-Systems-using-Partial-Information/ — full guides live in `docs/` (`mkdocs.yml`), built with `pip install -e ".[docs]" && mkdocs build --strict`.
 
 RoT trains a simple, transparent surrogate ("rule of thumb") on partial
 observations of a black-box model's behaviour. The surrogate attributes the
@@ -45,6 +52,17 @@ python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 pytest
 ```
+
+To build the docs site locally (from `ruleofthumb/`, one command — stages
+the `examples/` notebooks under `docs/notebooks/` (gitignored), executes
+them, and validates links):
+
+```bash
+pip install -e ".[docs]" && mkdir -p docs/notebooks && cp examples/0*.ipynb docs/notebooks/ && mkdocs build --strict
+```
+
+Once this subdirectory becomes its own repo, the same commands run from
+the new repo root (`git clone <new repo>`, `pip install .`).
 
 ## Usage
 
@@ -385,6 +403,10 @@ behaviour.
 
 ## Status
 
-v0.2.1 is a cleaned structural port of the original experiment code with
-explicit, generalised padding support; known limitations and planned
-follow-ups are tracked in `ToDo.md`.
+v0.0.1 is the first public pre-alpha: a vibe-coded consolidation of the
+original experiment code, published to reserve the PyPI name and invite
+early feedback. Expect breakage and backwards-incompatible changes before
+any 1.0. Internally this continues the 0.2.x line (explicit masks,
+unit-granularity reveal curves, explainer facade, native string/path
+ingestion, persistence, autotuning, plotting, non-linear shapes); known
+limitations and planned follow-ups are tracked in `ToDo.md`.
