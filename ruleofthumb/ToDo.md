@@ -44,6 +44,20 @@ features build on, then new functionality.
 18. PyPI release checklist: build sdist + wheel, twine upload, tag releases
     consistently with the three-place version bump (`pyproject.toml`,
     `src/ruleofthumb/__init__.py`, `tests/test_explain.py` assertion).
+19. **Fully operational documentation website for the pip package.** Build a
+    versioned docs site from inside `ruleofthumb/` (new `docs/` tree only —
+    never touch the frozen legacy `website*`/`site*` directories): API
+    reference for every public entry point (`fit`, `fit_tabular`,
+    `fit_text`, `fit_image`, `Explainer`, `autotune`, `embed_texts`,
+    `load_explainer`, `load_images`, `pad_sequences`, `pad_images`,
+    `sentinel_mask`, `ruleofthumb.plot`), modality usage guides with the
+    executed `examples/` notebooks, the v0.1→v0.2 migration guide, the
+    pooled-capacity/backbone guidance (README Limitations + item 16 numbers),
+    and the `tests/TEST_SUITE.md` report. Publish via the item-17 CI
+    workflow (e.g. GitHub Pages on tag), with link-checked builds and a
+    per-release version selector. Done when a clean checkout builds the
+    site with one command and every public symbol is reachable from the
+    landing page.
 
 ## Non-goals
 
