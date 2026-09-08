@@ -1,0 +1,3 @@
+[submodule "Rule-of-Thumb"]
+	path = Rule-of-Thumb
+	url = https://github.com/KaiRawal/Rule-of-Thumb.git
